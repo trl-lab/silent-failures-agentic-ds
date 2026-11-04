@@ -1,6 +1,7 @@
 # The Silent Failures in Agentic Data Science
 
 [![Paper](https://img.shields.io/badge/arXiv-2610.14115-b31b1b.svg)](https://arxiv.org/pdf/2610.14115)
+[![Project page](https://img.shields.io/badge/Project-page-blue.svg)](https://trl-lab.github.io/ds-agent-failures/)
 
 This repository provides the code, prompts, and released outputs needed to reproduce the agentic data-science failure-mode study presented in [arXiv:2610.14115](https://arxiv.org/pdf/2610.14115). The study evaluates coding agents (AIDE, MLEvolve, and a zero-shot ReAct baseline) on tabular ML tasks and uses an LLM judge to evaluate their generated pipelines against a 15-mode failure taxonomy.
 
