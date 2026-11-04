@@ -1,0 +1,152 @@
+{
+ "task": "contributions-to-financial-intermediary-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test data during exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "num_imputer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly handles missing values by defining and applying a SimpleImputer for numerical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_processed[numerical_features] = num_imputer.fit_transform(X_train[numerical_features])\nX_test_processed[numerical_features] = num_imputer.transform(X_test[numerical_features])",
+   "reasoning": "The imputer is properly fitted only on the training data and then used to transform the test data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Since the agent does not split the training data at all for validation, it is impossible to determine if temporal order would have been respected.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "params = {\n    'objective': 'regression',",
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the continuous target variable.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_dataset = lgb.Dataset(X_train_combined, label=y_train.values)\n...\nmodel = lgb.train(params, train_dataset, num_boost_round=500)",
+   "reasoning": "The model is trained on the full dataset and predicts directly on the test set, with no holdout or cross-validation set established to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model on any validation set, so it does not generate a single evaluation score to report.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Because there is no validation step, the agent does not rely on a single metric for evaluation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "'objective': 'regression',",
+   "reasoning": "The task is accurately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "('num', num_imputer, numerical_features),\n('cat', cat_encoder, categorical_features)",
+   "reasoning": "The agent uses raw columns directly, applying only basic imputation and one-hot encoding without constructing derived features or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "SyntaxError in Pipeline Definition",
+   "description": "The code contains malformed syntax with an unclosed parenthesis/bracket mismatch, which will cause the script to crash immediately upon parsing.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "('model', lgb.LGBMRegressor objective=\"regression\", force_col_wise=True))"
+  },
+  {
+   "name": "KeyError on Target Column in Test Set",
+   "description": "The script attempts to extract the target column from both the train and test data using a generic function. If the test set lacks the target column (as is standard in holdout test datasets), it will raise a KeyError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = df_clean[TARGET_COL]\n...\nX_test, y_test, _ = prepare_dataframe(df_test)"
+  },
+  {
+   "name": "Hardcoded and Loss of Submission IDs",
+   "description": "The submission file generates a generic sequential ID column from `range()` rather than preserving the actual identifier column from the test set, which will likely invalidate the submission structure.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "\"id\": range(len(predictions))"
+  }
+ ],
+ "summary": "The agent's solution exhibits critical fatal execution errors, specifically a SyntaxError in the pipeline definition and an assumption that the test set contains the target column. Setting aside execution failures, the agent violates standard modeling practices by completely skipping internal validation (no train/validation split) and using raw features with zero feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

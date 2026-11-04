@@ -1,0 +1,141 @@
+{
+ "task": "drug-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any manual EDA or explicitly peek at test data statistics to make decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans data by filling missing text values with empty strings and using SimpleImputer for tabular features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection and dimensionality reduction (SVD) are correctly fitted only on the training data after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied using SimpleImputer fitted only on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "date_cols = [col for col in df_all.columns if \"date\" in col.lower()]\n...\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent explicitly identifies and extracts temporal features (date columns) but uses a randomized StratifiedKFold for validation, ignoring temporal order and potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers (ComplementNB, LogisticRegression, LGBMClassifier) for the multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold cross-validation strategy to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 cross-validation folds, which inherently averages over multiple runs and random states to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "accuracy = accuracy_score(y, oof_preds)\nprint(f\"5-Fold CV Accuracy: {accuracy:.5f}\")",
+   "reasoning": "The agent relies solely on accuracy to evaluate the multi-class classification model, without verifying class balance or reporting metrics like F1-score that are more robust to imbalance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a multi-class classification task matching the target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including temporal date parts, text metadata extraction, TF-IDF, and TruncatedSVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated stacking approach, utilizing out-of-fold predictions from Naive Bayes and Logistic Regression as meta-features for the final LGBM classifier.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "The agent applies frequency encoding on the combined train and test dataset before splitting. This leaks the distribution and exact category counts from the test set into the training features, leading to overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts(normalize=True).to_dict()\n    df_all[f\"{col}_freq\"] = df_all[col].map(freq).fillna(0)"
+  }
+ ],
+ "summary": "The agent builds a strong and complex pipeline involving TF-IDF, SVD dimensionality reduction, and an effective stacking ensemble. However, the solution suffers from a critical data leakage flaw by calculating frequency encodings across the combined train and test sets prior to splitting. Furthermore, it ignores temporal ordering by using randomized cross-validation on time-dependent data, and relies exclusively on accuracy as an evaluation metric without considering potential class imbalances.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

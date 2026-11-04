@@ -1,0 +1,140 @@
+{
+ "task": "local-law-enforcements",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X, X_test], axis=0)\nfor cat in group_cats:\n    for num in num_cols[:6]:\n        mean_series = combined.groupby(cat, observed=False)[num].transform(\"mean\")",
+   "reasoning": "The agent concatenates the training and test sets to compute group-level aggregates and frequency encodings, leaking test set feature distributions into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by adding a missing value count feature and filling missing coordinates/categoricals, rather than ignoring them.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied to the dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants (0 or 'missing'), which does not leak statistics between sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unknown if the dataset has a strict temporal order that must be respected during splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression and the agent appropriately uses regression models (LGBMRegressor, CatBoostRegressor).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, evaluating the model on multiple different splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent only calculates RMSE and does not evaluate model performance using other metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including 3D coordinates, datetime parts, string lengths, frequencies, and group aggregates.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_pred = 0.5 * val_pred_lgb + 0.5 * val_pred_cb",
+   "reasoning": "The agent uses a naive equal-weight average to ensemble the models without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Arbitrary feature selection for feature engineering",
+   "description": "Selecting a fixed number of arbitrary features based purely on column order (e.g., first N columns) for feature engineering can omit important interaction terms and inadvertently include irrelevant ones.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for num in num_cols[:6]:  # Select key numerical features"
+  }
+ ],
+ "summary": "The agent implements a generally solid machine learning pipeline with comprehensive feature engineering and 5-fold cross-validation. However, it leaks test set distribution statistics into the training data by concatenating train and test sets to compute frequency encodings and group-level aggregates. Additionally, it uses a naive equal-weight ensemble and arbitrarily selects the first 6 numerical features for creating group interactions.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

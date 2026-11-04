@@ -1,0 +1,152 @@
+{
+ "task": "cat-in-the-dat-ii",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes an explicit effort to handle missing values by filling them (even if the implementation has a minor quirk).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No continuous feature scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant rather than a fitted statistic, so no imputation statistics are leaked.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal component, so random/stratified splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Logistic regression is an appropriate model for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_val, val_pred)",
+   "reasoning": "The agent only computes ROC AUC and does not verify performance with any other classification metrics like log-loss or calibration.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task is framed correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_df[col] = X_train_df[col].astype(str).fillna(\"missing\")",
+   "reasoning": "The agent applies a simple one-hot encoding to all raw columns without extracting any derived features or interaction terms, which are typically crucial for high-cardinality categorical tasks.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test_sparse)[:, 1] / n_splits",
+   "reasoning": "The agent combines the predictions of the cross-validation folds using a naive, unweighted average without attempting any tuned blending.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM14": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via preprocessor fitting on test data",
+   "description": "The agent fits a preprocessor (e.g., OneHotEncoder) on the combined training and test sets. While this prevents unknown category errors, it technically leaks the test set's feature vocabulary into the training pipeline setup.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_data = pd.concat([X_train_df, X_test_df], axis=0, ignore_index=True)\nohe.fit(all_data)"
+  },
+  {
+   "name": "Ineffective imputation logic",
+   "description": "The agent attempts to fill missing values with a string after casting the entire column to string. Because `astype(str)` converts NaNs to the literal string 'nan', the subsequent `.fillna()` operation does nothing, leaving 'nan' as the category instead of the intended 'missing'.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_df[col] = X_train_df[col].astype(str).fillna(\"missing\")"
+  },
+  {
+   "name": "No hyperparameter tuning",
+   "description": "The agent uses hardcoded hyperparameters without implementing any search or tuning strategy, which may leave significant model performance on the table.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = LogisticRegression(\n        C=0.1, max_iter=1000, solver=\"lbfgs\", random_state=42 + fold, n_jobs=-1\n    )"
+  }
+ ],
+ "summary": "The agent successfully implements a 5-fold cross-validation pipeline with a logistic regression model. However, it completely skips feature engineering, which is highly beneficial for categorical datasets, and leaks the test set vocabulary by fitting the OneHotEncoder on the combined data. Furthermore, it relies solely on ROC AUC for evaluation and uses an unweighted average for its CV ensemble.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

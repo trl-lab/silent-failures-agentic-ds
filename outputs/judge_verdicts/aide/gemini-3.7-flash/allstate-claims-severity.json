@@ -1,0 +1,138 @@
+{
+ "task": "allstate-claims-severity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cat_cols = [c for c in train_df.columns if c.startswith(\"cat\")]\ncont_cols = [c for c in train_df.columns if c.startswith(\"cont\")]",
+   "reasoning": "The agent proceeds directly to feature separation and engineering without any checks or handling for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scalers or normalisation transformations are applied before or after splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on the dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses XGBoost for regression, which is perfectly suited for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic XGBoost model across 5 different folds, averaging the results, rather than running a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_mae = mean_absolute_error(y, oof_preds)\nprint(f\"Validation MAE: {cv_mae:.4f}\")",
+   "reasoning": "The agent only computes and reports the MAE metric, without calculating secondary metrics (like RMSE or R2) to contextualise the performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem, including standard domain tricks like predicting log(loss + shift).",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including continuous interactions, statistical aggregations, and categorical interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (np.exp(model.predict(dtest)) - SHIFT) / kf.n_splits",
+   "reasoning": "The agent combines the models from the 5 CV folds using a simple, unweighted average without attempting any weighting or stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Frequency Encoding on Combined Data",
+   "description": "The agent concatenates the training and test sets to compute frequency encodings. This leaks the categorical distribution of the test set into the training features, which can artificially inflate performance metrics or cause the model to overfit to the test set's distribution.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].value_counts(normalize=True).to_dict()\ncombined_df[f\"{col}_freq\"] = combined_df[col].map(freq).astype(np.float32)"
+  }
+ ],
+ "summary": "The agent implements a generally strong solution for the Allstate Claims Severity task, correctly applying log transformations, custom Fair loss, and extensive feature engineering. However, it fails to perform basic data cleaning, uses a naive equal-weight average for ensembling its CV folds, and leaks test set distribution information into the training data by calculating frequency encodings on the combined train-test dataframe.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,153 @@
+{
+ "task": "ramen-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with 'Missing' and removes invalid target rows.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is fit only on a subset of the training data (train_idx), not the combined train and test dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection and extraction (SVD, TF-IDF) are fit on the training dataset alone, isolating the test set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the combined dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classification models for the classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The MLPClassifier uses L2 regularization (alpha=1e-3) and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold stratified cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final inference, not for model evaluation or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 cross-validation folds, properly accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for accuracy, which is exactly the designated metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly frames the task as a multi-class classification problem as required.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including text features, interaction features, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes ensemble blend weights using Nelder-Mead on out-of-fold predictions rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage in Cross-Validation",
+   "description": "Feature extractors (like TF-IDF or PCA/SVD) are fit on the entire training dataset before cross-validation. This leaks information from the validation folds into the training folds, making the out-of-fold cross-validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_w_tr = tfidf_word.fit_transform(train_df[\"composite_text\"]) ... svd_train = svd.fit_transform(tfidf_combined_tr) ... followed by CV loop: X_tr, y_tr = X_all.iloc[train_mask]"
+  },
+  {
+   "name": "Inconsistent Training Split Usage",
+   "description": "The script creates an 80/20 train/validation split and fits some feature transformers (Scaler, LabelEncoder, Frequency Encoding) only on the 80% split. However, it then performs 5-fold cross-validation over 100% of the training data, meaning 20% of the training data has degraded or improperly scaled features during cross-validation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scaler.fit(X_train_full.loc[train_idx, numeric_feature_cols]) ... followed by CV loop over full data: train_mask = (train_df[\"fold\"] != fold).values"
+  }
+ ],
+ "summary": "The agent provides a highly robust and sophisticated solution, properly handling isolation of test data and utilizing advanced feature engineering (target encoding, text embeddings) and ensembling (Nelder-Mead weight optimization). The primary flaws are structural inconsistencies in the cross-validation pipeline: fitting TF-IDF/SVD on the full training set (causing mild CV leakage) and fitting scalers/encoders on an unused 80% split (causing feature degradation during CV).",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

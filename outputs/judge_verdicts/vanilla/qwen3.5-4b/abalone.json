@@ -1,0 +1,155 @@
+{
+ "task": "abalone",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.mean(numeric_only=True))",
+   "reasoning": "The agent explicitly attempts to impute missing values using the column means.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.mean(numeric_only=True))\nX_test = X_test.fillna(X_test.mean(numeric_only=True))",
+   "reasoning": "Imputation is not done on the combined full dataset before splitting (though doing it on the test set separately using test statistics is another issue).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'objective': 'regression'",
+   "reasoning": "The agent correctly uses a regression objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "valid_data = lgb.Dataset(X_test, label=y_test)",
+   "reasoning": "The agent uses the provided test set as the validation set and does not create an internal train/validation split from the training data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n        params,\n        train_data,\n        num_boost_round=1000,",
+   "reasoning": "The LightGBM model (which includes stochastic subsampling elements) is trained exactly once with no cross-validation or repeated runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "'metric': 'rmse',",
+   "reasoning": "The agent only optimises and evaluates using RMSE, without checking if it is the most appropriate metric or evaluating with complementary metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TARGET_COLUMN = \"Class_number_of_rings\"",
+   "reasoning": "The task is correctly formulated as predicting the number of rings.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != TARGET_COLUMN]",
+   "reasoning": "The agent uses the raw columns as-is and does not attempt any feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fatal Execution Error",
+   "description": "The code crashes because it attempts to call `len()` on a boolean object. The Pandas `.empty` property returns a boolean, not a collection.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if len(train_df[feature_cols].empty):"
+  },
+  {
+   "name": "Assuming Target in Test Set",
+   "description": "The agent attempts to extract the target column from the test dataset, which typically causes a KeyError as test sets provided for prediction do not contain the target labels.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = test_df[TARGET_COLUMN].copy() # Keep for reference if needed"
+  },
+  {
+   "name": "Data Leakage via Early Stopping",
+   "description": "The agent uses the test set as the validation set for early stopping, which leaks information about the test set into the model's training process (by deciding when to stop).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "valid_sets=[valid_data],\n        callbacks=[lgb.early_stopping(stopping_rounds=100, verbose=False)]"
+  },
+  {
+   "name": "Improper Test Set Imputation",
+   "description": "The agent imputes missing values in the test set using the mean of the test set itself, rather than using the mean calculated from the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.mean(numeric_only=True))"
+  }
+ ],
+ "summary": "The agent's solution contains a fatal execution error due to misusing the pandas `.empty` property. Beyond this, the logic suffers from several critical flaws: it attempts to extract the target column from the test set, improperly uses the test set for early stopping (data leakage), and imputes test data using test set statistics rather than training statistics. Furthermore, the agent implements no internal validation split or feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

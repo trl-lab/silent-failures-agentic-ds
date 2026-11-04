@@ -1,0 +1,145 @@
+{
+ "task": "petfinder-pawpularity-score",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or inspect the test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing medians for numeric columns and encoding categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like median and frequency counts) are calculated solely on the training data and then applied to the test data, avoiding test leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression, and the agent appropriately uses regression models (LGBMRegressor, XGBRegressor, etc.).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_proc.iloc[val_idx], y[val_idx]",
+   "reasoning": "The agent sets up a KFold cross-validation loop and extracts validation folds, but completely ignores them and never computes any validation metric to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 10 folds with different random seeds, so it does not rely on a single run of a stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate any metrics at all, so it does not fail by relying on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the Pawpularity prediction as a regression problem and clips the target outputs to the valid [1.0, 100.0] range.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates derived features such as the sum and mean of binary columns, as well as frequency encoding for categorical columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use an unweighted/equal-weight average, but instead uses a manually weighted average (0.35, 0.35, 0.20, 0.10).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission ID format",
+   "description": "The agent creates artificial sequential IDs for the submission file instead of preserving and using the original unique identifiers from the test dataset. This guarantees that the submission file will fail downstream evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_df))"
+  },
+  {
+   "name": "Arbitrary ensemble weights",
+   "description": "The agent combines predictions from multiple models using arbitrary, hardcoded weights without performing any optimization, weight search, or stacking to justify the blend ratio.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "final_preds = 0.35 * lgb_preds + 0.35 * cat_preds + 0.20 * xgb_preds + 0.10 * ridge_preds"
+  }
+ ],
+ "summary": "The agent successfully implements a robust data processing pipeline, including appropriate imputation without test leakage and suitable feature engineering. However, the solution suffers from a critical flaw: despite setting up a KFold cross-validation loop, the agent never evaluates the models on the validation folds, providing no estimate of model performance. Additionally, the agent incorrectly overwrites the test IDs with sequential integers, which will cause the submission file to fail evaluation completely.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "electric-generating-plants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly splits the data before performing any exploration or statistical computation.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly drops missing targets, fills missing values with the median, and creates missing indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fits the RobustScaler exclusively on X_train and applies it to validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation uses medians calculated exclusively on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly checks for date columns and employs a temporal train/validation split if they exist.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor and a custom Transformer with MSELoss) for this continuous target regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates dropout, weight decay, and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent holds out a separate validation set (15%) and evaluates models on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(... random_state=SEED ...)",
+   "reasoning": "The agent trains its stochastic models (both LightGBM with subsampling and the PyTorch model) exactly once using a single random seed, without averaging multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = float(np.sqrt(mean_squared_error(y_val, val_pred)))",
+   "reasoning": "The agent only calculates and reports RMSE, without evaluating secondary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including target encoding, date parts, and missing indicators.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Premature execution termination",
+   "description": "The script contains a hard exit midway through the file, meaning the majority of the intended solution (including the primary deep learning model) is dead code that will never be executed.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "raise SystemExit(0)\n\n# =============================================================================\n# Step 2: Model design\n# =============================================================================\n"
+  },
+  {
+   "name": "Discarding test IDs",
+   "description": "The script drops ID columns during preprocessing and creates synthetic sequence IDs for the submission file, which will result in a submission format error if the task expects the original test IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "drop_cols = [c for c in train.columns if c.lower() in id_like and c != TARGET]\ntrain = train.drop(columns=drop_cols, errors=\"ignore\")\ntest = test.drop(columns=drop_cols, errors=\"ignore\")\n...\nsubmission = pd.DataFrame({\"id\": np.arange(len(test_pred), dtype=int), \"NET_GEN\": test_pred})"
+  }
+ ],
+ "summary": "The data science methodology is generally sound, with proper leakage-free feature engineering, imputation, and temporal splitting. However, a critical execution flaw (`raise SystemExit(0)`) prevents the main PyTorch model from ever running, and the agent incorrectly overwrites the original test IDs with a synthetic sequence, which will break the submission format.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "wine-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly isolates the test data by using `train_mask = processed_combined[\"is_test\"] == 0` when calculating group statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n...\ncombined_df = pd.concat([train_df, test_df], ignore_index=True)\n...\nprocessed_combined = engineer_domain_features(combined_df)",
+   "reasoning": "The agent makes no effort to handle missing values or duplicates before feature engineering and modeling. This is particularly risky because scikit-learn's Random Forest and ExtraTrees regressors cannot natively handle NaNs and will crash if any are present.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a robust 10-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is purely used for generating final predictions, not for selecting models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic models across 10 cross-validation folds, accounting for variance rather than relying on a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_lgb_rmse = np.sqrt(mean_squared_error(y_va, oof_lgb[val_mask]))",
+   "reasoning": "The agent evaluates and reports only the RMSE metric, without computing secondary metrics like MAE to assess the impact of potential outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is accurately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a very extensive and well-reasoned set of domain-specific features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal weighted blend of the OOF predictions rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature statistics leakage across CV folds",
+   "description": "Aggregating feature statistics (e.g., mean and standard deviation) over the entire training set before cross-validation causes minor data leakage, as the validation folds' data contributes to the statistics used during their own evaluation.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "group_stats = (\n    processed_combined[train_mask]\n    .groupby(\"color_code\")[col]\n    .agg([\"mean\", \"std\"])\n    .reset_index()\n)"
+  }
+ ],
+ "summary": "The agent implements a highly structured pipeline with strong domain-specific feature engineering, proper cross-validation, and sophisticated ensemble weight optimization. However, it completely skips basic data cleaning, which introduces execution risks for the scikit-learn models if the data contains missing values. Additionally, there is minor feature leakage during cross-validation due to calculating global training set aggregations before the CV loop.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

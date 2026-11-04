@@ -1,0 +1,142 @@
+{
+ "task": "optiver-trading-at-the-close",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly drops rows with missing targets and relies on LightGBM's native handling for missing feature values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a financial time series, but the agent uses a randomized cross-validation split, introducing look-ahead bias by leaking future data into the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation to create train/validation splits.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, accounting for data variance rather than relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimises for MAE, which is the appropriate and requested metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements several domain-specific derived features like 'volume_imbalance' and 'price_spread'.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_predictions += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent uses a naive unweighted average to combine the predictions of the 5 fold models without any tuning.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission format",
+   "description": "The agent fabricates submission IDs using an arbitrary range index instead of retaining and using the actual identifier column required by the task, which will cause the submission to fail or be evaluated incorrectly.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub = pd.DataFrame({\n    'id': np.arange(len(test_df)),\n    'target': test_predictions\n})"
+  }
+ ],
+ "summary": "The agent implements a LightGBM model with solid domain-specific feature engineering. However, it critically fails to respect the temporal nature of the dataset by using a randomized K-Fold split, which introduces severe look-ahead bias. Furthermore, the agent incorrectly constructs the final submission file by fabricating IDs instead of using the required `row_id`s from the test set.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

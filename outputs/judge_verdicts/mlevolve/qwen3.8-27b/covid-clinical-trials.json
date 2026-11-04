@@ -1,0 +1,142 @@
+{
+ "task": "covid-clinical-trials",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or perform EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly handles missing values using SimpleImputer and string fillna.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fits the imputer only on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "train_test_split(X_train_full, y_full, ids_full, test_size=0.25, random_state=42)",
+   "reasoning": "The dataset contains temporal date features (e.g., 'First Posted'), but the agent uses a random split instead of a time-based split, which risks look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, xgb with reg:squarederror) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a train/validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_1.fit(\n    X_train_proc, y_train_log,\n    eval_set=[(X_val_proc, y_val_log)]",
+   "reasoning": "The models use stochastic elements (e.g., feature/bagging fractions) but are only trained and evaluated once, without multiple seeded runs to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val_part, val_pred_raw))",
+   "reasoning": "The agent solely evaluates the model using RMSE and doesn't calculate any other metrics to understand performance comprehensively (e.g. MAE to check robustness to outliers).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as predicting the continuous target 'days_to_complete'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (TF-IDF, medical keywords, date parsing, binning, frequency/target encoding).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "inv_rmse = np.array([1.0/rmse_1, 1.0/rmse_2, 1.0/rmse_3])\nweights = inv_rmse / inv_rmse.sum()",
+   "reasoning": "The agent implements a weighted ensemble based on the inverse validation RMSE of each model, rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "log_target_rmse_mismatch",
+   "description": "The agent applies a log transformation to the target variable but still optimizes for RMSE on the log scale during training. Because the final evaluation metric is RMSE on the raw scale, optimizing for log-scale RMSE (effectively RMSLE) systematically underestimates the mean on the raw scale due to Jensen's inequality, worsening the final raw RMSE.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train_log = np.log1p(y_train_part)\n...\nobjective: 'regression', metric: 'rmse'\n...\nval_pred_raw = np.expm1(val_pred_ensemble)"
+  }
+ ],
+ "summary": "The solution is largely well-structured, successfully applying robust feature engineering and strictly avoiding data leakage by fitting transformers (like TF-IDF and Target Encoders) solely on the training split. However, it fails to account for the temporal nature of the clinical trials by opting for a random split, and evaluates its stochastic models only once. Additionally, optimizing RMSE on a log-transformed target systematically biases the predictions against the true raw-scale RMSE evaluation metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,157 @@
+{
+ "task": "aca-federal-upper-limits-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or compute statistics on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via imputation and categorizes missing text.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fit on the training data only after the split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics like medians are computed strictly on the training fold.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_idx, val_idx = train_test_split(np.arange(len(X_all)), test_size=0.2, random_state=42, shuffle=True)",
+   "reasoning": "The ACA FUL dataset has a temporal component (monthly updates), but the agent uses a random split, causing future data to leak into the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models used are appropriate regressors for the continuous target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates dropout, batch normalization, layer normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is created and used for evaluation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Model selection and ensemble blending are done on the validation set, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = build_model(\"lgbm\", random_state=42)",
+   "reasoning": "Each model is trained and evaluated only once using a single random seed, without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_rmse = np.sqrt(mean_squared_error(y_va_arr, lgb_va_pred))",
+   "reasoning": "The agent only computes RMSE and does not report other relevant metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent generates numerous features including datetime parts, regex extractions, TF-IDF SVD, and target encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent intelligently optimizes ensemble weights via SLSQP rather than taking a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation for skewed positive variable",
+   "description": "The agent models a strictly positive, potentially highly skewed target directly without applying a log or similar transformation, which can lead to poor performance and predicting negative values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_tr_arr = y_tr.values.astype(np.float32)\n... lgb_va_pred = np.maximum(0.0, lgb_model.predict(processed_va))"
+  },
+  {
+   "name": "Validation leakage in ensembling",
+   "description": "The agent uses the same validation set for model early stopping and for optimizing ensemble blending weights, leading to biased, overfitted ensemble weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(..., eval_set=[(processed_va, y_va_arr)])\n... \nopt_res = minimize(blend_loss, ...)"
+  }
+ ],
+ "summary": "The agent implements a solid regression pipeline with extensive feature engineering and target encoding. However, it fails to account for the temporal structure of the ACA FUL dataset by employing a random train/test split, leading to temporal data leakage. It also reuses the early stopping validation set to fit ensemble weights, causing sequential overfitting, and ignores the highly skewed nature of the target variable.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

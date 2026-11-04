@@ -1,0 +1,145 @@
+{
+ "task": "diabetes-130",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "unique_vals = list(set(X_train[col].unique()).union(set(X_test[col].unique())))",
+   "reasoning": "The agent uses test data to collect unique categorical values for fitting the LabelEncoder, leaking test distribution information.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = X_train.select_dtypes(include=['object', 'category']).columns.tolist()",
+   "reasoning": "The agent makes no explicit effort to handle missing values, duplicates, or outliers before training, relying entirely on string conversion and the model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not split the data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for the classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Predict on test data\ntest_preds = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without any internal validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "model = lgb.LGBMClassifier(\n    n_estimators=300,\n    learning_rate=0.05,\n    random_state=42,\n    n_jobs=-1\n)",
+   "reasoning": "The agent uses a stochastic model with a fixed random seed and does not average predictions over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a classification task on the 'readmitted' column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in cat_cols:\n    X_train[col] = X_train[col].astype(str)",
+   "reasoning": "The agent uses the raw features with basic label encoding and performs no derived feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Generating synthetic IDs for submission",
+   "description": "The agent generates a generic sequence of numbers (e.g., np.arange) for the ID column in the output predictions rather than using the actual identifier column from the test dataset. This can lead to misaligned predictions and evaluation failures.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_df))"
+  },
+  {
+   "name": "Ordinal encoding without categorical specification",
+   "description": "The agent uses LabelEncoder to convert categorical variables into integers but does not specify them as categorical features to the model (e.g., via LightGBM's categorical_feature parameter). This causes the model to treat them as continuous ordinal variables, which is incorrect for nominal categories.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = le.transform(X_train[col])"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM pipeline but fails to include any data cleaning, feature engineering, or internal validation. Crucially, the agent generates synthetic IDs for the test predictions instead of using the dataset's original IDs, which will likely break downstream evaluation. Additionally, the categorical encoding slightly leaks test data information and fails to leverage LightGBM's native categorical handling.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 1,
+ "stage_count_max": 8,
+ "no_code": false
+}

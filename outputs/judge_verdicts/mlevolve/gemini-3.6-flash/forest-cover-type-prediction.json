@@ -1,0 +1,141 @@
+{
+ "task": "forest-cover-type-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at test data distributions to inform its choices.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent removes zero-variance columns and explicitly sanitizes inputs with np.nan_to_num, which acts as basic data cleaning.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "zero_var_cols = [c for c in combined.columns if combined[c].nunique() <= 1]\nif zero_var_cols:\n    combined.drop(columns=zero_var_cols, inplace=True)",
+   "reasoning": "The agent applies a zero-variance filter (a form of feature selection) to the combined train and test dataset before splitting, which leaks test set information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classification models.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses StratifiedKFold cross-validation for its base models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated using 5-fold cross-validation, which naturally averages performance over multiple runs and data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_lgb_acc = accuracy_score(y_va, np.argmax(oof_lgb[val_indices], axis=1))",
+   "reasoning": "The agent relies entirely on accuracy to evaluate its folds and optimize the ensemble, without verifying if it is robust to potential class imbalances.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive domain-specific spatial and topographic feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Nelder-Mead optimization to find the optimal blending weights for its multi-model ensemble.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ensemble evaluation leak",
+   "description": "The ensemble's blending weights are optimized on the full out-of-fold predictions, and the reported final validation score is computed on this exact same set. This means the ensemble layer is evaluated on its own training data, leading to an overoptimistic final score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, init_weights, bounds=bounds, method=\"Nelder-Mead\")\n...\nfinal_acc = accuracy_score(y_true_all, final_oof_preds)\nprint(f\"Final Validation Score: {final_acc}\")"
+  }
+ ],
+ "summary": "The agent presents a generally robust and well-engineered pipeline, utilizing domain-specific feature engineering, 5-fold cross-validation, and a well-constructed multi-model ensemble. However, it suffers from two notable flaws: computing zero-variance columns on the combined dataset (which causes minor data leakage) and optimizing the ensemble blending weights on the full OOF set while reporting the score on that same set (which causes the final validation score to be an overoptimistic training score for the ensemble layer).",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

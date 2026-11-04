@@ -1,0 +1,142 @@
+{
+ "task": "paediatric-investigation-plan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or manually inspect test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values explicitly using constant imputation (e.g., fillna(-1) and fillna('__MISSING__')).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scalers are fit on the full dataset prior to splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_word = TfidfVectorizer(\n    max_features=5000, ngram_range=(1, 2), token_pattern=r\"(?u)\\b\\w+\\b\"\n)\nword_mat = tfidf_word.fit_transform(text_data)\n\nn_components = min(15, word_mat.shape[1] - 1) if word_mat.shape[1] > 15 else 1\nsvd = TruncatedSVD(n_components=n_components, random_state=42)\nword_svd = svd.fit_transform(word_mat)",
+   "reasoning": "The agent fits a TfidfVectorizer and TruncatedSVD (PCA) on the combined train and test data, leaking test set vocabulary and variance into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No stateful imputers are fit on the full dataset; only constant fill values are used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is administrative classification, not a strict time series forecasting problem that requires temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses Stratified 5-Fold Cross-Validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models using cross-validation, which inherently averages performance over multiple data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_accuracy = accuracy_score(y_train, oof_preds)\nprint(f\"OOF Validation Accuracy: {oof_accuracy:.5f}\")",
+   "reasoning": "The agent only computes and reports accuracy, without checking other metrics to verify if accuracy is appropriate given potential class imbalance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date extraction, text SVD, and categorical frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_val_blend = 0.40 * preds_xgb_val + 0.35 * preds_lgb_val + 0.25 * preds_cb_val",
+   "reasoning": "The agent ensembles predictions using hardcoded arbitrary weights without any tuning, optimization, or stacking to find the optimal combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage via frequency encoding on combined data",
+   "description": "The agent computes category frequencies on the combined train and test dataset, leaking test set distribution statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_series = combined_df[col].fillna(\"__MISSING__\").astype(str)\nfreq_map = cat_series.value_counts(normalize=True).to_dict()\nengineered_features[f\"{col}_freq\"] = cat_series.map(freq_map).astype(float)"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline featuring automated feature engineering, cross-validation, and model ensembling. However, it critically leaks test data by fitting TF-IDF, TruncatedSVD, and frequency encoders on the concatenated train and test sets (FM09). Furthermore, the ensemble relies on hardcoded weights without optimization (FM12), and only accuracy is evaluated without considering class balance (FM15).",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

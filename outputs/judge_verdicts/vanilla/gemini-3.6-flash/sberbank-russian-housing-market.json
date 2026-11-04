@@ -1,0 +1,108 @@
+{
+ "task": "sberbank-russian-housing-market",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent leaves missing values in numerical features untouched, relying entirely on the tree models' default behaviors to handle them without any explicit imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a clear temporal component ('timestamp' representing transaction dates), but the agent uses a randomized KFold split, which introduces look-ahead bias by training on future data to predict past data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_log_preds = 0.4 * lgb_preds + 0.3 * xgb_preds + 0.3 * cat_preds",
+   "reasoning": "The agent combines the predictions of three different models using arbitrary, hardcoded weights without performing any weight search or stacking to optimize the blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper Categorical Handling for Tree Models",
+   "description": "Categorical features are label-encoded into integers but are not explicitly passed as categorical features to the tree models (e.g., via `categorical_feature` in LightGBM or `cat_features` in CatBoost). As a result, the models treat them as numerical features, inappropriately assuming an ordinal relationship.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train[col] = train[col].map(cat_map).fillna(-1).astype(int)"
+  },
+  {
+   "name": "Silent Evaluation / No Validation Score Reported",
+   "description": "The script runs cross-validation but suppresses all output and never calculates or logs an aggregate validation metric. This leaves the user with no way to estimate the model's actual performance locally.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "verbose=False"
+  }
+ ],
+ "summary": "The solution demonstrates reasonable feature engineering and correctly applies a log transformation to the target variable. However, it suffers from a critical temporal leakage flaw by using random cross-validation instead of a time-based split. Furthermore, it relies on naive ensembling with arbitrary weights, fails to report any validation metrics, and does not declare categorical features properly to the tree models.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

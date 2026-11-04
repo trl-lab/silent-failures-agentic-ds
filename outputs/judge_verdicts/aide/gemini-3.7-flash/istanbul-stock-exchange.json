@@ -1,0 +1,153 @@
+{
+ "task": "istanbul-stock-exchange",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning (missing value imputation) is performed via fillna(0).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "PCA is correctly fit within the CV loop on the training folds only.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is done with a constant (0) which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=SEED)",
+   "reasoning": "The dataset is a financial time series, but the agent uses standard KFold with shuffling instead of a time-based split, introducing severe look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses 5-fold cross validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates stochastic models via 5-fold CV, which provides an averaged estimate of performance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, final_oof_preds))",
+   "reasoning": "The agent only calculates and reports RMSE, without evaluating other metrics like MAE or R2 to understand model performance comprehensively.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is appropriate for predicting stock exchange returns.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts cyclical date features, market spreads, and interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated SLSQP optimizer to find optimal weights for the ensemble.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Biased ensemble evaluation",
+   "description": "The agent optimizes ensemble weights on the full Out-Of-Fold (OOF) predictions and then calculates the final CV score on this exact same optimized OOF set. This leads to an overly optimistic CV score because the combination was overfit to the evaluation data without an independent holdout.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, init_weights, bounds=bounds, method=\"SLSQP\")\nopt_weights = res.x / np.sum(res.x)\nfinal_oof_preds = np.dot(oof_matrix, opt_weights)\ncv_rmse = np.sqrt(mean_squared_error(y, final_oof_preds))"
+  },
+  {
+   "name": "Execution Failure",
+   "description": "The agent's code execution environment failed to start the REPL child process, preventing the code from running and producing actual results.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "CRITICAL REPL child process failed to start execution"
+  }
+ ],
+ "summary": "The agent creates a sophisticated pipeline with good feature engineering, correct scaling/PCA inside CV loops, and an optimized ensemble. However, it completely ignores the temporal nature of the stock exchange data by using a shuffled KFold split, which will cause massive look-ahead bias and invalidate the cross-validation results. Additionally, the final ensemble score is slightly biased as it is evaluated on the same data used to optimize its weights, and the run ultimately crashed due to a REPL execution failure.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

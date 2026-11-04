@@ -1,0 +1,138 @@
+{
+ "task": "drug-ndc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"dea_schedule\", axis=1)\ny_train = train_df[\"dea_schedule\"]",
+   "reasoning": "The agent loads the data and passes it directly to the model without any explicit data cleaning strategy, relying entirely on LightGBM to handle missing values or inconsistencies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is not clear if there is a temporal order to the data that would require a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification objective for this m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the stochastic model multiple times across different data splits, sufficiently averaging out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "accuracy = accuracy_score(y_val_fold, y_pred_class)",
+   "reasoning": "The agent evaluates the model using only accuracy, ignoring other metrics like F1-score which are often necessary for multi-class classification tasks to understand class imbalances.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"dea_schedule\", axis=1)",
+   "reasoning": "Raw features are passed straight to the model without any derived features, domain-informed transforms, or categorical encoding.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fatal shape mismatch in multiclass predictions",
+   "description": "For multiclass objectives, gradient boosting models output a 2D array of probabilities (one per class). Converting these to discrete class labels requires taking the argmax along the class axis (e.g. np.argmax(y_pred, axis=1)). Using np.round() instead creates a 2D multilabel-indicator array, which causes a ValueError when passed to metric functions expecting 1D arrays or when assigned to a DataFrame column.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred_class = np.round(y_pred).astype(int)\naccuracy = accuracy_score(y_val_fold, y_pred_class)"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM model with 5-fold cross-validation but completely neglects data cleaning and feature engineering. Crucially, the solution contains a fatal execution error: it attempts to extract multiclass labels from predicted probabilities using `np.round()` instead of `np.argmax()`, which will cause the evaluation metric and submission creation to crash due to a dimensionality mismatch.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

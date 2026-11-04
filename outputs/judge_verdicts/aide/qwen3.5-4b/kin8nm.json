@@ -1,0 +1,134 @@
+{
+ "task": "kin8nm",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values\ny_train = train_df[target].values",
+   "reasoning": "The agent makes no effort to check for or handle missing values, duplicates, or outliers before passing the raw data to the scaler and model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is correctly fit only on the training set after splitting off the holdout validation set and the test set, avoiding train/test leakage (though it leaks across CV folds).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs both a 5-fold cross-validation and a separate holdout validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model via 5-fold cross-validation, averaging the scores across multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_fold_val, y_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without checking other metrics to verify performance robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent uses the raw features directly without attempting any domain-informed feature engineering or interactions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage during cross-validation",
+   "description": "Applying a scaler or normalizer to the entire training set before splitting it into cross-validation folds leaks distribution statistics (mean/variance) from the validation folds into the training folds, leading to overly optimistic CV scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train_scaled)):"
+  }
+ ],
+ "summary": "The agent provides a structurally sound LightGBM training pipeline with cross-validation and early stopping. However, it completely skips data cleaning and feature engineering, relies on only a single evaluation metric, and introduces data leakage during cross-validation by fitting the scaler before the CV splits.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

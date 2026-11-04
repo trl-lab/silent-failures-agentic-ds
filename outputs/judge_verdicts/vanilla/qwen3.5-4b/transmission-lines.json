@@ -1,0 +1,145 @@
+{
+ "task": "transmission-lines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy=\"median\")",
+   "reasoning": "The agent explicitly uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_processed = preprocessor.fit_transform(X_train)\nX_test_processed = preprocessor.transform(X_test)",
+   "reasoning": "Scaling is applied correctly using a pipeline fitted only on the training set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_processed = preprocessor.fit_transform(X_train)\nX_test_processed = preprocessor.transform(X_test)",
+   "reasoning": "Imputation is fitted only on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no indication of a temporal component requiring chronological splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = xgb.XGBClassifier(objective=\"auto\", use_label_encoder=True, eval_metric=\"multiclass\", random_state=42)",
+   "reasoning": "An XGBClassifier is appropriate for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train)\n\n# Predictions\ny_pred = model.predict(X_test_processed)",
+   "reasoning": "The agent trains on the full training data and predicts on the test set without any internal validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = xgb.XGBClassifier(..., random_state=42)\nmodel.fit(X_train_processed, y_train)",
+   "reasoning": "The XGBoost model is trained exactly once with a fixed random seed, with no averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics or verify if a single metric is appropriate (as it completely lacks validation).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = xgb.XGBClassifier(objective=\"auto\", use_label_encoder=True, eval_metric=\"multiclass\", random_state=42)",
+   "reasoning": "The multiclass classification task is framed correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(...)",
+   "reasoning": "The agent applies standard imputation and encoding but does not engineer any new features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Failure (Invalid pandas API)",
+   "description": "The code crashes immediately because it attempts to use a pandas API function that does not exist (`infer_objects_from_dtype`).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if pd.api.types.infer_objects_from_dtype(train_df[col]) not in [np.float64, np.int64, np.int32]:"
+  },
+  {
+   "name": "Missing Target Encoding for XGBoost",
+   "description": "Modern versions of XGBoost require target labels for multiclass classification to be strictly encoded as sequential integers from 0 to num_classes-1. The agent passes raw labels into the model, which will cause a crash if the target column contains strings or non-sequential classes.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "y_train = train_df[TARGET_COL]\n...\nmodel.fit(X_train_processed, y_train)"
+  }
+ ],
+ "summary": "The agent attempts a standard data preprocessing pipeline and uses XGBoost, successfully avoiding data leakage. However, the code completely lacks internal validation (FM06), feature engineering (FM07), and fails during execution due to calling a non-existent pandas function.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

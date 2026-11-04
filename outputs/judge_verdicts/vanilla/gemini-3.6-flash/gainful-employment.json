@@ -1,0 +1,137 @@
+{
+ "task": "gainful-employment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "s_num = s_clean.str.replace('$', '', regex=False).str.replace('%', '', regex=False).str.replace(',', '', regex=False)",
+   "reasoning": "The agent actively cleans the data by parsing numeric strings, handling custom missing value representations, and dropping invalid target rows.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined[col] = s_clean.fillna('Missing').astype(str)",
+   "reasoning": "Missing values are filled with a constant string ('Missing') rather than statistical properties (like mean/median), so no test distribution statistics leak into training.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb = LGBMRegressor(",
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses K-Fold cross-validation to properly evaluate and train the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += fold_pred / kf.n_splits",
+   "reasoning": "The agent averages predictions across 5 folds, mitigating the variance of a single stochastic model run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The default evaluation metric for LGBM and CatBoost is RMSE, which perfectly aligns with the task's required metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a continuous regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_proc = combined.iloc[:len(train)].copy()",
+   "reasoning": "The agent uses the raw cleaned columns as-is and does not attempt any feature engineering, derived features, or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_pred = (lgb_pred + cb_pred) / 2.0",
+   "reasoning": "The agent combines the LGBM and CatBoost models using a naive, unweighted average instead of tuning the blend weights or stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded ID column generation",
+   "description": "The agent generates a synthetic ID column for the submission file using `np.arange()` instead of preserving the original IDs from the test set. This can lead to misaligned or invalid submissions if the true IDs are not sequentially starting from 0 or if the test set has a specific identifier column.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_preds))"
+  }
+ ],
+ "summary": "The agent provides a solid baseline by implementing extensive data cleaning, K-Fold cross-validation, and robust gradient boosting regressors. However, the solution suffers from a lack of feature engineering and relies on a naive, unweighted ensemble. Most critically, the agent hardcodes an `id` column using `np.arange()` for the submission file rather than retaining the original test indices, which could invalidate the submission.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

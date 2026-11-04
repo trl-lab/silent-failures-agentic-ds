@@ -1,0 +1,148 @@
+{
+ "task": "goodreads-books-reviews-290312",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_s = pd.concat([train[col], test[col]], axis=0)\n        freq_map = full_s.value_counts(normalize=True).to_dict()",
+   "reasoning": "The agent computes category frequencies using both the training and test sets combined, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "tr_dt = pd.to_datetime(train[col], errors='coerce')",
+   "reasoning": "The agent explicitly handles missing values via fillna() and coerces invalid data types.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants (-1 or empty strings) rather than imputed using population statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains dates (which the agent explicitly extracts), but the agent uses random KFold splitting, ignoring the temporal order of reviews.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = 'rating'\ny_train = train[target_col].values.astype(np.float32)",
+   "reasoning": "Regression is an appropriate model type for predicting a continuous or ordinal rating.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses cross-validation to create out-of-fold predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The code is truncated before any stochastic model (like LightGBM) is trained or evaluated.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The code is truncated before evaluation metrics are calculated.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation as regression for rating is standard and correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train['text_char_len'] = tr_str.str.len().astype(np.float32)",
+   "reasoning": "The agent creates numerous derived features, including date parts, text statistics, TF-IDF, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "X_train['tfidf_ridge'] = oof_ridge",
+   "reasoning": "The agent uses stacking (out-of-fold predictions from Ridge as features), which is a sophisticated ensembling technique.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incomplete code",
+   "description": "The final provided code is severely truncated and ends with an incomplete line, resulting in a SyntaxError that prevents execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_cats = train.iloc[val_idx][col]\n            oof_te"
+  },
+  {
+   "name": "Cross-validation leakage",
+   "description": "A transformer is fit on the entire training set before cross-validation, leaking information from the validation folds into the training folds and leading to overly optimistic OOF scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr_tfidf = tfidf.fit_transform(tr_str)\n        ...\n        for tr_idx, val_idx in kf.split(train):"
+  }
+ ],
+ "summary": "The agent employs sophisticated feature engineering, including TF-IDF and out-of-fold target encoding. However, it leaks test data by computing frequency encoding on the concatenated train and test sets, suffers from cross-validation leakage by fitting TF-IDF globally before splitting, and provides a truncated script that cannot be executed.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "cohort-default-rate",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(normalize=True).to_dict()\ncombined[f\"{col}_freq\"] = combined[col].map(freq).fillna(0)",
+   "reasoning": "The agent fits a frequency encoding transformer on the combined train and test dataset, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined[f\"{col}_isnan\"] = combined[col].isnull().astype(int)",
+   "reasoning": "The agent explicitly adds missing value indicators and then correctly relies on the tree models' native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined[col] = combined[col].astype(str).fillna(\"__MISSING__\")",
+   "reasoning": "Missing values in categorical columns are filled with a constant string, which does not leak distribution statistics, and numerical missingness is un-imputed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.train(\n    lgb_params, ...)",
+   "reasoning": "The agent uses binary classification models (LightGBM, XGBoost, CatBoost) which are appropriate for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly uses Stratified 5-Fold Cross-Validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "blend_oof = w1 * oof_lgb + w2 * oof_xgb + w3 * oof_cat",
+   "reasoning": "The agent uses out-of-fold (OOF) predictions to optimize blend weights, keeping the test set strictly held out.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):",
+   "reasoning": "The agent trains and evaluates over 5 cross-validation folds, accounting for variance rather than a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "auc_lgb = roc_auc_score(y, oof_lgb)",
+   "reasoning": "The agent evaluates the models exclusively using ROC-AUC without checking other relevant classification metrics like accuracy, precision, or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "target_col = \"Average or Greater than 30\"\n...\ny = train_df[target_col].astype(int).values",
+   "reasoning": "The agent correctly formulates the problem as a binary classification task on the provided target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined[f\"{c1}_add_{c2}\"] = combined[c1] + combined[c2]",
+   "reasoning": "The agent includes explicit feature engineering, such as frequency encoding and statistical aggregations for numerical pairs.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for w1 in np.linspace(0, 1, 11):\n...\nif score > best_auc:\n    best_weights = (w1, w2, w3)",
+   "reasoning": "The agent uses a grid search over OOF predictions to optimize blend weights, which is a sound ensembling strategy.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Pandas index misalignment in target encoding",
+   "description": "The agent's target encoding implementation groups a NumPy array (converted to a default-indexed Series) against a Pandas Series with original row indices, mismatching labels to features. It then multiplies Series with incompatible indices (categories vs row indices), causing the resulting encoded features to be mostly NaNs filled with the global mean.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "te_map = pd.Series(y_train_fold).groupby(X_train_fold[c]).mean()\n...\nsmoothed_te = (te_map * counts + global_mean * smooth) / (counts + smooth)"
+  },
+  {
+   "name": "Unused categorical feature declarations",
+   "description": "The agent label-encodes categorical variables and computes a list of their column indices, but fails to pass these indices to the gradient boosting models. Consequently, the models incorrectly treat unordered categorical variables as continuous numerical features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_indices = [X.columns.get_loc(c) for c in cat_cols if c in X.columns]"
+  }
+ ],
+ "summary": "The solution employs a solid overall framework with Stratified K-Fold cross-validation and a grid-search optimized ensemble of gradient boosting models. However, it suffers from a critical pandas index misalignment bug that completely corrupts its target encoding implementation. Additionally, it leaks test set distribution statistics via frequency encoding before splitting, fails to declare categorical features to the tree models, and evaluates solely on ROC-AUC.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

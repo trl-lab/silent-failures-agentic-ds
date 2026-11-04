@@ -1,0 +1,145 @@
+{
+ "task": "food-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent peeking at the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Initialize model (CatBoost handles categorical and missing values automatically)",
+   "reasoning": "The agent performs no explicit data cleaning, relying entirely on CatBoost to handle any missing values or categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No temporal splitting is required or missed here since the agent uses predefined splits.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostClassifier is an appropriate model type for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n    # Predict\n    y_pred_proba = model.predict_proba(X_test)",
+   "reasoning": "The agent trains on the entire training dataset and predicts on the test set without establishing an internal validation split to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(\n        iterations=500,\n        learning_rate=0.05,\n        depth=6,\n        eval_metric=\"MultiClass\",\n        verbose=0,\n        random_seed=42\n    )",
+   "reasoning": "The agent trains a stochastic model (CatBoost) exactly once with a fixed random seed, without ensembling or averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "eval_metric=\"MultiClass\"",
+   "reasoning": "The agent does not compute any metrics to evaluate model performance on a holdout set, and relies solely on the default optimization metric during training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[TARGET_COLUMN])",
+   "reasoning": "The agent uses raw columns directly as features without applying any domain-informed transformations or deriving new features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Accessing target column in test data",
+   "description": "The agent attempts to extract and drop the target column from the test dataset. In standard predictive modelling tasks, the test set does not contain the target, which causes a KeyError and halts execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = test_df[TARGET_COLUMN]\nX_test = test_df.drop(columns=[TARGET_COLUMN])"
+  },
+  {
+   "name": "Incorrect class label mapping",
+   "description": "The agent incorrectly assumes `predict()` returns indices instead of actual labels, and maps them using the unsorted `unique()` array from the training data. This will result in an execution error (e.g., TypeError) or completely incorrect/scrambled output labels.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred_indices = model.predict(X_test)\n    \n    # Verify if classes need conversion.\n    # In multi-class, predict returns indices of unique class labels found in train.\n    ...\n    train_y_unique = train_df[TARGET_COLUMN].unique()\n    \n    # Convert indices to actual class labels\n    y_pred_labels = np.array([train_y_unique[i] for i in y_pred_indices])"
+  }
+ ],
+ "summary": "The solution fails immediately due to an attempt to access the target column in the test dataset, which triggers a KeyError. Furthermore, the logic incorrectly assumes model predictions are indices and maps them using an unsorted unique array, which would scramble the predictions or cause another crash. The agent also completely skips data cleaning, feature engineering, and internal validation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 1,
+ "stage_count_max": 8,
+ "no_code": false
+}

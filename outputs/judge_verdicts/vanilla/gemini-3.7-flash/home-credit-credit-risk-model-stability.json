@@ -1,0 +1,141 @@
+{
+ "task": "home-credit-credit-risk-model-stability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or test peeking.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(...)",
+   "reasoning": "The agent relies entirely on the LightGBM model's internal capability to handle missing values without any explicit imputation or cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(",
+   "reasoning": "The agent correctly uses a classifier for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n    test_preds = model.predict_proba(X_test)[:, 1]",
+   "reasoning": "The agent trains on the training set and predicts on the test set without establishing any validation split to measure performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "model = LGBMClassifier(\n        n_estimators=100,\n        learning_rate=0.05,\n        num_leaves=31,\n        subsample=0.8,\n        colsample_bytree=0.8,\n        random_state=42,",
+   "reasoning": "The agent trains a stochastic model (using subsampling) exactly once and does not average multiple runs, though it also skips evaluation entirely.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics, so it cannot be faulted for using only one.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c not in ignore_cols and c in test_df.columns]",
+   "reasoning": "The agent uses raw columns merged from base and static tables without creating any derived features, aggregations, or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid submission format",
+   "description": "The agent creates a submission file using a generated sequence of integers for the ID column instead of the actual identifiers required by the task.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_preds))"
+  },
+  {
+   "name": "Unstratified subsampling on imbalanced data",
+   "description": "The agent subsamples a potentially highly imbalanced dataset to avoid OOM errors, but does so randomly without stratification, which could drastically reduce the number of minority class samples.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_base = train_base.sample(n=200000, random_state=42).reset_index(drop=True)"
+  }
+ ],
+ "summary": "The solution is a barebones pipeline that merges static tables and trains a LightGBM classifier. It suffers from a complete lack of a validation strategy (FM06), meaning no performance metrics are gathered to assess generalisation. Furthermore, the submission format is invalid because the required 'case_id' is replaced with a simple integer range, and the unstratified aggressive subsampling risks discarding critical minority class samples.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

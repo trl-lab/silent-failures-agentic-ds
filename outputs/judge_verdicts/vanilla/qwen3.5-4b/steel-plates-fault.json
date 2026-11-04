@@ -1,0 +1,148 @@
+{
+ "task": "steel-plates-fault",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively attempts to handle missing values using median and mode imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The data is already provided as separate train and test sets, and imputation statistics are calculated on the training data only.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostClassifier is an appropriate model type for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_imputed.values, y_train_int.values)\n    \n    # Make predictions on test set\n    y_pred_int = model.predict(X_test.values)",
+   "reasoning": "The agent trains on the full training set and predicts directly on the test set without establishing an internal validation set or computing validation scores.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = cb.CatBoostClassifier(\n        depth=6, \n        iter_num=1000, \n        learning_rate=0.05, \n        loss_function='Multi-Class_CrossEntropy', \n        n_jobs=-1,\n        verbosity=0,\n        random_state=42\n    )",
+   "reasoning": "The agent trains a stochastic model (CatBoost) exactly once, rather than averaging over multiple runs with different random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Since the agent does not evaluate the model internally, it does not explicitly report or optimise an evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard multi-class classification problem and the agent frames it appropriately.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_columns].copy()",
+   "reasoning": "The agent uses the raw columns as-is and does not attempt any feature engineering or derived features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure due to invalid library argument",
+   "description": "The agent passes a non-existent parameter to a library class/function, causing the script to crash immediately.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = cb.CatBoostClassifier(\n        depth=6, \n        iter_num=1000, \n        ..."
+  },
+  {
+   "name": "Train/test preprocessing mismatch",
+   "description": "The agent applies different preprocessing logic to the training and test sets, causing a distribution mismatch. Here, the training data is ultimately filled with zeros while the test data is filled with the training medians.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_imputed = X_train.fillna(0)\n... \nmodel.fit(X_train_imputed.values, y_train_int.values)"
+  },
+  {
+   "name": "Incorrect inverse label mapping",
+   "description": "The agent attempts to map integer predictions back to string labels using a dictionary in the wrong direction (passing values instead of keys), which will result in a KeyError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "class_map = {cls: i for i, cls in enumerate(y_train_unique)}\n...\ny_pred_orig = np.array([class_map[int(p)] for p in y_pred_int])"
+  }
+ ],
+ "summary": "The agent provides a flawed solution that fails to execute due to an invalid parameter ('iter_num') passed to CatBoostClassifier. Even if the code were to run, it suffers from critical logical errors including a severe preprocessing mismatch between train and test sets, and a dictionary lookup error when attempting to invert class labels. Additionally, the agent does not establish an internal validation set or perform any feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

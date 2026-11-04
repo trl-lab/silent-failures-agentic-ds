@@ -1,0 +1,146 @@
+{
+ "task": "food-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for EDA or to fit any distribution-based transformers before the split.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via imputation and missing-indicator features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is applied that leaks test statistics.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test information is not leaked into feature selection; SVD is fit only on the training data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation medians are computed strictly on the training set and applied to the test set, avoiding test leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The task involves events which typically have a temporal component (as evidenced by the agent explicitly extracting date features), but the agent uses a random stratified split instead of a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model evaluation or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds, mitigating single-run variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent monitors both log_loss (for ensemble optimization) and accuracy (the target metric).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multiclass classification formulation is correct for the task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering including cyclical date features, TF-IDF + SVD, and out-of-fold target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal blending weights, rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "cv_leakage_feature_engineering",
+   "description": "The agent performs global feature engineering (like computing imputation medians, TF-IDF, TruncatedSVD, and group aggregations) on the entire training dataset before cross-validation. This leaks information from the validation folds into the training folds, making the CV scores biased and overly optimistic (even though the test set itself is properly isolated).",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_base, train_medians = extract_base_features(train_raw) ... tfidf_word.fit_transform(train_text) ... svd.fit_transform(train_comb_vec) ... train_grp = train_raw.groupby(...)[ncol].agg(['mean', 'std']) ... all executed globally before the KFold split."
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated solution with robust out-of-fold target encoding, stacking, and optimized ensemble blending. However, it uses a random cross-validation split which ignores the temporal nature of the event data. Additionally, several feature engineering steps are fitted on the entire training dataset prior to cross-validation, which leaks validation information into the training folds and biases the internal CV scores.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

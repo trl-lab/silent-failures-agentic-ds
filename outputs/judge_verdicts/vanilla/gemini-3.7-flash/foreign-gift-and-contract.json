@@ -1,0 +1,156 @@
+{
+ "task": "foreign-gift-and-contract",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The train/test split is already established by the provided files, though the agent does combine them to fit a transformer (captured as an other_failure_mode).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "secs = np.where(is_nat, np.nan, arr.astype('int64'))",
+   "reasoning": "The agent makes no effort to handle numerical missing values, handle outliers, or remove duplicates, relying entirely on the tree models' native NaN handling capabilities.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalising is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains clear temporal components like 'Receipt Date' and 'Contract Start Date', but the agent uses a randomized K-Fold split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses K-Fold cross-validation to establish a validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 folds rather than evaluating exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "'metric': 'rmse'",
+   "reasoning": "The agent optimises solely on RMSE without verifying if it is robust enough (e.g., against outliers) for monetary amounts, and does not compute any secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated appropriately.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date components, duration, and text length features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent combines predictions using a naive equal-weight average without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Label Encoding Free Text",
+   "description": "Applying LabelEncoder to free-text fields (e.g., transaction descriptions or names) treats unique sentences as distinct categorical levels. This creates extremely high cardinality, meaningless categories that tree models cannot effectively split on, potentially leading to overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le.fit(pd.concat([X_train[col], X_test[col]], axis=0)) # where col can be 'Restricted Transaction Description'"
+  },
+  {
+   "name": "Missing Target Transformation",
+   "description": "Monetary amounts typically follow a highly skewed log-normal distribution. Predicting 'Amount' directly with an RMSE objective without a log transformation (or similar) will disproportionately penalize large values and degrade model performance on the majority of the data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = train_df[target_col].values"
+  },
+  {
+   "name": "Data Leakage from Test Set",
+   "description": "Fitting a transformer on the combined train and test sets before transformation leaks test set categories or distributions into the training process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le.fit(pd.concat([X_train[col], X_test[col]], axis=0))"
+  }
+ ],
+ "summary": "The agent attempts a structured solution with feature engineering and cross-validation but falls into several critical traps. It uses a random split on temporal data causing look-ahead bias, fails to log-transform a highly skewed monetary target, and improperly applies Label Encoding to free-text descriptions. Furthermore, it relies on a naive unweighted ensemble and leaves numerical missing values entirely to the models without explicit handling.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

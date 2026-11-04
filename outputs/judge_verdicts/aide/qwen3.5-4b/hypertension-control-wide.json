@@ -1,0 +1,145 @@
+{
+ "task": "hypertension-control-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of peeking at the test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\n    columns=[\"Estimated Percentage of Patients with Controlled Blood Pressure\"]\n)",
+   "reasoning": "The agent makes no effort to clean the data, relying entirely on LightGBM's native missing value handling without an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no indication that this is a time series task requiring temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\n    \"objective\": \"regression\",\n    \"metric\": \"rmse\",\n    \"boosting_type\": \"gbdt\",\n...",
+   "reasoning": "The agent configures LightGBM for regression (RMSE metric) despite the task being explicitly defined as binary classification.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, satisfying the requirement for multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_roc_auc.append(roc_auc_score(y_val_fold, oof_predictions[val_idx]))",
+   "reasoning": "The agent evaluates the model using only ROC AUC and does not verify performance with other metrics like log loss or accuracy.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is standard, though the model objective is wrong (which is captured by FM10).",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\n    columns=[\"Estimated Percentage of Patients with Controlled Blood Pressure\"]\n)",
+   "reasoning": "The agent uses the raw columns without deriving any new features, applying domain-informed transformations, or capturing interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overfitting final model due to lack of early stopping",
+   "description": "The agent uses early stopping during cross-validation to find the optimal model, but trains the final model on all data for a hardcoded maximum number of iterations (1000) without early stopping or using the optimal number of rounds found during CV.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    params, lgb.Dataset(X_train, label=y_train), num_boost_round=1000\n)"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates submission IDs using a simple range instead of retaining the original IDs from the test dataset, risking misaligned or rejected submissions if test IDs are not 0-indexed and perfectly sequential.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "\"id\": range(len(X_test)),"
+  }
+ ],
+ "summary": "The agent successfully implements a cross-validation loop and trains a LightGBM model, but fundamentally misunderstands the task type by using a regression objective for a classification problem. Furthermore, it completely skips data cleaning and feature engineering, and its final model training process is prone to overfitting due to ignoring the optimal early stopping rounds discovered during cross-validation.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

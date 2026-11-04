@@ -1,0 +1,152 @@
+{
+ "task": "clear-corpus",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or feature design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the text data and handles missing values in numerical columns using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting; TF-IDF and SVD are appropriately fit inside the CV loop.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_meta = train_df[num_cols].fillna(train_df[num_cols].median()).values",
+   "reasoning": "The agent calculates and applies the median imputation on the entire training dataset before cross-validation splitting, leaking validation statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is not a time-series task, so standard KFold is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (RidgeCV, LightGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The final test set is only used for generating final predictions, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds_ensemble)",
+   "reasoning": "The agent only computes the task's primary metric (RMSE) and does not calculate any secondary metrics (like MAE) to evaluate robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task on the provided target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts an extensive set of structural, readability, and statistical features from the text.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble weights using scipy.optimize.minimize rather than using a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent creates synthetic sequential IDs for the submission file instead of preserving and using the actual ID column from the test set, which will cause the submission to be misaligned or rejected.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_df))"
+  },
+  {
+   "name": "Biased OOF Predictions via Early Stopping",
+   "description": "The agent uses the cross-validation validation fold for early stopping and then generates out-of-fold (OOF) predictions on that exact same fold. This evaluates the model on data it just used to optimize `num_boost_round`, making the OOF predictions overly optimistic and biasing the downstream ensemble optimization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "valid_sets=[lgb_val], callbacks=[lgb.early_stopping(50)]\n...\noof_preds_lgb[val_idx] = gbm.predict(X_va_lgb)"
+  }
+ ],
+ "summary": "The agent implements a strong pipeline with extensive textual feature engineering, proper inside-CV transformations (TF-IDF, SVD, Scaling), and an optimized ensemble. However, it critically fails by hardcoding sequential IDs for the final submission, which breaks evaluation. Additionally, there is minor data leakage from pre-split imputation and biased OOF predictions caused by reusing the validation fold for early stopping.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

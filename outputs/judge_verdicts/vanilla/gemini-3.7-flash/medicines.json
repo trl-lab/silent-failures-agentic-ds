@@ -1,0 +1,152 @@
+{
+ "task": "medicines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or to inform preprocessing decisions before the split.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with 'Missing'.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string ('Missing'), meaning no statistical imputation is fit on the dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses classification models (LGBMClassifier, CatBoostClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold to create a proper train/validation split for evaluating early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses K-Fold cross-validation, meaning the model is trained and evaluated across multiple folds rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any explicit metrics during training, relying only on default early stopping metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives new features by concatenating all row values and applying TF-IDF.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent combines LightGBM and CatBoost predictions using a naive, unweighted 50/50 average without attempting to tune the blending weights based on validation performance.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Treating numerical features as categorical strings",
+   "description": "The agent indiscriminately casts all features to strings and applies LabelEncoding to them. For numerical columns, this destroys their ordinal relationship and magnitude, as the numbers will be encoded based on their alphabetical string sorting (e.g., '10' is sorted before '2').",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_raw[col] = X_train_raw[col].fillna('Missing').astype(str)\n... combined = pd.concat([X_train_raw[col], X_test_raw[col]], axis=0).astype(str)\n    le.fit(combined)"
+  },
+  {
+   "name": "Inappropriate application of NLP to tabular data",
+   "description": "The agent concatenates all feature columns (including numerical and categorical data) into a single text string per row and applies TF-IDF. This obscures the structured nature of tabular data and creates noisy, meaningless features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_text = X_train_raw.apply(lambda row: ' '.join(row), axis=1)\n... tfidf = TfidfVectorizer(max_features=500, stop_words='english', token_pattern=r'(?u)\\\\b\\\\w+\\\\b')"
+  },
+  {
+   "name": "No performance reporting",
+   "description": "The agent sets up a cross-validation loop and trains models, but never computes or prints any validation metrics. This makes it impossible to assess the model's performance offline or detect issues before generating the submission.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_all, y)):\n... (trains models and accumulates predictions, but no print statements or metric calculations)"
+  }
+ ],
+ "summary": "The agent implements a K-fold cross-validation setup using LightGBM and CatBoost, but blindly averages their predictions without tuning the ensemble weights. Additionally, the preprocessing pipeline applies NLP techniques (TF-IDF) and LabelEncoding to all columns indiscriminately, which would destroy the ordinality of any numerical features by treating them as strings. Finally, the agent fails to compute or log any offline validation metrics, making it impossible to evaluate the model's quality prior to submission.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

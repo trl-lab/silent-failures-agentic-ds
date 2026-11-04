@@ -1,0 +1,145 @@
+{
+ "task": "health-professional-shortage-areas",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test data during the setup or training phases.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [\"HPSA Score\", \"id\"]]",
+   "reasoning": "The agent makes no explicit effort to clean the data, handle missing values, or address outliers, relying entirely on LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset contains a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation loop to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, which inherently averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "evaluation_metric = np.sqrt(np.mean(cv_rmse))",
+   "reasoning": "The agent strictly uses and reports RMSE without evaluating secondary metrics like MAE to verify robustness against potential outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [\"HPSA Score\", \"id\"]]",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overlapping train and validation sets",
+   "description": "The validation set is created by taking a slice of the original dataframe, while the training set is a random sample of the entire dataframe. This causes significant overlap between the training and validation sets, leading to severe data leakage and optimistically biased early stopping.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df_sample = train_df.sample(frac=0.8, random_state=42)\nval_df = train_df.iloc[len(train_df_sample) :]"
+  },
+  {
+   "name": "Ignoring cross-validation models for final prediction",
+   "description": "The agent correctly implements a cross-validation loop but discards the models trained during CV. Instead, test predictions are generated using an initial model trained on a flawed, overlapping subset of the data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_predictions = model.predict(test_features)"
+  }
+ ],
+ "summary": "The agent successfully implements a LightGBM regressor and sets up a 5-fold cross-validation loop, but completely skips essential data cleaning and feature engineering. More critically, an incorrectly implemented initial train/validation split causes overlapping samples, introducing data leakage during early stopping; the agent then erroneously uses this compromised initial model for test predictions instead of the robustly trained cross-validation models.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

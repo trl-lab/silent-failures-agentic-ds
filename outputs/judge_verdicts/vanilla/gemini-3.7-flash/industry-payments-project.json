@@ -1,0 +1,142 @@
+{
+ "task": "industry-payments-project",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or inspect the test data directly.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling them with constants.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=20, random_state=42)\nsvd_features = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD are fit on the combined train and test text data before splitting, leaking test set information into the derived features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant ('__MISSING__' or -1), which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a 'reportYear' column indicating a temporal component, but the agent uses a randomized K-Fold split instead of a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LightGBM and CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, which inherently trains and evaluates the model multiple times.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "metric': 'rmse'",
+   "reasoning": "The agent only uses RMSE for optimization and evaluation, without considering other metrics like MAE that might be more robust for payment amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including TF-IDF, SVD, and text length statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent combines the LightGBM and CatBoost models using a naive, unweighted 50/50 average without any tuning to optimize the blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "Frequency encoding is applied to the combined train and test sets before splitting, which leaks information about the test set distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_df[f'{col}_freq'] = combined_df[col].map(combined_df[col].value_counts())"
+  }
+ ],
+ "summary": "The solution employs a solid cross-validated ensemble of LightGBM and CatBoost but suffers from critical data leakage issues. Specifically, TF-IDF, TruncatedSVD, and frequency encoding are applied to the combined train and test dataset prior to splitting. Furthermore, the agent ignores the temporal nature of the data by using a randomized K-Fold split, and uses a naive equal-weight ensemble without optimizing the combination.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

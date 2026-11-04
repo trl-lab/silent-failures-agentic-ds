@@ -1,0 +1,98 @@
+{
+ "task": "communities-and-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "missing_cols = [\n        c\n        for c in base_feature_cols\n        if train_eng[c].isna().any() or test_eng[c].isna().any()\n    ]",
+   "reasoning": "The agent checks the test dataset for missing values to determine which missing indicator columns to create, which is a minor form of peeking at the test distribution.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmse_objective(weights: np.ndarray) -> float:\n        blended = oof_matrix @ weights\n        clipped = np.clip(blended, 0.0, 1.0)\n        return root_mean_squared_error(y_train_full, clipped)",
+   "reasoning": "The agent exclusively tracks and optimizes for RMSE, failing to evaluate model performance on other relevant metrics like MAE or R-squared to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage during target encoding",
+   "description": "The agent applies target encoding to the training folds using the target means computed directly from those identical training folds. Without using out-of-fold strategies or leave-one-out smoothing, this causes the models (especially trees) to severely overfit to the encoded feature.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "state_target_mean = fold_train.groupby('state')[target_col].mean().to_dict()\n...\nfor df_curr in [fold_train, fold_val, fold_test]:\n    df_curr['state_target_enc'] = df_curr['state'].map(state_target_mean).fillna(global_target_mean)"
+  }
+ ],
+ "summary": "The agent implements a strong cross-validated pipeline with domain-specific feature engineering, proper in-fold scaling/imputation, a PyTorch Tabular ResNet, and an SLSQP-optimized ensemble. However, there is a critical target leakage introduced by mapping in-fold target means directly onto the same training folds during target encoding, which will cause severe overfitting. Additionally, the agent commits minor infractions by peeking at the test set to create missing indicators and relying solely on a single evaluation metric.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

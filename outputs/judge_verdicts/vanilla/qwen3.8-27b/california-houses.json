@@ -1,0 +1,146 @@
+{
+ "task": "california-houses",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col].astype(str), X_test[col].astype(str)], axis=0)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on a combination of training and test data, leaking test set categorical distributions into the preprocessing step.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning, including missing value imputation and categorical encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train[col].median()\n    X_train[col] = X_train[col].fillna(median_val)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.15, random_state=42)",
+   "reasoning": "The agent computes the median for imputation on the entire training set before splitting it into train and validation sets, leaking validation statistics into the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a strict temporal order that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates and evaluates on a validation split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only predicted on at the very end, not reused for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.15, random_state=42)",
+   "reasoning": "The agent evaluates its models on a single train/validation split without using cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_val, pred))",
+   "reasoning": "The agent only evaluates the models using RMSE and does not compute any secondary metrics (like MAE or R2) for a more holistic view of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "text_cols = ['Summary', 'Address']\nfor col in text_cols:\n    if col in train_df.columns:\n        train_df = train_df.drop(columns=[col])",
+   "reasoning": "The agent uses raw columns as-is and drops potentially informative text features entirely without attempting any feature engineering or extraction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ensemble_val = np.mean(val_preds, axis=0)",
+   "reasoning": "The agent ensembles the models using a naive unweighted average instead of tuning the combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid Submission ID Generation",
+   "description": "The agent drops the original 'Id' column from the test set early on and generates a synthetic sequential ID (e.g., using range()) for the submission file. If the original test IDs are not perfectly sequential starting from 0, the submission will be misaligned or rejected by evaluation systems.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = test_df.drop(columns=['Id'], errors='ignore')\n...\noutput_df = pd.DataFrame({\n    'id': range(len(final_pred)),\n    'Total interior livable area': final_pred\n})"
+  }
+ ],
+ "summary": "The agent provides a functional baseline using LightGBM, XGBoost, and CatBoost, but introduces several methodological flaws. Most critically, it drops the test set 'Id' column and fabricates sequential IDs for the final submission, which will cause evaluation failures if IDs are non-sequential. Additionally, the agent leaks data by fitting the LabelEncoder on the test set and imputing missing values before the validation split, and misses opportunities for feature engineering by completely discarding text columns.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

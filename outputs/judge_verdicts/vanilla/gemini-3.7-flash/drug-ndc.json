@@ -1,0 +1,142 @@
+{
+ "task": "drug-ndc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data before preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val = df[col].fillna('').astype(str)",
+   "reasoning": "The agent explicitly handles missing values by filling them with empty strings before text concatenation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_vec = vectorizer.fit_transform(X_train_text)\nX_test_vec = vectorizer.transform(X_test_text)",
+   "reasoning": "The TF-IDF vectorizer is correctly fit only on the training set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the provided train and test sets directly without custom splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "clf1 = LogisticRegression(C=5.0, max_iter=1000, random_state=42)\nclf2 = SGDClassifier(loss='log_loss', alpha=1e-5, max_iter=1000, random_state=42)\nclf3 = MultinomialNB(alpha=0.1)",
+   "reasoning": "The agent uses classification models which are appropriate for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "ensemble.fit(X_train_vec, y_train)\ny_pred = ensemble.predict(X_test_vec)",
+   "reasoning": "The agent trains on the entire training dataset and predicts on the test dataset without creating a validation split or computing any local validation score.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "clf1 = LogisticRegression(C=5.0, max_iter=1000, random_state=42)\nclf2 = SGDClassifier(loss='log_loss', alpha=1e-5, max_iter=1000, random_state=42)",
+   "reasoning": "Stochastic models (LogisticRegression, SGDClassifier) are trained and evaluated exactly once without multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model locally at all, so it does not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = le.fit_transform(train_df[target_col].astype(str))",
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "vectorizer = FeatureUnion([\n    ('word_tfidf', TfidfVectorizer(ngram_range=(1, 3), min_df=2, max_features=30000, sublinear_tf=True)),\n    ('char_tfidf', TfidfVectorizer(ngram_range=(3, 5), analyzer='char', min_df=3, max_features=30000, sublinear_tf=True))\n])",
+   "reasoning": "The agent engineers features by concatenating textual/categorical columns and applying both word and character-level TF-IDF.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ensemble = VotingClassifier(\n    estimators=[\n        ('lr', clf1),\n        ('sgd', clf2),\n        ('nb', clf3)\n    ],\n    voting='soft'\n)",
+   "reasoning": "The agent uses a naive unweighted soft voting ensemble without tuning the blend weights or using a more sophisticated stacking approach.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded ID generation in predictions",
+   "description": "The agent generates an arbitrary sequence of IDs (e.g. `np.arange(len(preds))`) for the final submission file instead of preserving the original identifier column from the test dataset. This can lead to misaligned predictions during evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(y_pred_labels))"
+  }
+ ],
+ "summary": "The agent implements a text-classification pipeline using TF-IDF and an ensemble of linear models. However, it completely bypasses internal validation, failing to establish a train/val split or evaluate performance before predicting on the test set. Additionally, it uses a naive unweighted ensemble and overwrites the test set's original IDs with a generic sequence in the output.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

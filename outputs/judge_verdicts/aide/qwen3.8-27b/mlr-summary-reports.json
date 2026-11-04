@@ -1,0 +1,145 @@
+{
+ "task": "mlr-summary-reports",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or explicitly fit transformers on test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a comprehensive clean_dataframe function to handle missing values, drop IDs, and format data types.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No formal feature selection (like SelectKBest or PCA) is applied to the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputation is fit; LightGBM handles missing values natively.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear from the task description if the dataset has a strict temporal order that must be respected.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM regressor is appropriate for predicting a continuous Adjusted MLR.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation to evaluate the model on the training data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, which averages performance over multiple data splits to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_va, pred_va)",
+   "reasoning": "The agent only evaluates the model using RMSE without verifying against other regression metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a straightforward regression task on the target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def clean_dataframe(df: pd.DataFrame, is_train: bool = False) -> pd.DataFrame:",
+   "reasoning": "The agent cleans the data and converts types, but completely fails to engineer any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test-dependent feature typing",
+   "description": "The data type (categorical vs numeric) of a feature in the training set is altered based on the test set's properties. If a feature has more non-numeric values in the test set, it might be cast to categorical in both sets, leaking test set statistics into the training preprocessing.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if train_is_cat or test_is_cat:\n    if not train_is_cat:\n        X[col] = X[col].astype(\"category\")"
+  },
+  {
+   "name": "Test-dependent feature dropping",
+   "description": "Columns that happen to be constant in the test set are dropped from the test dataframe, which then causes them to be dropped from the training set via column intersection, leaking test set variance into the feature selection process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "drop_cols = [col for col in df.columns if col != TARGET and df[col].nunique(dropna=True) <= 1]\ndf = df.drop(columns=drop_cols, errors=\"ignore\")\n...\nfeature_cols = [col for col in train.columns if col != TARGET and col in test.columns]"
+  }
+ ],
+ "summary": "The agent sets up a reasonable LightGBM regression pipeline with KFold cross-validation. However, it fails to perform any feature engineering and evaluates the model solely on RMSE. Additionally, its data alignment logic causes data leakage by allowing test set properties (variance and data types) to dictate how training features are selected and typed.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

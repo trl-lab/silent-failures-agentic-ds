@@ -1,0 +1,109 @@
+{
+ "task": "china-overseas-finance-inventory",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X_train):\n    # LightGBM\n    lgb = LGBMRegressor(n_estimators=500, learning_rate=0.03, random_state=42, verbose=-1)\n    lgb.fit(X_train.iloc[train_idx], y_train[train_idx])",
+   "reasoning": "The agent sets up a K-Fold split but completely ignores the validation indices (val_idx), failing to evaluate the models on holdout sets or calculate any internal validation metric.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in cat_cols:\n    X_train[col] = X_train[col].astype(str).fillna('missing')\n...\nfor col in num_cols:\n    X_train[col] = pd.to_numeric(X_train[col], errors='coerce')",
+   "reasoning": "The agent uses the raw numeric and categorical columns directly without extracting any derived features, interactions, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = (lgb_preds + cat_preds + xgb_preds) / 3.0",
+   "reasoning": "The agent combines the predictions of three different models using a simple equal-weight average without attempting to optimise the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Categorical features encoded as continuous integers for XGBoost",
+   "description": "The agent converts categorical features to integer codes and passes them to a model without enabling categorical support, forcing the tree model to treat unordered categories as having an arbitrary ordinal relationship.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_xgb[col] = X_train_xgb[col].cat.codes\n...\nxgb = XGBRegressor(n_estimators=500, learning_rate=0.03, random_state=42, max_depth=6)"
+  },
+  {
+   "name": "Discarded test set IDs",
+   "description": "The agent drops all identifier columns from the test set and uses a simple sequential range for the submission ID, which will likely cause the predictions to be rejected or misaligned by the evaluation system.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "id_cols_to_drop = ['unique_id', 'power_plant_name', ...]\n...\noutput_df = pd.DataFrame({\n    'id': range(len(final_predictions)),\n    'installed_capacity': final_predictions\n})"
+  }
+ ],
+ "summary": "The agent implements a K-Fold training loop with three gradient boosting models but completely fails to evaluate them, ignoring the validation splits and calculating no metrics to estimate generalisation. It applies no feature engineering, uses a naive unweighted average for ensembling, and incorrectly encodes categorical variables as continuous integers for XGBoost. Additionally, dropping test IDs and generating arbitrary sequential IDs for the output will likely break the submission format.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

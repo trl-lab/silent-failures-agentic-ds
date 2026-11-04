@@ -1,0 +1,51 @@
+{
+ "task": "allstate-claims-severity",
+ "failure_modes": {
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Data Leakage in Feature Engineering",
+   "description": "The agent concatenates the training and test sets to compute frequency encodings for categorical features. This leaks the distribution of the holdout test set into the training features, meaning the model's training process inappropriately depends on the specific test set provided.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_cat_df = pd.concat([train[cat_cols], test[cat_cols]], axis=0).reset_index(drop=True)\n...\nfreq = full_cat_df[col].value_counts()\ntrain[f\"{col}_freq\"] = train[col].map(freq).astype(np.float32)"
+  },
+  {
+   "name": "Nominal Categoricals as Continuous Features",
+   "description": "The agent encodes nominal categorical variables as integer codes and feeds them directly into a deep learning model as numerical features after standard scaling. Without using embeddings or one-hot encoding, this incorrectly implies a continuous ordinal relationship between independent categories.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train[col] = train[col].astype(cat_type).cat.codes.astype(np.int32)\n...\nscaler = StandardScaler()\nX_tr_sc = scaler.fit_transform(X[tr_idx])\n...\nmodel = TabularResNet(in_features=len(feature_cols))"
+  },
+  {
+   "name": "Feature Leakage Across Folds",
+   "description": "The agent computes group aggregations (mean and standard deviation of continuous features grouped by categorical features) on the entire training dataset before cross-validation. This leaks feature distribution information from the validation folds into the training folds during CV.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "grp_mean = train.groupby(cat_col)[cont_col].mean().astype(np.float32)\n...\ntrain[f\"grp_{cat_col}_{cont_col}_mean\"] = train[cat_col].map(grp_mean).astype(np.float32)"
+  }
+ ],
+ "summary": "The agent implements a generally strong pipeline featuring out-of-fold target encoding, correct cross-validation loops, and a robust ensembling strategy. However, the solution suffers from test data leakage by computing frequency encodings on the combined train/test sets, and it poorly handles categorical features in the neural network by treating integer codes as continuous numerical inputs.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

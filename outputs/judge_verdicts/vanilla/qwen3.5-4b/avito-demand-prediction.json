@@ -1,0 +1,152 @@
+{
+ "task": "avito-demand-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly attempts to handle missing values and encode categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit an imputer on the combined dataset before splitting, as the train and test sets are already provided separately.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the predefined train and test splits, so it does not incorrectly split time series data randomly.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the continuous target 'deal_probability'.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, eval_set=(X_train, y_train), callbacks=[_print_fit])",
+   "reasoning": "The agent trains on the full training set and evaluates the model on the same training set, without creating a validation holdout to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LGBMRegressor(..., random_state=42...)",
+   "reasoning": "The agent uses a stochastic model (LightGBM) but only evaluates it once without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics, so it does not evaluate using only one metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem using the provided target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "le.fit(pd.concat([train_series, test_series]))\ntrain_features[col] = le.transform(train_series)",
+   "reasoning": "The agent uses the raw columns as-is, simply applying basic LabelEncoding to categorical and text columns without extracting any derived features or decomposing text.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Syntax Error / Type Error",
+   "description": "The code contains a syntax or type error that causes it to crash during execution before any training can occur.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pd.Series.fillna(method='ffill') if len(train_features.columns > 0) else None"
+  },
+  {
+   "name": "Test Data Statistics Leakage",
+   "description": "The agent computes statistics (such as the median) on the test set to impute missing values in the test set, instead of using the statistics learned from the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = test_features[col].median()\ntest_features[col] = test_features[col].fillna(median_val)"
+  },
+  {
+   "name": "Reference Before Assignment",
+   "description": "The script references a function before it is defined in the module, which will cause a NameError if execution reaches that point.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, eval_set=(X_train, y_train), callbacks=[_print_fit])\n...\ndef _print_fit(self):\n    pass"
+  }
+ ],
+ "summary": "The agent's solution fails critically due to an immediate execution error caused by an invalid comparison when defining the imputer pipeline. Additionally, the solution lacks any validation split, performs no feature engineering on complex text/categorical columns, and incorrectly uses test set statistics to impute missing test data.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

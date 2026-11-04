@@ -1,0 +1,141 @@
+{
+ "task": "hospitals",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at or use test data during the EDA phase.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n... [No cleaning steps] ...\nmodel = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent makes no effort to clean the original data, handle outliers, or impute missing values, relying entirely on LightGBM's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No normalization or scaling is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fitted on the dataset before splitting (other than filling 0s in newly created engineered features).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal component requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "By using 5-fold CV, the agent evaluates the model on multiple data splits, properly addressing variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y_train, oof_preds)",
+   "reasoning": "The agent only computes and reports RMSE, without checking secondary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a single-target regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements several feature engineering steps, including frequency encoding and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across K-fold CV models, which is a standard best practice, not a naive ensemble of different base models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Leakage in Feature Engineering",
+   "description": "The agent concatenates the training and test sets and performs aggregate feature engineering (like target encoding, frequency encoding, or group means/stds) on the combined dataset. This leaks the distribution of the test set into the training features, resulting in biased models and overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([train_df[features], test_df[features]], axis=0).reset_index(drop=True)\n...\nfreq = df_all[col].value_counts(normalize=True)\n...\ngrp = df_all.groupby(g_col)[num_col]\ng_mean = grp.transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a structured LightGBM regression pipeline with 5-fold cross-validation and useful feature engineering. However, it critically fails by combining the train and test sets before computing frequency encodings and group aggregations, leading to severe test data leakage. Additionally, the agent omits any data cleaning steps for the raw features and evaluates the model using only a single metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

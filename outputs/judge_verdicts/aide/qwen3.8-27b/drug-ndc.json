@@ -1,0 +1,138 @@
+{
+ "task": "drug-ndc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA to inform preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an explicit strategy for missing values by encoding missing categoricals as -1 and relying on LightGBM's native missing value handling for numerics, which is valid.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before or after splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation and encoding are properly fitted on the training folds only via the Preprocessor class's fit and transform methods.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no apparent temporal order in this dataset requiring a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification model (LightGBM with objective='multiclass') for the DEA schedule target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses k-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over multiple cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y_int[va_idx], pred)\n    cv_accs.append(acc)",
+   "reasoning": "The agent only uses accuracy for evaluation, which is a poor choice for highly imbalanced targets like DEA schedules (where most drugs are unscheduled), and fails to verify minority class performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr_raw = X_train_raw.iloc[tr_idx]",
+   "reasoning": "The agent uses raw columns as-is without engineering any derived features from the drug data.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Treating text as categorical",
+   "description": "The agent applies label encoding to all non-numeric columns, which likely includes high-cardinality free-text columns (like drug names, active ingredients, or descriptions), instead of using text-specific techniques like TF-IDF or text embeddings.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cats = sorted(vals.unique())\nself.cat_mappings[col] = {v: i for i, v in enumerate(cats)}"
+  }
+ ],
+ "summary": "The agent correctly implements a cross-validation pipeline with a custom Preprocessor to prevent data leakage during categorical encoding. However, it misses a critical structural component of the data by using StratifiedKFold instead of GroupKFold (on 'drug_id'), leading to subject overlap leakage. Furthermore, the solution lacks feature engineering, inappropriately label-encodes potential text columns, and relies solely on accuracy for an imbalanced target.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

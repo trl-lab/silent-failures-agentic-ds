@@ -1,0 +1,146 @@
+{
+ "task": "historical-volcanic-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes statistics (e.g., median, value counts) only on the training set and correctly applies them to the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values, removes constant columns, and drops redundant or unhelpful ID columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before the split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant columns) is correctly driven purely by X_train.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is properly fitted on the training set and subsequently applied to the test set without leaking information.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Although the dataset spans historical events, it is standard to predict independent event outcomes without strict time-series splitting unless it's a forecasting task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (LGBM, XGB, CatBoost) for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation set using train_test_split to estimate model weights.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly reserved for the final predictions and is not used for model evaluation or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_fit, X_val, y_fit, y_val = train_test_split(... random_state=RANDOM_STATE ...)",
+   "reasoning": "The stochastic models and the train/val split are evaluated exactly once using a single random seed, rather than averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_accuracies.append(accuracy_score(y_val, val_pred))",
+   "reasoning": "The agent only computes accuracy, which can be highly misleading in multi-class classification tasks with potentially imbalanced classes (like death tolls), where macro-F1 or log-loss would be more informative.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem predicting the given target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements reasonable feature engineering, including text feature extraction from the COMMENTS column.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent implements a weighted average ensemble based on validation accuracies rather than a strictly naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid Feature Names for LightGBM",
+   "description": "The agent extracts categorical values directly into feature column names without sanitizing them. If the categories contain special JSON characters (like commas, quotes, or brackets), tree-based models like LightGBM will crash during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "base_name = f\"{col}__{category}\"\n...\nmodel.fit(X_fit, y_fit)  # LightGBM raises fatal error"
+  }
+ ],
+ "summary": "The agent implements a solid machine learning pipeline with appropriate text feature engineering, proper data splitting, and correct target encoding. However, a critical execution failure occurs because raw categorical variables are embedded into feature names without sanitization, causing LightGBM to crash due to special JSON characters. Additionally, the agent relies solely on accuracy for evaluation, which is suboptimal for potentially imbalanced multi-class targets.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

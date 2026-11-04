@@ -1,0 +1,148 @@
+{
+ "task": "animalandveterinary-event",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "categories = pd.concat([X[col], X_test[col]], axis=0).dropna().unique()",
+   "reasoning": "The agent extracts unique categories from the concatenated train and test data, which technically leaks test set feature distributions into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "trn_data = lgb.Dataset(X_tr, label=y_tr, categorical_feature=cat_cols)",
+   "reasoning": "The agent identifies categorical and datetime columns, extracts date features, and delegates missing value handling to LightGBM, which is an acceptable practice for tree-based models.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting (missing values are handled natively by LightGBM).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Although date columns are present and processed, there is not enough context to know if the problem requires a strict temporal split to avoid look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"binary\"",
+   "reasoning": "The agent correctly uses a binary classification objective for a binary task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The agent uses 5-fold cross-validation, training multiple models to account for variance rather than evaluating a single model once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)",
+   "reasoning": "The agent relies entirely on ROC AUC for evaluation and does not compute other relevant metrics like PR AUC or log loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"binary\"",
+   "reasoning": "The agent correctly formulates the problem as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[f\"{col}_year\"] = X_dt.dt.year",
+   "reasoning": "The agent performs basic feature engineering by extracting calendar components from date columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += (\n        model.predict(X_test, num_iteration=model.best_iteration) / kf.n_splits\n    )",
+   "reasoning": "The agent averages test predictions across cross-validation folds, which is a standard and robust practice rather than a naive ensemble of different algorithms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded target binarization",
+   "description": "The agent attempts to binarize the target variable using a hardcoded dictionary of common boolean strings. If the actual target contains task-specific strings (e.g., 'Serious', 'Non-Serious'), this mapping will fail, converting all labels to NaN and subsequently filling them with 0, effectively destroying the target signal.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = y_raw.map(mapping).fillna(0).astype(int)"
+  },
+  {
+   "name": "Overwriting submission IDs",
+   "description": "The agent generates arbitrary submission IDs using a simple sequence of integers instead of preserving the original ID column from the test set. This will very likely cause evaluation failures if the benchmark expects specific identifiers to join predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test)), \"serious_ae\": test_preds})"
+  }
+ ],
+ "summary": "The agent builds a well-structured LightGBM model utilizing 5-fold cross-validation and basic date feature extraction. However, it introduces critical flaws by forcefully mapping the target variable with a hardcoded boolean dictionary (which risks destroying non-standard string labels) and generating sequential submission IDs instead of preserving the test set's original identifiers. Additionally, it commits a minor leak by determining categorical levels using the combined train and test sets.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

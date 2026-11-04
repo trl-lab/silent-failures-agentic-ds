@@ -1,0 +1,134 @@
+{
+ "task": "porto-seguro-safe-driver-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by replacing the dataset's specific missing value indicator (-1) with NaN and filling categorical nulls.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is handled via constant replacement (NaN for numeric, 'missing' string for categorical), which does not compute or leak statistics across rows.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classifier (LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a proper validation set for early stopping and performance estimation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n        X,\n        y,\n        test_size=0.2,\n        random_state=RANDOM_STATE,\n        stratify=y,\n    )",
+   "reasoning": "The agent evaluates a stochastic LightGBM model exactly once using a single train/validation split, without employing cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates using AUC (and computes Gini), which is appropriate for a highly imbalanced dataset.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def prepare_features(df: pd.DataFrame) -> pd.DataFrame:\n...",
+   "reasoning": "The agent uses the raw dataset columns as-is, applying only basic missing value handling and type conversions, without engineering any new features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid submission IDs",
+   "description": "The agent discards the original test set identifiers and replaces them with a generated sequence (e.g., np.arange). This breaks alignment with the evaluation system, resulting in a zero score as the predictions cannot be matched to the correct test samples.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_pred), dtype=int)"
+  }
+ ],
+ "summary": "The model correctly formulates the problem as binary classification and sets up a reasonable LightGBM baseline with appropriate handling of the dataset's specific missing value indicator (-1). However, it lacks any feature engineering and only evaluates the stochastic model on a single validation split. Crucially, the solution contains a critical bug in the submission generation where it uses sequential integers for the test IDs instead of retaining the actual IDs from the test set, rendering the submission invalid.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

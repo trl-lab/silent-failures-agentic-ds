@@ -1,0 +1,111 @@
+{
+ "task": "financial-intermediary-funds-cash-transfers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset involves financial cash transfers which inherently have a temporal dimension, but the agent uses a randomized K-Fold split instead of a time-based split, causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = float(np.sqrt(mean_squared_error(y_train_raw, oof_final_usd)))",
+   "reasoning": "The agent relies exclusively on RMSE for model evaluation and optimization, without reporting secondary metrics like MAE to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage",
+   "description": "The agent calculates target encoding means on the training fold and maps them directly to the same training fold without using any out-of-fold technique or smoothing. This leaks the target variable directly into the features, causing tree models to heavily overfit the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_df[f\"{col}_te_mean\"] = X_tr_df[col].map(means).fillna(global_mean)"
+  },
+  {
+   "name": "Mismatch between training objective and evaluation metric",
+   "description": "The agent transforms the target using log1p and trains all base models to minimize RMSE on this log scale (effectively RMSLE). However, the true task metric is RMSE on the raw scale. Training on a log scale minimizes relative error rather than absolute error, which will systematically under-predict large values and yield suboptimal raw RMSE.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train_log = np.log1p(y_train_raw)"
+  },
+  {
+   "name": "Improper handling of categorical features in Neural Network",
+   "description": "The agent encodes categorical variables using LabelEncoder, scales them, and passes them as continuous float32 values into a feed-forward Neural Network. Neural networks interpret these arbitrary ordinal integers as meaningful continuous magnitudes, which degrades learning.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[col] = le.fit_transform(combined[col]) ... X_tr_s = scaler.fit_transform(X_tr) ... out = model(bx)"
+  }
+ ],
+ "summary": "The agent implements a comprehensive ensemble pipeline but introduces critical target leakage by mapping in-fold target means directly to the training set. Additionally, the agent ignores temporal ordering in the cross-validation split, treats label-encoded categoricals as continuous features in the neural network, and trains models on a log-transformed target despite being evaluated on raw RMSE.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

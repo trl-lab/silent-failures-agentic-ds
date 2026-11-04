@@ -1,0 +1,159 @@
+{
+ "task": "tobacco-problem",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No peeking at test data is observed; preprocessing relies only on train data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including missing value imputation and missingness indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Zero-variance columns are dropped based only on X_train_df, not the combined dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is fit only on X_train_df and applied to X_test_df, avoiding test data leakage (though it leaks validation data during CV).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It cannot be determined from the provided context if the dataset has a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification task correctly uses classification algorithms (e.g., LGBMClassifier, CatBoostClassifier).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A deep learning model is defined but never actually instantiated or trained in the pipeline, making this inapplicable.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold Stratified K-Fold cross-validation scheme is used to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation is used, which evaluates the models on multiple splits rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = accuracy_score(y, oof_preds)",
+   "reasoning": "The agent only computes accuracy without verifying if the dataset is imbalanced or if other metrics would be more informative.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_df[f\"{c}_isna\"] = X_train_df[c].isna().astype(float)",
+   "reasoning": "The agent only applies basic encoding and missing indicators without creating any derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_ensemble = (oof_lgb + oof_cat + oof_xgb + oof_hgb) / 4.0\ntest_ensemble = (test_lgb + test_cat + test_xgb + test_hgb) / 4.0",
+   "reasoning": "The agent uses a simple, unweighted average to combine predictions from four different models without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage in Cross-Validation",
+   "description": "Preprocessing transformers (like imputers or encoders) are fitted on the entire training dataset before it is split into cross-validation folds. This leaks information from the validation folds into the training folds, making the out-of-fold validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "imputer = SimpleImputer(strategy=\"median\")\n    X_train_df[num_cols] = imputer.fit_transform(X_train_df[num_cols])\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y)):"
+  },
+  {
+   "name": "Categorical Features Treated as Continuous",
+   "description": "Categorical features are ordinally encoded and cast to float32, but they are not explicitly declared as categorical features when training gradient boosting models. This forces the tree models to treat discrete categorical codes as continuous variables, which can degrade predictive performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train_df[valid_cols].values.astype(np.float32)"
+  },
+  {
+   "name": "Dead Code",
+   "description": "The solution includes significant blocks of code that are defined but never used, such as a PyTorch neural network architecture and data loaders, adding unnecessary complexity and indicating an incomplete implementation.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "class TabularNN(nn.Module):"
+  }
+ ],
+ "summary": "The provided solution is a straightforward application of gradient boosting models (LightGBM, CatBoost, XGBoost, HistGradientBoosting) in a 5-fold cross-validation setup. However, it suffers from several bad practices, including data leakage during cross-validation due to applying imputation and encoding before splitting, and failing to specify categorical features to the GBDT models. Furthermore, it lacks feature engineering, uses a naive unweighted ensemble, and contains dead code for an unused neural network.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

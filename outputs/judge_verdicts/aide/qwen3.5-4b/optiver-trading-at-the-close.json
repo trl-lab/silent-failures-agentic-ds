@@ -1,0 +1,138 @@
+{
+ "task": "optiver-trading-at-the-close",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no exploratory data analysis or peeking at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using a SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_imputer = SimpleImputer(strategy=\"median\")\ntrain_df[feature_cols] = train_imputer.fit_transform(train_df[feature_cols])\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The imputer is fitted and applied to the entire training dataset before cross-validation splitting, leaking missing-value statistics from validation folds into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a strong temporal component (date and time IDs), but the agent uses a random shuffled split instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a regression objective is appropriate for predicting a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly sets up a 5-fold cross-validation strategy to evaluate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent runs 5 folds of cross-validation and averages the validation scores, reducing variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "mae = mean_absolute_error(y_val_fold, val_pred)",
+   "reasoning": "The agent only computes and reports MAE, missing out on other metrics like RMSE or R2 that could provide a more comprehensive view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\n    col for col in train_df.columns if col not in [\"id\", \"target\", \"row_id\"]\n]",
+   "reasoning": "The agent uses raw columns directly without creating any derived features, missing obvious opportunities for financial feature engineering such as bid-ask spreads or order book imbalances.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fitting imputer on test data",
+   "description": "The agent calls `fit` or `fit_transform` on the test data for an imputer or scaler, rather than using the object fitted on the training data. This causes test predictions to depend on the distribution of the test batch and will fail or behave unpredictably if test samples are processed individually or in small batches.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_imputer = SimpleImputer(strategy=\"median\")\ntest_df[feature_cols] = test_imputer.fit_transform(test_df[feature_cols])"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM regression model but makes critical errors with validation splitting by ignoring the temporal and grouped structure of the financial data, introducing severe look-ahead bias. Furthermore, it improperly fits a new imputer on the test data rather than reusing the training imputer, and applies imputation before cross-validation, causing data leakage. Finally, the agent skips feature engineering entirely, which is essential for achieving good performance on this task.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,155 @@
+{
+ "task": "financial-product-complaint",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in text and date columns using fillna.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants, which does not leak statistics from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features ('Date received', 'Date sent to company'), but the agent uses a randomized shuffle split instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for this m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which provides variance reduction over a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y_train, oof_preds)",
+   "reasoning": "The agent relies entirely on accuracy, without verifying if the classes are imbalanced or checking metrics like F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts length, word counts, date components, and TF-IDF features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent builds a well-structured stacking ensemble with CatBoost as the meta-learner.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid SVD application in cross-validation",
+   "description": "The dimensionality reduction (SVD) is fitted on the validation fold instead of the training fold. This results in SVD components that are unaligned across folds, creating meaningless meta-features for the second-stage model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "oof_svd[val_idx] = svd.fit_transform(X_val_tfidf)"
+  },
+  {
+   "name": "Test data leakage via frequency encoding",
+   "description": "Categorical frequency encoding is computed on the concatenated train and test sets, leaking the test set distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[c].value_counts()\ntabular_num_df[f\"{c}_freq\"] = df_all[c].map(freq).astype(float)"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent hardcodes the submission IDs as a sequential range instead of preserving the original ID column from the test set, which will likely cause the submission to fail evaluation.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "\"id\": np.arange(len(test_num))"
+  }
+ ],
+ "summary": "The agent implements a sophisticated stacking pipeline with textual, temporal, and categorical features, but introduces a critical flaw by fitting SVD on validation folds rather than training folds. Additionally, there is test-set leakage through global frequency encoding, and temporal ordering is ignored during cross-validation. Finally, the hardcoded submission IDs will likely prevent the solution from being scored.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "steel-plates-fault",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_fold_imputed = X_train_fold.fillna(medians_fold)",
+   "reasoning": "The agent explicitly handles missing values via median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "medians_fold = X_train_fold.median()",
+   "reasoning": "Imputation statistics are correctly calculated on the training fold only.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(",
+   "reasoning": "A classifier is correctly used for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "mean_cv_accuracy = np.mean(cv_scores)",
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation and averages the scores, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = accuracy_score(y_val_fold, y_pred)",
+   "reasoning": "The agent only calculates accuracy and does not check the class distribution to verify if accuracy is an appropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_original = X.apply(pd.to_numeric, errors=\"coerce\")",
+   "reasoning": "The agent uses the raw columns directly (after basic imputation) without deriving any new features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "ID column as feature / Hardcoded ID in submission",
+   "description": "Failing to drop the ID column from the features before training can lead to the model memorizing IDs and overfitting. Additionally, the submission file hardcodes the ID sequence instead of using the original test IDs.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train.drop(columns=[target_col]) ... submission = pd.DataFrame({\"id\": range(len(y_pred_test)), \"target\": y_pred_test})"
+  },
+  {
+   "name": "Destructive categorical encoding",
+   "description": "Coercing all features to numeric with errors='coerce' forces any non-numeric categorical/string columns to become NaN, which are then imputed with the median. This completely destroys the signal in categorical variables.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_original = X.apply(pd.to_numeric, errors=\"coerce\")"
+  }
+ ],
+ "summary": "The agent correctly sets up a stratified 5-fold cross-validation pipeline with proper imputation boundaries to avoid data leakage. However, it fails to perform any feature engineering, destructively coerces potential categorical variables to numeric (resulting in NaNs), and likely uses the ID column as a feature while hardcoding the submission IDs.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

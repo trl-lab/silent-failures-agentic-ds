@@ -1,0 +1,152 @@
+{
+ "task": "tmdb-box-office-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to handle missing values by filling them with median or mode.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is applied to the train and test sets separately, not fitted on the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no temporal validation split made.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostRegressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Make Predictions\ntest_predictions = model.predict(test_X)",
+   "reasoning": "The agent trains the model on the full training set and predicts on the test set without any internal validation split to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation is performed at all, so multiple evaluations are not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metric is computed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as a regression problem to predict revenue.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = final_features.values",
+   "reasoning": "The agent uses raw features without any feature engineering, which is highly problematic for this dataset since many important features (like genres, cast, crew) are stored as JSON strings that require parsing.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure due to undefined variables and logic errors",
+   "description": "The script crashes with a NameError because it references variables (`target_col`, `df`) in the global scope that were only defined locally inside a function. Furthermore, the function drops the target column entirely, making it impossible to retrieve the labels for training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_y = np.log1p(train_processed[target_col])"
+  },
+  {
+   "name": "Test set statistics used for imputation",
+   "description": "The imputation strategy calculates the median/mode directly on the dataset being processed, meaning missing values in the test set are imputed using test set statistics rather than training set statistics.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[col] = df[col].fillna(df[col].median())"
+  },
+  {
+   "name": "Missing categorical feature specification for CatBoost",
+   "description": "The dataset contains string/categorical columns, but they are passed to CatBoost as raw numpy arrays without specifying the `cat_features` parameter, which will cause CatBoost to fail during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)"
+  }
+ ],
+ "summary": "The agent's solution fails to execute due to severe scoping errors and logic flaws when preparing the target variable. Furthermore, it lacks a validation split, performs no feature engineering on complex JSON columns, and improperly uses test set statistics for missing value imputation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

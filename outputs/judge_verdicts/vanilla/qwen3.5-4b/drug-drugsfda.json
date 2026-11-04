@@ -1,0 +1,148 @@
+{
+ "task": "drug-drugsfda",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using SimpleImputer and OneHotEncoder.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is used correctly within a scikit-learn Pipeline, preventing data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classifier (LGBMClassifier) for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pipeline.fit(df_train_feats, y_train)",
+   "reasoning": "The agent trains the pipeline on the full training set without splitting it to evaluate performance on a validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(\n    objective='binary',\n    n_estimators=500,\n    learning_rate=0.1,\n    subsample=0.8,\n    colsample_bytree=0.8,\n    max_depth=None,\n    random_state=42",
+   "reasoning": "The agent fits a stochastic LightGBM model once without averaging predictions over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally, so this failure mode does not apply.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "column_transformer = ColumnTransformer(\n    transformers=[\n        ('num', transformer_num, numerical_features),\n        ('cat', encoder_cat, categorical_features)\n    ]",
+   "reasoning": "The agent uses raw features with basic preprocessing and does not create any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "SyntaxError due to unclosed parenthesis",
+   "description": "The code contains a SyntaxError because a function call or data structure is missing a closing parenthesis, preventing the script from running entirely.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "column_transformer = ColumnTransformer(\n    transformers=[\n        ('num', transformer_num, numerical_features),\n        ('cat', encoder_cat, categorical_features)\n    ]\n\n# Initialize model"
+  },
+  {
+   "name": "Bypassing pipeline preprocessing during inference",
+   "description": "The script predicts using the classifier step directly on raw test data instead of using the full pipeline's predict method. This bypasses preprocessing, causing a feature mismatch and execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test_probs = pipeline.named_steps['classifier'].predict_proba(df_test_feats)"
+  },
+  {
+   "name": "Casting probabilities to integers for ROC AUC",
+   "description": "The script casts the predicted probabilities to integers before submission, which severely penalizes the ROC AUC metric as it requires continuous probability values to rank predictions correctly.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'marketing_status': y_pred_labels.astype(int)"
+  }
+ ],
+ "summary": "The solution contains several critical errors that prevent it from executing correctly and evaluating well. It fails to run due to a SyntaxError (unclosed parenthesis) and inappropriately bypasses the pipeline's preprocessing steps during inference. Additionally, it casts probability predictions to integers, which destroys the ranking signal required for the ROC AUC metric. Standard data science practices like validation splits and feature engineering are completely neglected.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

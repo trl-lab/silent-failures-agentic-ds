@@ -1,0 +1,137 @@
+{
+ "task": "cohort-default-rate",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent inspecting test data distributions during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values with median imputation and 'missing' category filling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply standard scalers to the combined data (only a log transform, which does not leak distribution statistics).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med = df[c].median()\n    df[c] = df[c].fillna(med)",
+   "reasoning": "The agent calculates the median on the combined train and test dataset and uses it to fill missing values, leaking test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (CatBoostClassifier, LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold StratifiedKFold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, which inherently accounts for variance rather than relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_score = roc_auc_score(y, oof_preds)\nprint(f\"5-Fold Cross-Validation ROC AUC Score: {cv_score:.5f}\")",
+   "reasoning": "The agent only computes and reports the ROC AUC score without providing other metrics (e.g. log-loss, accuracy, or PR-AUC).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements frequency encoding, pairwise categorical interactions, and group aggregation features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict_proba(X_te_cb)[:, 1] / skf.n_splits",
+   "reasoning": "The agent only uses an unweighted average of fold predictions to create the final test predictions without exploring more sophisticated ensembling.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering before splitting",
+   "description": "The agent computes data-dependent features like frequency encoding and group aggregations (mean, std) on the combined train and test sets. This improperly leaks the test set distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[f\"{g_col}_{n_col}_mean\"] = (df[g_col].map(df.groupby(g_col)[n_col].transform(\"mean\")).astype(np.float32))"
+  }
+ ],
+ "summary": "The solution employs a reasonably sound modeling strategy with K-Fold cross validation, feature engineering, and proper target parsing. However, the agent concatenated the train and test sets before performing median imputation, frequency encoding, and group aggregations, which causes data leakage from the test set into the training data. Additionally, only a single evaluation metric is reported and the ensembling is limited to simple fold averaging.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

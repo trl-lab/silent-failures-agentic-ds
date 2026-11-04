@@ -1,0 +1,109 @@
+{
+ "task": "MiceProtein",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train_imputed.iloc[val_idx], y_train[val_idx]",
+   "reasoning": "The agent creates validation splits within a cross-validation loop but never evaluates the models on them, leaving the solution with no internal validation score to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses the raw features as-is and does not attempt any feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds_proba += model.predict_proba(X_test_imputed) / (n_splits * len(models))",
+   "reasoning": "The agent combines predictions from multiple models across folds using a simple unweighted average without tuning the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation data leakage during imputation",
+   "description": "An imputer or transformer is fitted on the entire training dataset before cross-validation splitting. This leaks information from the validation folds into the training folds during the CV process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "imputer = KNNImputer(n_neighbors=5)\nX_train_imputed = pd.DataFrame(imputer.fit_transform(X_train), columns=feature_cols)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train_imputed, y_train)):"
+  },
+  {
+   "name": "No feature scaling for distance-based imputer",
+   "description": "A distance-based algorithm (like KNNImputer) is used on unscaled features, meaning features with larger magnitudes will disproportionately influence the distance calculations and degrade the quality of the imputation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "imputer = KNNImputer(n_neighbors=5)\nX_train_imputed = pd.DataFrame(imputer.fit_transform(X_train), columns=feature_cols)"
+  }
+ ],
+ "summary": "The agent correctly frames the multi-class classification task and uses an ensemble of appropriate tree-based models. However, it critically fails to evaluate the models on a validation set (despite creating validation splits), uses naive unweighted ensembling, and applies a distance-based KNN imputer without scaling the features or isolating the validation folds.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

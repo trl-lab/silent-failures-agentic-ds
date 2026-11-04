@@ -1,0 +1,141 @@
+{
+ "task": "journal-ranking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly inspect or peek at test data distributions during exploratory phases.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values, cleans numeric series, and processes categorical missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses StandardScaler inside the cross-validation loop on the training folds before transforming the validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=24, random_state=SEED)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "Dimensionality reduction (TruncatedSVD, NMF) and TF-IDF are fit on the combined text data from both train and test sets, leaking test set distributions into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med = combined_df[c].median()\ncombined_df[c] = combined_df[c].fillna(med if not pd.isna(med) else 0.0)",
+   "reasoning": "Median imputation is performed on the combined dataframe before splitting, leaking test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this continuous/count target prediction task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model utilizes Dropout and weight decay (L2 penalty) for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs a proper 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 different cross-validation folds, which inherently averages over multiple data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "final_score = root_mean_squared_error(y_train_raw, final_oof_predictions)",
+   "reasoning": "The agent solely calculates and relies on RMSE without checking secondary metrics like MAE to evaluate model robustness to outliers, which is relevant for skewed citation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a regression problem to predict the H index.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including physics bounds, bibliometric ratios, and interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Non-Negative Least Squares (NNLS) to optimally weight the models in the ensemble instead of a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "leakage_via_combined_aggregations",
+   "description": "The agent computes aggregated features like group-wise means, standard deviations, percentile ranks, and categorical frequencies on the combined train and test dataset before splitting. This leaks the structural distribution of the test data into the training features, leading to data leakage.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined_df[c].map(combined_df[c].value_counts())\n...\ngrp = combined_df.groupby(key)[target].transform(\"mean\")\n...\ncombined_df.groupby(\"primary_cat\")[target].rank(pct=True)"
+  }
+ ],
+ "summary": "The agent demonstrates strong modeling practices overall, employing a robust cross-validation scheme, target encoding properly contained within folds, and a sophisticated NNLS ensembling strategy. However, there are multiple sources of data leakage due to preprocessing steps being applied to the combined train and test sets prior to splitting. This includes median imputation, TF-IDF fitting, SVD/NMF dimensionality reduction, and group-wise statistical aggregations.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "medicines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis or print test set statistics to inform its design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and empty string replacement.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit standard scaling or normalization (like StandardScaler) is applied to numeric columns.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_components, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent fits TruncatedSVD (dimensionality reduction/feature extraction) on the combined dataset, leaking test information into the features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "features_df[col] = s.fillna(s.median())",
+   "reasoning": "The agent imputes missing numeric values using the median of the combined train and test datasets, which leaks test set statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses appropriate classification models (LightGBM and CatBoostClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly implements a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models using 5-fold cross validation, which averages over multiple splits to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)",
+   "reasoning": "The agent relies entirely on ROC AUC for evaluation without verifying class balance or checking secondary metrics like PR-AUC or log loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates several derived features, including date parts, pairwise date differences, text lengths, and TF-IDF components.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_preds = 0.5 * lgb_oof + 0.5 * cb_oof",
+   "reasoning": "The agent combines the LightGBM and CatBoost predictions using a hardcoded, unweighted average without tuning the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via text/categorical encoding before splitting",
+   "description": "The agent fits transformations like TF-IDF vectorization and frequency encoding on the combined dataset before splitting, which leaks information about the test set distribution and vocabulary into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(str_s)\n...\nfreq = str_s.value_counts(normalize=True)"
+  }
+ ],
+ "summary": "The agent implements a structured solution with decent feature engineering, cross-validation, and model ensembling. However, it suffers from critical data leakage by performing preprocessing steps\u2014including median imputation, TF-IDF vectorization, SVD, and frequency encoding\u2014on the combined train and test dataset before splitting. Additionally, the ensembling step is naive and unoptimized.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

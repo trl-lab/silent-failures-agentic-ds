@@ -1,0 +1,102 @@
+{
+ "task": "osha-accidents",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n        X_all,\n        y_all,\n        test_size=0.2,\n        random_state=42,\n        stratify=stratify,\n    )",
+   "reasoning": "The dataset contains an 'Event Date' column indicating a temporal sequence of accidents, but the agent uses a random split instead of a time-based split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = make_model(categorical_cols, n_estimators=3000)\n...\n        model.fit(\n            X_tr,\n            y_tr,\n            eval_set=[(X_val, y_val)],",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model exactly once without using cross-validation or multiple seed runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val, val_pred)",
+   "reasoning": "The agent evaluates the model solely using ROC AUC and does not verify performance with other metrics like log loss or precision/recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Data Leakage",
+   "description": "The agent fits a stateful feature transformer (e.g., TF-IDF and SVD) on the entire training dataset before performing the train/validation split. This leaks information from the validation set into the training features, leading to overly optimistic validation performance and potentially flawed early stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_all, X_test = add_text_features(X_all, X_test)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(\n        X_all,\n        y_all,\n        test_size=0.2,\n        random_state=42,\n        stratify=stratify,\n    )"
+  }
+ ],
+ "summary": "The agent successfully implements data cleaning, feature engineering, and a robust LightGBM pipeline. However, it fails to respect the temporal nature of the dataset by using a random train/validation split instead of a time-based one. Additionally, it inadvertently leaks validation data into the training features by fitting the TF-IDF and SVD transformers on the entire training set before the validation split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

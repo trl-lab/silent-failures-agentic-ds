@@ -1,0 +1,141 @@
+{
+ "task": "restaurant-revenue-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n    test_df = pd.read_parquet(\"./input/test.parquet\")\n\n    train_df.columns = [c.strip() for c in train_df.columns]",
+   "reasoning": "The agent proceeds directly from loading the data to feature engineering without checking for or handling missing values, duplicates, or outliers, which would cause models like Ridge and Neural Networks to crash if NaNs are present.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\n        X_tr = scaler.fit_transform(X_tr_raw_ext)\n        X_va = scaler.transform(X_va_raw_ext)\n        X_te = scaler.transform(X_te_raw_ext)",
+   "reasoning": "Scaling is correctly applied within the cross-validation loop, fitting only on the training folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pca = PCA(n_components=min(5, len(p_cols_idx)), random_state=42)\n        pca_tr = pca.fit_transform(X_tr_raw[:, p_cols_idx])\n        pca_va = pca.transform(X_va_raw[:, p_cols_idx])",
+   "reasoning": "PCA is appropriately fitted strictly on the training fold inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "While dates are present, the task is to predict cross-sectional restaurant revenue rather than a time series for a single entity, making random K-Fold cross-validation acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "models = get_tabular_models(random_state=42 + fold)",
+   "reasoning": "The agent correctly uses regression models (e.g., LGBMRegressor, Ridge, HuberRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)\noptim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)",
+   "reasoning": "The PyTorch model includes dropout layers and uses weight decay in the optimizer for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(folds):",
+   "reasoning": "The agent implements a proper 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "def blend_objective(weights):\n        blend_oof = np.dot(oof_matrix, weights)\n        return np.sqrt(mean_squared_error(y_train, blend_oof))",
+   "reasoning": "Model selection and ensembling are correctly optimized using out-of-fold predictions, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds[\"nn\"] += (nn_test_p * TARGET_SCALE) / n_folds",
+   "reasoning": "Stochastic models (including the Neural Network and Trees) are evaluated across 5 cross-validation folds, inherently averaging out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_rmse_lgb = np.sqrt(mean_squared_error(y_train[val_idx], oof_preds[\"lgb\"][val_idx]))",
+   "reasoning": "The agent correctly optimizes for and reports RMSE, which is the designated metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = train_df[target_col].values\n...\nclass RMSELoss(nn.Module):",
+   "reasoning": "The task is standard regression and is formulated correctly as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_date_feats, ref_date = process_dates(train_df)\ntrain_p_feats = extract_p_stats(train_df)",
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, age calculation, and aggregation statistics on numeric columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(blend_objective, init_weights, method=\"SLSQP\", bounds=bounds, constraints=constraints)",
+   "reasoning": "The agent uses SLSQP optimization to find the optimal blending weights rather than a naive simple average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent's solution is highly robust in terms of validation strategy, feature engineering, and ensemble optimization. However, it lacks an explicit data cleaning step (FM03), meaning it blindly trusts the input data to be free of missing values or invalid entries which could easily crash the non-tree models (Ridge, Neural Network) if present.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "air-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([X_train_raw, X_test_raw], axis=0, ignore_index=True)\ndf_all_proc = preprocess(df_all)",
+   "reasoning": "Although train and test data are concatenated for preprocessing, the operations applied are strictly row-wise and do not leak test distribution statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df.loc[df[col] <= -100, col] = np.nan",
+   "reasoning": "The agent correctly handles missing values in this dataset (which are denoted by -200) by converting them to NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed; missing values are left as NaNs and handled natively by the gradient boosting models.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series, but the agent uses a randomized cross-validation split (shuffled KFold), which introduces look-ahead bias by allowing the model to train on future data to predict past data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb = LGBMRegressor(...)",
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "A K-Fold cross-validation strategy is implemented to create training and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (trn_idx, val_idx) in enumerate(kf.split(X_train, y_train)):",
+   "reasoning": "The agent evaluates the models across 5 different cross-validation folds, which inherently accounts for variance in the data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit metric is reported or optimized for (other than the models' default early stopping metrics).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = 'CO(GT)'",
+   "reasoning": "The task is appropriately framed as a standard regression problem on the correct target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 24.0)",
+   "reasoning": "The agent extracts cyclical datetime features and aggregates sensor statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_pred = (p_lgb + p_cb + p_xgb) / 3.0",
+   "reasoning": "The agent uses a naive, unweighted average to ensemble the three gradient boosting models without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Silent evaluation",
+   "description": "The agent splits the data and uses a validation set for early stopping, but never calculates or logs the validation metric (e.g., RMSE). This makes it impossible to assess the model's offline performance or verify generalisation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (trn_idx, val_idx) in enumerate(kf.split(X_train, y_train)):"
+  }
+ ],
+ "summary": "The solution implements a reasonable gradient boosting pipeline with decent feature engineering and proper missing value handling for this specific dataset. However, its primary critical failure is ignoring the temporal nature of the dataset by using a shuffled KFold, causing severe look-ahead bias. Additionally, it uses a naive ensemble average and completely fails to log any validation metrics to measure offline performance.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

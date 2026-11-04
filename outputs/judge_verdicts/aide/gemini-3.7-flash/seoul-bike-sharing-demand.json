@@ -1,0 +1,134 @@
+{
+ "task": "seoul-bike-sharing-demand",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = preprocess_data(X_train_raw)",
+   "reasoning": "The agent performs feature engineering but completely skips basic data cleaning such as handling missing values or outliers, relying entirely on LightGBM's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series (bike demand over dates and hours), but the agent uses random shuffled K-Fold cross-validation, which introduces severe look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform a single evaluation; it averages predictions across 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))\nprint(f\"5-Fold CV RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without looking at other relevant metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a regression problem and handles domain specifics like zeroing predictions on non-functioning days.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering including cyclical hour features and weather interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += fold_test_pred / n_splits",
+   "reasoning": "The agent combines the fold models using a simple equal-weight average with no attempt to optimise the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a solid feature engineering pipeline and smartly handles non-functioning days, but critically fails to respect the temporal nature of the data. By using a shuffled K-Fold split on a time-series dataset, the cross-validation score will be artificially inflated due to look-ahead bias. Additionally, it skips explicit data cleaning and only evaluates performance using a single metric.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

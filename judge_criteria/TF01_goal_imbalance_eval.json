@@ -1,0 +1,94 @@
+{
+  "workload": "TF01_goal_imbalance",
+  "description": "Evaluates handling of class imbalance for binary goal classification tasks",
+  "criteria": [
+    {
+      "key": "pipeline_failed",
+      "question": "Did the pipeline fail to produce final test-set metrics? Return True in ANY of these cases: (1) error log files (errors-N.txt) contain runtime exceptions that prevented completion; (2) final_output/result.json exists but contains only an error/warning string rather than a JSON object with numeric metric values (e.g. a FileNotFoundError message, a path-not-found hint, or any plain-text error); (3) no numeric 'accuracy' value exists in any output file. Return False only if the pipeline genuinely completed and produced numeric test-set metrics. A ConvergenceWarning is NOT a failure.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if pipeline crashed or produced no valid metrics"
+      }
+    },
+    {
+      "key": "accuracy",
+      "question": "What is the final test-set accuracy? Search in this exact order: (1) the 'answer' object in answer.json, (2) the 'main-task' block in the pipeline output JSON, (3) the highest-numbered subtask block (e.g. subtask-6, subtask-7, subtask-8) containing an 'accuracy' key. Key name: 'accuracy'. Return a float (0–1) rounded to 4 decimal places. Do NOT use validation-set metrics, per-threshold intermediate values, or values from earlier pipeline iterations when a later one exists. Return null if the pipeline failed.",
+      "schema": {
+        "type": ["number", "null"],
+        "description": "Test accuracy (0-1 range), or null if unavailable"
+      }
+    },
+    {
+      "key": "f1",
+      "question": "What is the final test-set macro-averaged F1 score? Search in order: (1) answer.json 'answer' object, (2) 'main-task' block in pipeline output. Key names to look for: 'macro_f1_score', 'macro_averaged_f1_score', 'macro_f1', 'f1_macro', then generic 'f1' only if the code confirms average='macro'. Do NOT use validation-set F1 values (keys like 'best_macro_f1_on_val', 'best_validation_f1', 'best_macro_f1_on_validation'), threshold-sweep intermediate F1 values (entries inside 'f1_scores_for_each_threshold' or 'performance_by_c'), or per-class F1 values. Return float (0–1) rounded to 4 decimal places, or null if unavailable.",
+      "schema": {
+        "type": ["number", "null"],
+        "description": "Macro-averaged F1 score (0-1 range), or null if unavailable"
+      }
+    },
+    {
+      "key": "precision",
+      "question": "What is the final test-set macro-averaged precision? Search in order: (1) answer.json 'answer' object, (2) 'main-task' block in pipeline output. Key names: 'macro_precision', 'macro_averaged_precision', 'precision_macro', then generic 'precision' only if the code confirms average='macro'. Do NOT use validation-set or threshold-sweep values. Return float (0–1) rounded to 4 decimal places, or null if unavailable.",
+      "schema": {
+        "type": ["number", "null"],
+        "description": "Macro-averaged precision (0-1 range), or null if unavailable"
+      }
+    },
+    {
+      "key": "recall",
+      "question": "What is the final test-set macro-averaged recall? Search in order: (1) answer.json 'answer' object, (2) 'main-task' block in pipeline output. Key names: 'macro_recall', 'macro_averaged_recall', 'recall_macro', then generic 'recall' only if the code confirms average='macro'. Do NOT use validation-set or threshold-sweep values. Return float (0–1) rounded to 4 decimal places, or null if unavailable.",
+      "schema": {
+        "type": ["number", "null"],
+        "description": "Macro-averaged recall (0-1 range), or null if unavailable"
+      }
+    },
+    {
+      "key": "uses_macro_average",
+      "question": "Did the pipeline compute F1, precision, or recall with macro averaging? Look for: average='macro' in f1_score(), precision_score(), or recall_score() calls; or any explicit macro averaging logic. Return True even if the pipeline crashed after this step.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if macro-averaged metrics were computed"
+      }
+    },
+    {
+      "key": "checks_class_distribution",
+      "question": "Did the pipeline explicitly examine the class distribution of the target variable? Look for: value_counts(), class_distribution, imbalanced_class_ratio, counting how many samples belong to each class, or printing/logging class proportions. Return True even if the pipeline later failed.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if class distribution was computed or logged anywhere in the pipeline"
+      }
+    },
+    {
+      "key": "uses_resampling",
+      "question": "Did the pipeline apply any resampling technique to handle class imbalance? Look for: SMOTE, RandomOverSampler, RandomUnderSampler, NearMiss, TomekLinks, ADASYN, or any explicit over/undersampling of training data. Return True even if the pipeline crashed after this step.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if any resampling method was applied to the training data"
+      }
+    },
+    {
+      "key": "uses_stratified_split",
+      "question": "Did the pipeline use stratified splitting when dividing data into train and validation sets? Look for: stratify= parameter in train_test_split(), StratifiedKFold, StratifiedShuffleSplit, or any equivalent stratified sampling method applied to the train/validation split. Return True even if the pipeline crashed after this step.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if stratified sampling was used for the train/validation split"
+      }
+    },
+    {
+      "key": "uses_class_weight",
+      "question": "Did the pipeline pass a class_weight parameter to any model or loss function? Look for: class_weight='balanced', class_weight={0: ..., 1: ...}, or any equivalent weighting parameter in classifiers (e.g. RandomForestClassifier, LogisticRegression, SVC, XGBClassifier with scale_pos_weight). Return True even if the pipeline crashed after this point.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if class_weight or equivalent weighting was used in any model"
+      }
+    },
+    {
+      "key": "failure_reason",
+      "question": "If the pipeline failed, briefly describe the root cause error in one sentence (e.g. 'KeyError: goals_label not found after numeric column selection', 'ModuleNotFoundError: imblearn not installed'). Return null if the pipeline succeeded.",
+      "schema": {
+        "type": ["string", "null"],
+        "description": "Short description of why the pipeline failed, or null if it succeeded"
+      }
+    }
+  ]
+}

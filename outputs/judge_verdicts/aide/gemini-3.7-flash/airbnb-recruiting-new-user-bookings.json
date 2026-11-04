@@ -1,0 +1,142 @@
+{
+ "task": "airbnb-recruiting-new-user-bookings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, such as handling invalid ages and dropping leakage columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No formal scaler (like StandardScaler) is fit on the combined dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a strong temporal component (account creation date), but the agent uses a random stratified split instead of a time-based split, causing look-ahead bias in validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification model for a multiclass task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold Stratified Cross-Validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold Cross-Validation, which provides an average over multiple model runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While only NDCG and multi_logloss are used, NDCG is the exact, appropriate competition metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date parts, calculates time differences, and creates frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (\n            model.predict(X_test, num_iteration=model.best_iteration) / n_splits\n        )",
+   "reasoning": "The agent uses a simple, unweighted average to ensemble the predictions from the 5 CV folds without any tuning.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage via Full-Dataset Frequency Encoding",
+   "description": "The agent computes frequency encoding on the combined train and test dataset before splitting. This leaks the marginal distribution of categorical variables from the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df = pd.concat(...); for col in cat_cols: freq = df[col].value_counts(dropna=False); df[f\"{col}_freq\"] = df[col].map(freq)"
+  }
+ ],
+ "summary": "The agent's solution correctly identifies the task structure and performs decent feature engineering. However, it critically fails to account for the temporal nature of the dataset by using a random StratifiedKFold instead of a time-based split, which will yield overly optimistic validation scores. Additionally, frequency encoding is computed on the combined train and test sets, subtly leaking test distribution information into the training data.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

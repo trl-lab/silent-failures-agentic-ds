@@ -1,0 +1,159 @@
+{
+ "task": "miami-housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the combined full dataset before splitting (train and test are handled separately).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a temporal component ('month_sold'), but the agent uses a random shuffled split instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 cross-validation folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = mean_squared_error(y_val, val_pred)",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying if it's the most appropriate metric or tracking others like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is standard regression and the agent frames it as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\n    \"LND_SQFOOT\",\n    \"TOT_LVG_AREA\",\n    \"SPEC_FEAT_VAL\",\n...\nX_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses the raw columns as features without creating any derived features, despite the presence of geographical and structural data.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect target inverse transformation",
+   "description": "The agent applies a log transformation to the target variable for training, but instead of applying the inverse transformation (e.g., expm1) to the predictions, applies the log transformation again. This results in double-transformed predictions that will have massive errors.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = np.log1p(train_df[\"SALE_PRC\"])\n...\ntest_preds = best_model.predict(X_test)\ntest_preds_log = np.log1p(test_preds)"
+  },
+  {
+   "name": "Suboptimal test prediction from single CV fold",
+   "description": "Instead of ensembling the predictions from all cross-validation folds or retraining the model on the full training dataset, the agent only uses the model from the single best-performing validation fold to predict on the test set. This discards training data and reduces generalisation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if val_rmse < best_val_loss:\n        best_val_loss = val_rmse\n        best_model = model\n...\ntest_preds = best_model.predict(X_test)"
+  },
+  {
+   "name": "Imputing test data with test statistics",
+   "description": "The agent handles missing values in the test set by computing statistics (median) on the test set itself, rather than using the statistics learned from the training set. This is poor practice and can lead to distribution shifts.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median())"
+  },
+  {
+   "name": "Data leakage during cross-validation",
+   "description": "The agent performs data imputation on the entire training set before splitting it into cross-validation folds. This leaks information from the validation folds into the training folds, making the validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM regression pipeline with 5-fold cross-validation, but commits a critical error by applying a double log transformation to the test predictions instead of the required inverse transformation. Furthermore, it suffers from data leakage by imputing missing values prior to CV splitting and using test set statistics for test set imputation. It also ignores temporal ordering in the data and fails to perform any actual feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

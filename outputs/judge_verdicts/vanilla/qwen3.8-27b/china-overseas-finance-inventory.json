@@ -1,0 +1,153 @@
+{
+ "task": "china-overseas-finance-inventory",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_full[col].astype(str), X_test_full[col].astype(str)], axis=0)\n    combined = combined.fillna('MISSING')\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on the combined training and test sets before creating the validation split, leaking the categorical vocabulary of the test and validation sets into the preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing data by filling NaNs with 'MISSING' for categoricals and -999 for numerics.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection algorithms are used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is done using constant values ('MISSING' and -999) rather than fitting an imputer that learns statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal component mentioned that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for the final prediction, not for selecting models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n    X_train_full, y_train, test_size=0.2, random_state=42\n)",
+   "reasoning": "The agent trains and evaluates the models on a single train/validation split without using cross-validation or multiple random seeds to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((val_pred - y_val) ** 2))",
+   "reasoning": "The agent evaluates the models using only RMSE, without checking if other metrics (like MAE) might be more robust to outliers in the target variable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated appropriately as predicting a continuous target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_full = train_df.drop('installed_capacity', axis=1)",
+   "reasoning": "The agent uses raw columns as-is and performs no feature engineering, missing out on potentially valuable domain-informed derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_predictions = np.mean(test_predictions, axis=0)",
+   "reasoning": "The agent uses a simple unweighted mean to ensemble the predictions instead of optimizing blend weights based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Premature feature dropping",
+   "description": "The agent drops categorical or text columns (like geographical location or company names) assuming they are non-predictive, without investigating their relationship with the target, potentially discarding valuable information.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "drop_cols = [\n    'unique_id', 'power_plant_name', 'compid', 'unit_id', 'location_id.x',\n    ... 'equity_investor_name_1', 'equity_investor_name_2',\n    'parent_company_of_investor', 'city', 'province'\n]"
+  },
+  {
+   "name": "Suboptimal categorical encoding for CatBoost",
+   "description": "The agent applies LabelEncoder to all categorical columns before passing them to CatBoost, instead of utilizing CatBoost's native, highly optimized handling of categorical features which usually yields better performance.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_full[col] = le.transform(X_train_full[col].astype(str).fillna('MISSING'))\n...\n'cat': CatBoostRegressor("
+  }
+ ],
+ "summary": "The agent provides a structurally sound pipeline with validation, imputation, label encoding, and ensembling. However, it lacks any feature engineering and prematurely drops potentially predictive columns like city, province, and company names. Additionally, the ensembling is naive (simple average) and the categorical encoding approach ignores CatBoost's native capabilities.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

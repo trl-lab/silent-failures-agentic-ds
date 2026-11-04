@@ -1,0 +1,145 @@
+{
+ "task": "petfinder-adoption-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scalers or normalization techniques are applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0), which does not leak statistics from the full dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While the agent uses a multiclass model for an ordinal task, they correctly compute the expected value and use thresholding to recover ordinal predictions.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is created using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent ensembles predictions from three models with different random seeds, accounting for model variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for and reports QWK, which is the appropriate and official metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent maps multiclass probabilities to continuous expected values and searches for optimal ordinal thresholds, properly formulating the ordinal task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including text features, aggregations, and encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "avg_probs /= len(models)",
+   "reasoning": "The agent combines predictions from three LightGBM models using a simple unweighted average without attempting to tune the blend weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in aggregations and encodings",
+   "description": "The agent computes target-based aggregations (e.g., mean adoption speed per RescuerID, State, or Breed Pair) directly on the training set and maps them back to the training set without out-of-fold (OOF) or leave-one-out techniques. This leaks the target variable of a row into its own features, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "rescuer_mean_adoption=(\"AdoptionSpeed\", \"mean\") ... merged = df[[\"RescuerID\"]].merge(rescuer_stats, on=\"RescuerID\", how=\"left\")"
+  },
+  {
+   "name": "Overfitting thresholds to validation set",
+   "description": "The agent optimizes decision thresholds on continuous predictions using the validation set, and then reports the performance of these exact optimized thresholds on the same validation set. This leaks validation information into the final metric and biases the reported score upward.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "optimal_qwk, optimal_thresholds = find_optimal_thresholds(val_continuous, val_labels, num_classes=5)\n...\nfinal_val_qwk = quadratic_weighted_kappa(val_labels, val_preds_final, num_classes=5)"
+  }
+ ],
+ "summary": "The solution implements a reasonable multiclass LightGBM ensemble for an ordinal regression task, leveraging expected value mapping and thresholding. However, it suffers from two critical forms of data leakage: target aggregations/encodings leak the label into training features, and decision thresholds are tuned and evaluated on the same validation set.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

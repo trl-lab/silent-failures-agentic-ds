@@ -1,0 +1,142 @@
+{
+ "task": "random-acts-of-pizza",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled via median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scalar normalization (e.g., StandardScaler) is used.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = X.fillna(X.median())\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):",
+   "reasoning": "Median imputation is applied to the entire training dataset before cross-validation splitting, leaking validation statistics into training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features and requests occur over time, but a random stratified split is used instead of a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Binary classification models (Logistic Regression, LightGBM) are correctly used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold stratified cross-validation is used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Cross-validation inherently evaluates the model over multiple splits, mitigating single-run variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)\nprint(f\"5-Fold Stratified CV ROC AUC: {cv_auc:.5f}\")",
+   "reasoning": "Only ROC AUC is evaluated; no other metrics like Precision-Recall AUC or calibration are checked for this imbalanced dataset.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Derived features like text length, caps ratio, and domain interactions (upvote ratio, posts per day) are engineered.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A stacking approach is used where Logistic Regression out-of-fold predictions are fed as features into LightGBM.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Text vectorization before splitting",
+   "description": "A text vectorizer (like TF-IDF) is fit on the entire training dataset before cross-validation splits. This leaks vocabulary and document frequencies (IDF) from the validation folds into the training folds, artificially inflating validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_tfidf = tfidf.fit_transform(train_text)\n...\nfor train_idx, val_idx in skf.split(X_train_tfidf, y):"
+  }
+ ],
+ "summary": "The solution employs a solid stacking pipeline with good domain-specific and text feature engineering. However, it suffers from data leakage due to applying TF-IDF vectorization and median imputation on the entire training set prior to cross-validation. Additionally, it ignores the chronological nature of the requests by using a random stratified split instead of a time-based split.",
+ "agent": "aide",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "managed-care-enrollment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test data during the setup of the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "numeric_imputer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly uses a SimpleImputer to handle missing numeric values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_transformed_train = preprocessor.fit_transform(X_train)\n    model.fit(X_transformed_train, y_train.values)\n\n    # Predict\n    X_transformed_test = preprocessor.transform(X_test)",
+   "reasoning": "The imputer is correctly fit only on the training data and then applied to transform the test data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal component, but the agent relies entirely on the provided train/test split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = CatBoostRegressor(",
+   "reasoning": "The agent correctly uses a regression model for a continuous target ('Total Enrollment').",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_transformed_train, y_train.values)",
+   "reasoning": "The agent trains the model on the full training set without creating an internal validation split or using cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = CatBoostRegressor(\n        iterations=200,\n        learning_rate=0.05,\n        depth=6,\n        verbose=False,\n        random_state=42,\n        thread_count=1\n    )",
+   "reasoning": "The agent trains a stochastic model (CatBoost) exactly once to generate predictions, rather than ensembling across multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate or report any metrics internally.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = 'Total Enrollment'",
+   "reasoning": "The task is appropriately framed as a regression problem targeting 'Total Enrollment'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(transformers=[\n        ('num', numeric_imputer, numeric_cols),\n        ('cat', cat_encoder, categorical_cols)\n    ])",
+   "reasoning": "The agent uses raw columns as-is with basic encoding and imputation, applying no derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target column dropped from test set",
+   "description": "The agent assumes the test dataset contains the target column and attempts to drop it, leading to a KeyError and a complete execution failure when the column is not found.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = test_df.drop(columns=[target_col])"
+  }
+ ],
+ "summary": "The agent sets up a basic regression pipeline with standard imputation and encoding, but fails to include any feature engineering or a validation split. Critically, the execution fails outright because the code improperly attempts to drop the target column from the test dataset, causing a KeyError.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

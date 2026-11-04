@@ -1,0 +1,148 @@
+{
+ "task": "health-professional-shortage-areas",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data was used during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles categorical missing values and relies on GBDT models to handle numerical missing values natively, which is standard practice.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fills categorical missing values with a constant before splitting, but constant imputation does not leak statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset contains dates, but it is unclear if the modeling goal requires a strict temporal split to prevent look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data using KFold for internal validation and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, satisfying the requirement for multiple evaluations.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any metric, so it does not report 'only one metric'.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs date parsing and frequency encoding for categorical features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_preds + 0.3 * cat_preds + 0.3 * xgb_preds",
+   "reasoning": "The agent blends predictions using arbitrary hardcoded weights without attempting to tune the blend ratio based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "data_leakage_encoding",
+   "description": "The agent calculates frequency encodings on a combined dataset of both train and test samples. This leaks the distribution statistics of the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(normalize=True).to_dict()\ncombined[f\"{col}_freq\"] = combined[col].map(freq).astype(float)"
+  },
+  {
+   "name": "no_validation_metric_reported",
+   "description": "The agent performs cross-validation but fails to compute or report any out-of-fold (OOF) validation metric (like RMSE), leaving the user with no way to estimate the model's generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_preds += lgb_model.predict(X_test) / 5.0"
+  }
+ ],
+ "summary": "The agent implements a generally sound modeling pipeline with GBDTs and 5-fold cross-validation. However, it applies frequency encoding on the combined train and test sets, causing data leakage. Furthermore, the ensemble relies on arbitrary hardcoded weights instead of optimizing them, and the agent fails to compute or report any validation scores for the trained models.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

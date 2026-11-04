@@ -1,0 +1,134 @@
+{
+ "task": "istanbul-stock-exchange",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA; test data is only manipulated to align columns and compute date features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data by dropping uninformative columns and imputing missing values via a pipeline.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within a scikit-learn Pipeline that is fitted only on the training split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_full = _drop_uninformative_columns(X_full, y_full)\n...",
+   "reasoning": "Correlation-based feature dropping is applied to the entire training dataset (X_full) before it is split into training and validation sets, leaking validation statistics into feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is handled safely within a ColumnTransformer Pipeline fitted exclusively on X_train.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly sorts the dataset by date and performs a time-based split to respect temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A temporal validation split is properly created and used to evaluate models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used once at the very end for final predictions; it is not reused across model variants.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_proc, y_train)\nval_pred = model.predict(X_val_proc)\nscore = _rmse(y_val, val_pred)",
+   "reasoning": "Stochastic models like RandomForest and XGBoost are evaluated exactly once on a single validation split, without averaging over multiple seeds or cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def _rmse(y_true, y_pred):\n...",
+   "reasoning": "The agent evaluates models using only RMSE and does not compute secondary metrics to verify the robustness of this metric to data characteristics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task predicting the ISE target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts meaningful temporal features (year, month, day, quarter, etc.) from the date column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a robust and generally well-structured solution, correctly handling temporal splits and avoiding most data leakage by using scikit-learn pipelines for preprocessing. However, there is a minor validation leak due to dropping features based on target correlation before the train/validation split. Additionally, it relies on a single evaluation run for stochastic models and tracks only a single metric without verifying its suitability.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

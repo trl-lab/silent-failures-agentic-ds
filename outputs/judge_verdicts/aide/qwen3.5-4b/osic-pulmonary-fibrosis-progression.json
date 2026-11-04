@@ -1,0 +1,152 @@
+{
+ "task": "osic-pulmonary-fibrosis-progression",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling them with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No dynamic feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit an imputer on the combined train and test sets, avoiding the leakage of test statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains longitudinal measurements per patient, but the agent uses a random KFold split instead of a grouped or time-based split, causing severe data leakage across time and patients.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent sets up a cross-validation loop to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains the model across multiple folds in cross-validation rather than relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mae = mean_absolute_error(y_val_fold, val_pred)",
+   "reasoning": "The agent only calculates and reports Mean Absolute Error (MAE) and does not examine any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the problem as predicting the FVC target using regression, matching the provided task instructions.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Extract features from chest CT images (simplified approach)\n# For this competition, we'll use available features",
+   "reasoning": "The agent explicitly skips feature engineering and merely subsets a few raw columns without deriving any new features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The target variable is included in the list of input features used to train the model, allowing the model to 'cheat' by directly observing the value it is supposed to predict.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "features = [\"FVC\", \"FVC_baseline\", \"FVC_baseline_FVC\", \"FVC_baseline_FVC_baseline\"]\ntarget = \"FVC\"\n\n# Prepare training data with proper handling of missing values\nX_train = train_df[features].copy()"
+  },
+  {
+   "name": "Imputation Leakage during Cross-Validation",
+   "description": "Missing values are imputed using statistics (like the median or mean) calculated over the entire training dataset before splitting it into cross-validation folds. This leaks information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)"
+  },
+  {
+   "name": "Optimistic CV Aggregation",
+   "description": "The agent tracks and reports only the single best score across all cross-validation folds instead of calculating the average score, leading to a highly optimistic and misleading evaluation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if val_mae < best_score:\n    best_score = val_mae\n    best_model = model\n...\nprint(f\"Cross-validation MAE: {best_score:.4f}\")"
+  }
+ ],
+ "summary": "The agent's solution suffers from critical data leakage by including the target variable ('FVC') directly in the feature set and by failing to group the cross-validation splits by patient, breaking the temporal structure of the longitudinal data. Furthermore, the agent improperly calculates imputation statistics over the entire training set prior to CV splitting and reports only the best fold's score rather than the average, resulting in an invalid and highly over-optimistic performance estimate.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

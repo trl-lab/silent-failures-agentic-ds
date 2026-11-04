@@ -1,0 +1,88 @@
+{
+ "task": "adult",
+ "failure_modes": {
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df[col].astype(str).str.strip().replace({'?': 'Unknown', 'nan': 'Unknown'})",
+   "reasoning": "The agent explicitly cleans categorical columns by standardizing strings and handling missing values ('?' and 'nan').",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold stratified cross-validation for model evaluation, correctly holding out validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold in range(n_splits):",
+   "reasoning": "The stochastic models are trained and evaluated across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def create_domain_features(df):",
+   "reasoning": "The agent creates extensive domain-specific features, interactions, and out-of-fold aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(objective, init_params, method='Nelder-Mead', ...)",
+   "reasoning": "The agent uses Nelder-Mead optimization to find the best ensemble weights and decision threshold, avoiding naive unweighted averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent creates the submission file's ID column using a generated range (`np.arange`) instead of extracting the actual ID column from the test dataset. If the test set's IDs are not a simple 0-indexed sequence, this will produce a submission file with mismatched IDs and fail the evaluation metric.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({'id': np.arange(len(test_df), dtype=int), 'income': test_income_labels})"
+  },
+  {
+   "name": "Version incompatibility for categorical features in fallback model",
+   "description": "If CatBoost is unavailable, the agent falls back to HistGradientBoostingClassifier. However, it passes pandas `category` dtype columns to the model without specifying the `categorical_features` parameter. In older scikit-learn versions (prior to 1.4), this raises a ValueError during fitting and crashes the script.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "return HistGradientBoostingClassifier(max_iter=500, learning_rate=0.03, max_leaf_nodes=31, l2_regularization=1.0, random_state=random_state)"
+  },
+  {
+   "name": "XGBoost API version incompatibility",
+   "description": "The agent passes `enable_categorical=True` and `early_stopping_rounds` directly to the `XGBClassifier` constructor. In older versions of XGBoost (e.g., < 1.6), these parameters are not accepted in `__init__` and will raise a TypeError, causing the script to crash.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "return XGBClassifier(... enable_categorical=True, early_stopping_rounds=50, ...)"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated pipeline with extensive feature engineering, correct out-of-fold target encoding, and continuous ensemble optimization. However, it introduces a critical execution flaw by hardcoding the submission IDs with `np.arange` instead of preserving the test set's original IDs. Additionally, the script relies on very recent library features (XGBoost API changes and implicit categorical support in HistGradientBoostingClassifier), which likely caused the reported execution crash (ValueError/TypeError) in slightly older environments.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

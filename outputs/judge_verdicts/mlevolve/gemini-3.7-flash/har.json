@@ -1,0 +1,142 @@
+{
+ "task": "har",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(train_path)\ntest_df = pd.read_parquet(test_path)",
+   "reasoning": "The agent reads the data and proceeds directly to label encoding and feature engineering without any explicit data cleaning (e.g., handling missing values, duplicates, or outliers).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler.fit(X_tr_filtered)\nX_tr_scaled = scaler.transform(X_tr_filtered)",
+   "reasoning": "The scaler is correctly fitted only on the training split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "variance_selector.fit(X_tr)",
+   "reasoning": "Feature selection (VarianceThreshold) is correctly fitted only on the training split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "criterion = nn.CrossEntropyLoss(label_smoothing=0.05)",
+   "reasoning": "The agent correctly uses multi-class classification models and loss functions for the task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)\noptimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4, betas=(0.9, 0.999))",
+   "reasoning": "The deep learning model incorporates Dropout and Weight Decay (L2 regularization).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(",
+   "reasoning": "The agent correctly performs a train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = KinematicResNet(...).to(device)\nfor epoch in range(1, num_epochs + 1):",
+   "reasoning": "The agent trains its stochastic models (PyTorch, LightGBM, SVC) only once and evaluates them without averaging over multiple runs or cross-validation folds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = accuracy_score(y_val, final_val_preds)",
+   "reasoning": "The agent optimizes and reports only accuracy, without checking other metrics like F1-score to verify performance across potentially imbalanced classes.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_kinematic_features(df, cols):",
+   "reasoning": "The agent implements extensive domain-specific feature engineering for the HAR task.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for w_res, w_lgb, w_svm in weights_grid:",
+   "reasoning": "The agent optimizes the blending weights rather than using a naive simple average or majority vote.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overfitting validation set during ensemble tuning",
+   "description": "The agent optimizes ensemble blending weights directly on the validation set and then reports the performance on this same validation set as the final metric. This leaks the validation data into the tuning process and produces an overly optimistic evaluation score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if acc > best_score:\n        best_score = acc\n        best_weights = (w_res, w_lgb, w_svm)\n...\nscore = accuracy_score(y_val, final_val_preds)"
+  }
+ ],
+ "summary": "The agent presents a sophisticated solution with deep learning, gradient boosting, SVM, and extensive domain-specific feature engineering. However, it completely skips basic data cleaning. Furthermore, it overfits its validation set by tuning the ensemble weights on it and subsequently reporting the final score on that same set, and trains stochastic models only once without cross-validation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

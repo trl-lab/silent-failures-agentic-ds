@@ -1,0 +1,102 @@
+{
+ "task": "heart-failure-clinical",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof)\nprint(f\"CV ROC AUC: {cv_auc:.4f}\")",
+   "reasoning": "The agent evaluates the model solely using ROC AUC and does not verify performance with any other metric (such as Precision-Recall AUC or accuracy) to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train.columns if c != TARGET and c.lower() != \"id\"]",
+   "reasoning": "The agent frames the survival-analysis dataset as a standard binary classification task, blindly using all features including follow-up time, which causes severe target leakage.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train.columns if c != TARGET and c.lower() != \"id\"]",
+   "reasoning": "The agent uses the raw columns as-is without attempting to create any derived features or domain-informed clinical transforms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent hardcodes the 'id' column in the submission file as a sequential range rather than extracting it from the test set. This will cause submission scoring to fail or mismatch if test IDs are not perfectly sequential starting from 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_probs), dtype=int),"
+  }
+ ],
+ "summary": "The agent correctly implements a rigorous nested cross-validation pipeline to prevent data leakage during hyperparameter tuning. However, it fundamentally misunderstands the task formulation: by treating a survival analysis problem as plain binary classification, it incorporates the highly leaky follow-up 'time' feature. Additionally, it hardcodes the submission IDs instead of preserving them from the test set, which will break downstream evaluation.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

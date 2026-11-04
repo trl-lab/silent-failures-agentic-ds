@@ -1,0 +1,141 @@
+{
+ "task": "historic-perimeters-wildfires",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([X_train, X_test], axis=0).reset_index(drop=True)",
+   "reasoning": "The agent proceeds directly from concatenating datasets to feature engineering without any explicit data cleaning, missing value imputation, or outlier handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before or after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is applied.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains historic wildfire events with temporal features (which the agent parses), yet the agent uses a randomized KFold split, introducing look-ahead bias by training on future events to predict past ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor, XGBRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic models across 5 folds rather than relying on a single evaluation run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "rmse_log = root_mean_squared_error(y_train_log, oof_preds_log)\nprint(f\"Validation RMSE (log scale): {rmse_log:.4f}\")",
+   "reasoning": "The agent only computes RMSE on the log-transformed target and fails to evaluate on the original scale (the actual task metric) or use any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering by extracting date parts and frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_preds_log = (oof_preds_lgb + oof_preds_cat + oof_preds_xgb) / 3.0",
+   "reasoning": "The agent combines the three gradient boosting models using a naive, equally weighted average without attempting to optimize the blending weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature encoding before splitting (Data Leakage)",
+   "description": "The agent computes distribution-dependent statistics (like frequency encoding) on the concatenated train and test dataset before splitting. This leaks the distribution of the test set into the training features, leading to overly optimistic validation scores and potential overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts()\ndf_all[col + \"_freq\"] = df_all[col].map(freq)"
+  }
+ ],
+ "summary": "The agent successfully implements a cross-validated ensemble of tree-based regressors with basic feature engineering. However, the solution has critical flaws: it computes frequency encodings on the combined train and test sets (causing data leakage), ignores the temporal nature of the dataset by using a randomized split, neglects data cleaning, and uses a naive equal-weight average for its ensemble.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

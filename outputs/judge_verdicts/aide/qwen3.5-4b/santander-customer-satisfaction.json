@@ -1,0 +1,134 @@
+{
+ "task": "santander-customer-satisfaction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or fit any transformers on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(\n    transformers=[\n        (\"num\", StandardScaler(), numeric_features),\n        (\"cat\", \"passthrough\", categorical_features),\n    ]\n)",
+   "reasoning": "The agent makes no effort to check for duplicates or handle outliers (such as the known -999999 placeholder values in this dataset).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly placed inside a Pipeline, preventing leakage during cross-validation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classifier (LGBMClassifier) is correctly used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The cross-validation averages over 5 folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores = cross_val_score(model, X_train, y, cv=kf, scoring=\"roc_auc\")",
+   "reasoning": "The agent relies solely on ROC AUC and does not evaluate other metrics like PR-AUC or balanced accuracy, which are useful for highly imbalanced datasets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(\n    transformers=[\n        (\"num\", StandardScaler(), numeric_features),\n        (\"cat\", \"passthrough\", categorical_features),\n    ]\n)",
+   "reasoning": "The agent uses the raw columns entirely as-is without engineering any derived features, which are typically critical for this task.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Evaluating on training data (Leakage)",
+   "description": "The agent evaluates the final model on a 'validation set' that is actually a subset of the data the model was just trained on. This results in a highly optimistic, meaningless score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y)\n\n# Evaluate on validation set (first 20% of training data)\nval_split = int(0.8 * len(X_train))\nX_val = X_train.iloc[:val_split]\ny_val = y.iloc[:val_split]\n\nval_predictions = model.predict(X_val)"
+  }
+ ],
+ "summary": "The solution properly uses a pipeline for scaling and performs cross-validation, avoiding data leakage during the CV process. However, it completely lacks data cleaning and feature engineering, which are critical for the Santander dataset. Furthermore, it commits a critical logical error by calculating a pseudo-validation score on 80% of the training data after fitting the model on the entire training set, which is highly misleading.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

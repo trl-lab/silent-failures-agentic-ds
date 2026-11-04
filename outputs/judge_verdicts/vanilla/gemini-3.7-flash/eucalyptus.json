@@ -1,0 +1,134 @@
+{
+ "task": "eucalyptus",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "comb = pd.concat([train_vals, test_vals], axis=0)\n        oe.fit(comb)",
+   "reasoning": "The agent fits a LabelEncoder on the combined training and test sets, leaking test set categorical distributions into the training process.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values in categorical features explicitly, and relies on tree-based models' native missing value handling for numerical features, which is valid.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent imputes with a constant string ('__missing__'), which does not leak statistics across splits.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The eucalyptus dataset is not a time-series dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses appropriate classification models for the multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X, y_encoded)): [...] lgb_model.fit(X_lgb.iloc[train_idx], y_encoded[train_idx])\n    test_probs += lgb_model.predict_proba(X_test_lgb) * 0.4",
+   "reasoning": "The agent creates cross-validation folds but uses them solely to train an ensemble of models for test set prediction, never actually evaluating on the validation indices or reporting any internal performance metrics.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While no evaluation score is reported, the agent averages predictions over 5 folds and multiple runs, avoiding a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate or report any metrics, so it cannot be penalised for using only one.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification task is appropriately framed.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_cb = X.copy()",
+   "reasoning": "The agent only applies basic encoding and missing value imputation, with no attempt to derive new features or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_probs += lgb_model.predict_proba(X_test_lgb) * 0.4 [...] test_probs += cb_model.predict_proba(X_test_cb) * 0.4 [...] test_probs += hgb_model.predict_proba(X_test_hgb) * 0.2",
+   "reasoning": "The agent uses hard-coded, arbitrary weights (0.4, 0.4, 0.2) to combine model probabilities without any tuning, stacking, or validation to justify the chosen blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a multi-model ensemble using K-Fold cross validation, but entirely fails to evaluate the models on the hold-out validation folds, leaving it blind to actual model performance. Additionally, the agent leaks test data into the training process by fitting a LabelEncoder on the combined train and test sets. Feature engineering is non-existent, and the ensemble relies on arbitrary, untuned hardcoded weights.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

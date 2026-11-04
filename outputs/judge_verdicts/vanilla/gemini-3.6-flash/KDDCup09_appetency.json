@@ -1,0 +1,137 @@
+{
+ "task": "KDDCup09_appetency",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "te_u = X_test[c].dropna().nunique()\n    if tr_u == 0 or (tr_u == 1 and te_u <= 1):\n        cols_to_drop.append(c)",
+   "reasoning": "The agent uses the number of unique values in the test set to determine which features to drop from the training set, causing data leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent drops constant features and explicitly handles missing values by filling them or using algorithms that natively support them.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature dropping uses test data, but the dataset is already split into train and test so it doesn't fit the strict 'before splitting' definition.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fit on the dataset; missing values are handled via simple filling or natively by the models.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models are used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "AUC is used for early stopping evaluation, which is the correct target metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineered a 'null_count' feature.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_preds + 0.3 * xgb_preds + 0.3 * cb_preds",
+   "reasoning": "The agent combines model predictions using an arbitrary, hardcoded weighted average without tuning the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Global categorical encoding leaking into CV folds",
+   "description": "Encoding categorical variables on the entire training set before cross-validation leaks vocabulary information into the training folds from the validation folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oe = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1, dtype=np.float32)\n    X_train[cat_cols] = oe.fit_transform(X_train[cat_cols])\n...\nfor fold, (trn_idx, val_idx) in enumerate(skf.split(X_tr, y)):"
+  }
+ ],
+ "summary": "The agent provides a solid ensembled baseline with LightGBM, XGBoost, and CatBoost using 5-fold cross validation. However, it peeks at the test set to determine which features to drop, causing data leakage. Additionally, the ensemble uses untuned, arbitrary weights, and the CV setup leaks categorical vocabulary across folds by fitting the encoder before splitting.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

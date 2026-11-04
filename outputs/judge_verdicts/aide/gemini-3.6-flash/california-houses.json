@@ -1,0 +1,148 @@
+{
+ "task": "california-houses",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans data by dropping missing target rows and replacing inf values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is used in the pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=5, random_state=42)\n    svd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD are fit on the entire combined dataset (train + test), leaking test information into feature extraction.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med = X_all[col].median()\n            X_all[col] = X_all[col].fillna(med if not pd.isna(med) else 0)",
+   "reasoning": "Median imputation is calculated and applied on the concatenated train and test data, causing data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which evaluates the stochastic models across 5 different folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = root_mean_squared_error(y_log, oof_blend)\nprint(f\"Validation RMSE: {oof_rmse:.4f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying if MAE or another metric might be more robust to outliers in the housing area data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including TF-IDF, group aggregations, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_blend = (oof_lgb + oof_xgb + oof_cb) / 3.0",
+   "reasoning": "The agent ensembles the models using a simple unweighted average without attempting to optimize the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage via group aggregations on test data",
+   "description": "The agent calculates group statistics (mean, median, std) on the combined train and test dataset before splitting. This leaks the distribution of features from the test set into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grp = (\n            X_all.groupby(loc_c, observed=False)[num_c]\n            .agg([\"mean\", \"median\", \"std\"])\n            .reset_index()\n        )"
+  },
+  {
+   "name": "Leakage via frequency encoding on full data",
+   "description": "The agent performs frequency encoding of categorical variables on the combined dataset before splitting, which leaks test set category distributions into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = X_all[col].value_counts(normalize=True).to_dict()\n    X_all[f\"{col}_freq\"] = X_all[col].map(freq).fillna(0)"
+  }
+ ],
+ "summary": "The agent provides a comprehensive pipeline with good feature engineering and cross-validation, but suffers from multiple critical data leakage issues. Imputation, text feature extraction (TF-IDF/SVD), frequency encoding, and group aggregations are all performed on the concatenated train and test data before splitting. Furthermore, the agent uses a naive unweighted average for ensembling.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "optiver-trading-at-the-close",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or prior to establishing the pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_processed = X_train.fillna(train_df.mean(numeric_only=True).reindex(feature_names, fill_value=np.nan).round(2))",
+   "reasoning": "The agent explicitly handles missing values by filling them with the mean.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit a single imputer on the full combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No splits are created, so no random splitting introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostRegressor is an appropriate model type for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(train_pool)\n\n# Predict on test set\ny_pred = model.predict",
+   "reasoning": "The agent trains the model on the full training set and predicts on the test set without ever creating a validation split to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Since no validation is performed, the agent does not evaluate the stochastic model at all.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation is performed, so they do not rely on a single evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is treated as a standard regression problem, which is technically correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in ['target', 'id']]",
+   "reasoning": "The agent uses raw columns directly without creating any derived features, despite the financial/trading nature of the dataset.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Failure",
+   "description": "The code contains a syntax or type error that prevents it from running successfully. Specifically, calling `.union()` on a Python list raises an AttributeError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "all_features = list(set(feature_cols + numeric_cols)).union(cat_columns)"
+  },
+  {
+   "name": "Imputing with test set statistics",
+   "description": "The agent uses the test set's own statistics (e.g., mean) to impute missing values in the test set, instead of using the statistics learned from the training set. This violates the assumption that test data should be processed using training parameters only.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test_processed = X_test.fillna(test_df.mean(numeric_only=True).reindex(feature_names, fill_value=np.nan).round(2))"
+  },
+  {
+   "name": "Optimizing for wrong loss function",
+   "description": "The model is trained using a loss function that does not align with the task's evaluation metric (e.g., optimizing RMSE for an MAE metric), which can lead to suboptimal metric performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "'loss_function': 'RMSE'"
+  }
+ ],
+ "summary": "The code fails to execute due to a basic Python type error when attempting to combine feature lists. Methodologically, the solution lacks a validation split to estimate generalisation and applies no feature engineering. Furthermore, the agent incorrectly imputes test set missing values using test set means rather than training set means, and trains the model optimizing for RMSE despite the task metric being MAE.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

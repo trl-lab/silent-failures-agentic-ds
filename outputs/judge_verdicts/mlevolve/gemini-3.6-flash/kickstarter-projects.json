@@ -1,0 +1,69 @@
+{
+ "task": "kickstarter-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if (\n                col not in test_df.columns\n                or test_df[col].isnull().all()\n                or (test_df[col] == 0).all()\n            ):\n                continue",
+   "reasoning": "The agent programmatically inspects the test set to determine if a feature is entirely null or zeros, using this information to keep or drop features from the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_split, val_split = train_test_split(\n        train_df, test_size=0.20, random_state=42, stratify=train_df[\"target\"]\n    )",
+   "reasoning": "Kickstarter projects have a strong temporal component (launch and deadline dates), but the agent uses a random split instead of a time-based split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMClassifier(**lgb_params)\n    lgb_model.fit(\n        X_train,\n        y_train,\n        eval_set=[(X_val, y_val)],\n        callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)],\n    )",
+   "reasoning": "The agent trains each stochastic model (LightGBM, XGBoost, CatBoost) exactly once without cross-validation or multiple seed averaging.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = roc_auc_score(y_val, p_val)",
+   "reasoning": "The agent evaluates the models and optimises ensemble weights using only ROC AUC, ignoring other potentially relevant metrics like log loss or PR AUC.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "High memory/compute usage leading to crash",
+   "description": "The agent generates a massive sparse matrix using TF-IDF with 50,000 features and fits multiple LogisticRegression and Ridge models inside a 5-fold CV, as well as running TruncatedSVD. This likely caused an Out-Of-Memory (OOM) error or timeout, resulting in the script failing to produce a submission file.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "word_tfidf = TfidfVectorizer(\n            max_features=25000... char_tfidf = TfidfVectorizer(\n            max_features=25000... logit_fold = LogisticRegression(C=1.0, max_iter=1000, random_state=42)\n            logit_fold.fit(X_tr_tfidf[tr_idx], train_split[\"target\"].iloc[tr_idx])"
+  }
+ ],
+ "summary": "The agent implements a strong tree-based ensemble with rich, leak-free feature engineering. However, it fails to account for the temporal nature of the data by using a random train/validation split, and evaluates its stochastic models only once. A critical flaw is the excessively heavy TF-IDF pipeline (50,000 features evaluated across multiple linear models inside a CV loop), which likely caused the script to crash or timeout before generating a submission.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

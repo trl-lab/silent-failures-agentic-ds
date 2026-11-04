@@ -1,0 +1,163 @@
+{
+ "task": "rasnf_notification_list",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis (EDA) is performed in the script.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent robustly cleans data, handling missing values through imputation, mapping, and missingness indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling for the PyTorch model is correctly performed inside the cross-validation loop, fitting only on the training fold.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature extraction (like SVD) is fit on the training dataset only, avoiding leakage of test set information into feature choice.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Median imputation is fit on the training dataset only, preventing test missing-value statistics from leaking (though validation leakage occurs and is noted below).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal ordering requirement given for this classification task, so a random stratified split is acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models for a b-classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The DeepTabularNet incorporates dropout layers and the AdamW optimizer applies weight decay, satisfying regularisation requirements.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a robust 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions and is never evaluated against true labels to select models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic PyTorch model is evaluated across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "ROC AUC is the specified metric for the task and is appropriate for binary classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The target variable is logically parsed into a binary format suitable for the task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including TF-IDF, SVD, group-by aggregations, and date part extraction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively attempts to tune the ensemble blend weights using SciPy optimize, rather than defaulting to a naive unweighted average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage in Preprocessing",
+   "description": "Transformations such as TF-IDF, TruncatedSVD, median imputation, and group-by aggregations are fitted on the entire training dataset before cross-validation splitting. This leaks information from the validation folds into the training folds, making the cross-validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_tfidf = tfidf.fit_transform(col_train_text) and grouped = train_data.groupby(cat_c)[num_c] computed before skf.split(X_tr, y)"
+  },
+  {
+   "name": "Test Leakage in Frequency Encoding",
+   "description": "The agent concatenates the training and test sets to compute frequency encoding for categorical variables. This leaks the distribution of the test set into the training features, which is problematic for strictly predictive modeling scenarios where test data should be unseen.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = pd.concat([train_str, test_str]).value_counts()"
+  },
+  {
+   "name": "Invalid Optimization Objective for Ensemble Weights",
+   "description": "The agent attempts to optimize ensemble weights using a gradient-based optimizer (SLSQP) directly on the ROC AUC score. Because ROC AUC is a step function based on ranks, its numerical gradient is zero almost everywhere, causing the optimizer to immediately terminate without successfully updating the initial equal weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, init_weights, method='SLSQP', bounds=bounds, constraints=constraints) where loss_func returns -roc_auc_score(y, pred)"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution utilizing deep learning, gradient boosting models, and extensive feature engineering, successfully avoiding all predefined critical failure modes. However, the script contains subtle flaws: validation leakage due to global feature engineering before cross-validation splits, test set leakage in frequency encoding, and a broken ensemble weight optimization caused by applying a gradient-based method to a non-differentiable ranking metric (ROC AUC).",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

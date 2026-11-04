@@ -1,0 +1,138 @@
+{
+ "task": "magic-gamma-telescope",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data during exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train_val)\nX_test_split_scaled = scaler.transform(X_test_split)",
+   "reasoning": "The scaler is correctly fit only on the training split and then used to transform the validation and test splits.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting or otherwise.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())\n...\nX_train_val, X_test_split, y_train_val, y_test_split = train_test_split(",
+   "reasoning": "Missing values in the training set are filled using the median of the entire training set before the validation split is created, leaking validation statistics into the training fold.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal component, so a random split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classifier (LGBMClassifier) is correctly chosen for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_val, X_test_split, y_train_val, y_test_split = train_test_split(",
+   "reasoning": "A validation split is explicitly created and used to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(\n    n_estimators=500,\n    learning_rate=0.05,\n    num_leaves=31,\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n)",
+   "reasoning": "The agent trains a stochastic LightGBM model (with subsampling) exactly once and reports a single validation score, rather than using cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_test_split, val_pred)\nprint(f\"Validation ROC AUC: {val_auc:.4f}\")",
+   "reasoning": "The agent evaluates the model using only ROC AUC, without verifying performance across other metrics like accuracy, precision, or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"class\", axis=1)\n...\nscaler = StandardScaler()",
+   "reasoning": "The agent uses the raw features as-is and applies standard scaling, but does not construct any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Transductive imputation",
+   "description": "Imputing missing values in the test set using statistics calculated from the test set itself, rather than statistics learned from the training set. This fails to generalize to single-sample inference and can introduce inconsistencies.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median())"
+  }
+ ],
+ "summary": "The agent provides a functional baseline using LightGBM with early stopping, but exhibits some data leakage by imputing missing values before the validation split and by using test set statistics to impute the test set. Additionally, the solution lacks feature engineering and relies on a single evaluation run of a stochastic model.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

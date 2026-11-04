@@ -1,0 +1,138 @@
+{
+ "task": "national-average-drug-acquisition-cost",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data for EDA or fit transformers on the test set before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values via explicit imputation techniques like filling with target mean or 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection using target statistics is applied to the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is applied safely after splitting or using train-only statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While NADAC is typically a time series of drug prices, it is unclear from the script alone if the dataset requires a temporal split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBMRegressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a train/validation split and evaluates on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMRegressor(**lgb_params)\nmodel_lgb.fit(\n    X_train,\n    y_train_raw,\n    eval_set=[(X_val, y_val_raw)],",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated only once without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(np.mean((y_val_raw.values - val_pred) ** 2))",
+   "reasoning": "The agent only computes and reports RMSE, without utilizing other metrics to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is a standard regression approach, which matches the problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including target encoding, frequency encoding, and log transforms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-sample Target Encoding Leakage",
+   "description": "The agent applies target encoding directly to the training data using the same data's target values, rather than using an out-of-fold (K-fold) strategy. This causes target leakage into the features and can lead to severe overfitting on the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "all_data[f\"{col}_te\"] = all_data[col].map(mapping).fillna(global_target_mean)"
+  }
+ ],
+ "summary": "The agent correctly splits the data and applies extensive feature engineering without leaking test data. However, it introduces significant target leakage by mapping target encodings onto the training data directly without an out-of-fold strategy. The evaluation relies on a single run of a stochastic model using only one metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

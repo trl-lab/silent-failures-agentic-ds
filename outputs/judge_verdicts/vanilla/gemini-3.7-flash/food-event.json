@@ -1,0 +1,138 @@
+{
+ "task": "food-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by handling missing values with constants and normalising the age column.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fit only on the training numerical features and then transforms the test features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies entirely on static constant filling (e.g., fillna(''), fillna(0)), so no test statistics leak into the train set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No data splitting is performed at all, so an improper split is not applicable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LogisticRegression is an appropriate model for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_all, y_train)\n\n# Predict\npreds_encoded = model.predict(X_test_all)",
+   "reasoning": "The agent trains directly on the full training set and predicts on the separate test set without ever creating a validation split or computing a validation score to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Although the agent uses a stochastic model (Logistic Regression with saga solver), it does not evaluate it or report any scores, rendering this failure mode inapplicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a standard multi-class classification task predicting 'outcomes'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs substantial feature engineering, including TF-IDF on text fields and normalising 'age' into 'age_years' using the provided unit column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarded Original IDs",
+   "description": "The agent generates a synthetic ID column using `np.arange` for the final submission file instead of preserving the actual identifier column from the test dataset. This typically causes automated evaluation systems to fail or heavily misalign predictions with ground truth.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "output_df = pd.DataFrame({\n    'id': np.arange(len(preds_labels)),\n    'outcomes': preds_labels\n})"
+  }
+ ],
+ "summary": "The agent implements a sensible feature engineering pipeline for the multi-class classification task, appropriately applying TF-IDF and processing mixed-unit age features. However, it entirely skips internal validation, blindly fitting a model on the whole train set. Furthermore, it creates a synthetic sequence for the prediction IDs instead of carrying over the true IDs from the test set, which would break the submission.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "rasnf_notification_list",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for any preprocessing or EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent includes a SimpleImputer for numeric features and uses OneHotEncoder for categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is applied to the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly fit on the training data and transformed on the test data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "No train/validation split is performed, so temporal order in splitting is not applicable/ignored entirely.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses XGBClassifier, which is appropriate for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train)\n...\npredictions = model_binary.predict_proba(X_test_processed)[:, 1]",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without any validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_binary = xgb.XGBClassifier(eval_metric='auc', use_label_encoder=False, n_estimators=1000, max_depth=6, random_state=42)",
+   "reasoning": "The agent uses a single random seed for the XGBoost model and does not average predictions across multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_metric='auc'",
+   "reasoning": "The agent does not evaluate the model internally at all, relying solely on the AUC metric conceptually without checking other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a classification problem, safely binarizing the target if it contains values greater than 1.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_num = numeric_imputer.fit_transform(X_train_raw[numeric_cols].values)\nX_train_cat = categorical_encoder.fit_transform(...)",
+   "reasoning": "The agent only applies basic imputation and encoding, with no derived features or domain-specific engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure: Empty numeric columns",
+   "description": "If the dataset contains no numeric columns, fitting a SimpleImputer on an empty slice raises a ValueError, causing the script to crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_num = numeric_imputer.fit_transform(X_train_raw[numeric_cols].values)"
+  },
+  {
+   "name": "Execution failure: Incorrect categorical reshaping",
+   "description": "Reshaping a 2D array of categorical features to (-1, 1) before OneHotEncoding flattens all features into a single column, which destroys feature alignment and causes shape mismatch errors (e.g., ValueError during np.hstack) when trying to combine it back with 2D numeric features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_cat = categorical_encoder.fit_transform(X_train_raw[categorical_cols].values.reshape(-1, 1))\n...\nX_train_processed = np.hstack([X_train_num, X_train_cat.flatten()])"
+  }
+ ],
+ "summary": "The agent's solution is fundamentally flawed due to multiple execution errors, notably an incorrect reshaping of categorical data that flattens all features into a single column, and a failure to handle the case of zero numeric columns (which crashes the imputer). Furthermore, the agent does not implement any validation split or cross-validation to estimate generalization performance, and performs no feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

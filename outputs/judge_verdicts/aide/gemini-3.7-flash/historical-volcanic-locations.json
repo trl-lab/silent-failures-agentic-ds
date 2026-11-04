@@ -1,0 +1,134 @@
+{
+ "task": "historical-volcanic-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le = LabelEncoder()\ncombined[c] = le.fit_transform(combined[c])",
+   "reasoning": "The agent fits a LabelEncoder on the combined train and test data before splitting, leaking information about categorical values present in the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling categoricals with 'MISSING' and relies on LightGBM's native handling for numerical missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in combined.columns:\n    if combined[c].nunique() <= 1:\n        drop_cols.append(c)",
+   "reasoning": "The agent drops zero-variance columns based on the combined train and test dataset, leaking test set variance information into the feature selection process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The only imputation is replacing missing categorical values with a constant string ('MISSING'), which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Historical events often require chronological splitting to avoid look-ahead bias, but without seeing the presence of date/time columns, this is uncertain.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification model (LightGBM with 'multiclass' objective) for a multiclass target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, which inherently accounts for variance in data splitting.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "overall_acc = accuracy_score(y_train, oof_class_preds)",
+   "reasoning": "The agent evaluates the model using only accuracy, which is typically a poor metric for highly imbalanced targets like death toll categories.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated appropriately as a multi-class classification problem on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts spatial coordinate features (x, y, z) from latitude and longitude and adds a missing value count.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (\n        model.predict(X_test, num_iteration=model.best_iteration) / skf.n_splits\n    )",
+   "reasoning": "The agent combines the predictions from the 5 cross-validation folds using a naive, unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent successfully implements a cross-validated LightGBM pipeline with some geospatial feature engineering. However, it introduces data leakage by concatenating train and test sets before fitting transformers (LabelEncoder) and dropping zero-variance columns based on the full combined data. Additionally, evaluating solely on accuracy may misrepresent performance given that historical death tolls are typically heavily class-imbalanced.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

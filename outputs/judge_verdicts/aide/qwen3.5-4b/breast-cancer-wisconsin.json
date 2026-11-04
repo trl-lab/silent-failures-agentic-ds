@@ -1,0 +1,134 @@
+{
+ "task": "breast-cancer-wisconsin",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent relies entirely on LightGBM's default handling of missing values and makes no explicit effort to clean the data or handle duplicates/outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent filters columns based on their names, which is a deterministic rule and does not leak test statistics.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with binary objective is appropriate for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_full, X_val, y_train_full, y_val = train_test_split(..., random_state=42)",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model on a single split, providing only one evaluation score instead of using cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val, y_val_pred)",
+   "reasoning": "The agent reports only ROC AUC and does not use any secondary metrics to verify model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col.endswith(\"1\") or col.endswith(\"2\") or col.endswith(\"3\")]",
+   "reasoning": "The agent selects raw columns based on their names but does not create any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hard thresholding for probability metric",
+   "description": "The agent converts predicted probabilities into binary labels before submission, despite the evaluation metric (e.g., ROC AUC) requiring continuous probabilities to properly assess ranking performance. This severely penalizes the final score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_pred_binary = (test_pred >= 0.5).astype(int)\n\n# Create submission file\nsubmission = pd.DataFrame({\"id\": test_ids, \"Diagnosis\": test_pred_binary})"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM pipeline with a train/validation split but fails to perform any data cleaning or feature engineering. Most critically, the agent thresholds the test predictions to binary classes (0/1) before submission, which will severely degrade the test score given that the target metric is ROC AUC and requires continuous probabilities.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

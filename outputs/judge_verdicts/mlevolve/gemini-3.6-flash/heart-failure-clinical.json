@@ -1,0 +1,152 @@
+{
+ "task": "heart-failure-clinical",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explore or extract statistics from the test data during preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The heart-failure-clinical dataset is famously clean with no missing values, so explicit imputation is not strictly necessary here.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly fits the StandardScaler only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection before splitting is used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a sequential time series (it's time-to-event survival data), so random splitting is standard.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout layers, LayerNorm, and uses weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a rigorous 10-fold Stratified K-Fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "By using 10-fold CV, the agent trains the stochastic models 10 times and averages predictions, which sufficiently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for ROC AUC, which is the specified metric for the task and appropriate for the problem.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While this is a survival dataset, the task is explicitly formulated as binary classification, so the agent follows instructions by framing it as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive medical domain feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses advanced SLSQP weight optimization and a Logistic Regression meta-model instead of naive averaging.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage via Follow-up Time",
+   "description": "In clinical survival datasets, the 'time' feature often represents the follow-up duration, which is inherently linked to the target (e.g., time until death). Using it as an input feature for binary classification causes massive target leakage, because the follow-up time would not be known at the time of prediction.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_feat[\"creatinine_time_prod\"] = df_feat[\"serum_creatinine\"] * df_feat[\"time\"]"
+  },
+  {
+   "name": "Data Leakage in Meta-Model Training",
+   "description": "Applying a global rank transformation to out-of-fold predictions before splitting them for meta-model training introduces a subtle data leak. The relative ranks of samples in the meta-training set are influenced by the predictions of the samples in the meta-validation set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_lgb_r = to_rank(oof_lgb)\n...\nmeta_model.fit(X_oof_ranks[tr_idx], y_true[tr_idx])"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated pipeline with rigorous cross-validation, deep learning, domain-specific feature engineering, and advanced meta-ensembling. However, it critically fails by using the 'time' feature (follow-up duration) as a predictor, which is a classic target leak in this dataset. Additionally, there is a minor leakage in the meta-ensembling stage due to globally ranking OOF predictions before the meta-CV splits.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

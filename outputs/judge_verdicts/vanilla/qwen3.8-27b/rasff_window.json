@@ -1,0 +1,138 @@
+{
+ "task": "rasff_window",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data, handling missing values and infinite values appropriately.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test-leaking feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median) are correctly calculated solely on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n            X_train, y_train, test_size=0.2, random_state=RANDOM_STATE, stratify=stratify\n        )",
+   "reasoning": "The dataset contains temporal information (a 'date' column), but the agent uses a random split for validation, ignoring temporal order and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostClassifier is an appropriate model type for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "An internal validation split is used to determine early stopping iterations before retraining.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = build_model(iterations)",
+   "reasoning": "The agent trains a stochastic model (CatBoost with a fixed random seed) only once and does not average over multiple seeds or folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "\"eval_metric\": \"Logloss\",",
+   "reasoning": "The agent hardcodes Logloss as the evaluation metric for early stopping and does not check or optimise for the task's stated metric (accuracy).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The basic multiclass classification formulation is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineered several domain-specific features (date parts, text properties, list counts).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid metric for multi-class classification",
+   "description": "The agent hardcodes an evaluation metric ('Logloss') that is strictly for binary classification in CatBoost. If the target has more than 2 classes, this will cause the primary training loop to crash and silently fall back to a less tuned exception-handling model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"eval_metric\": \"Logloss\","
+  }
+ ],
+ "summary": "The agent successfully engineers several features and appropriately segregates train/test statistics during imputation. However, it fails to respect the temporal nature of the data during its validation split, introducing look-ahead bias. Furthermore, the agent hardcodes 'Logloss' as the CatBoost metric, which will crash on a multi-class target and force the script into a fallback routine.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

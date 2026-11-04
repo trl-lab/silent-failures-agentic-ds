@@ -1,0 +1,149 @@
+{
+ "task": "adult",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the target variable and handles missing values ('?') in categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are replaced with a constant string ('Unknown'), which does not leak statistics across splits.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The Adult dataset has no temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classifier (LGBMClassifier) is correctly used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold to create proper train/validation splits.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is evaluated across 5 cross-validation folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics locally, so it does not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=['income']).copy()",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features, despite the dataset containing clear opportunities for feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / skf.n_splits",
+   "reasoning": "The agent combines the 5 cross-validation models using a simple unweighted average, without tuning the ensemble weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric reported",
+   "description": "The agent sets up a cross-validation scheme but fails to compute, print, or save any validation metric (such as accuracy) for the folds, making it impossible to evaluate the model's expected performance offline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):"
+  },
+  {
+   "name": "Ineffective eval_set usage",
+   "description": "The agent passes an eval_set to the model's fit method but does not configure early stopping, and sets verbosity to -1, making the eval_set parameter practically useless since no metrics are printed or acted upon.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_val_fold, y_val_fold)]"
+  }
+ ],
+ "summary": "The agent constructs a generally sound data processing and modeling pipeline using LightGBM and StratifiedKFold. However, the solution lacks any feature engineering and fails to compute or log any validation metrics, preventing offline performance assessment. Additionally, the ensembling of fold predictions is done via a basic unweighted average, and the `eval_set` argument passed to LightGBM is ineffective without an early stopping mechanism.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

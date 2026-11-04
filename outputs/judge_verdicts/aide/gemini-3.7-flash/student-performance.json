@@ -1,0 +1,146 @@
+{
+ "task": "student-performance",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only intersects column names to ensure consistency, which is standard practice and does not involve peeking at test distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_raw = engineer_features(train_features[feature_cols])",
+   "reasoning": "The agent makes no attempt to clean the data, handle missing values, or remove duplicates before modeling, relying entirely on the models to handle them.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_tr_sc = scaler.fit_transform(X_tr_enc)\nX_va_sc = scaler.transform(X_va_enc)",
+   "reasoning": "The scaler is correctly fit only on the training folds and applied to the validation/test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The student performance dataset does not have a strict temporal order requiring a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models chosen (LightGBM, CatBoost, XGBoost, Ridge Regressors) are entirely appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a proper 5-fold cross-validation setup.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent evaluates models across 5 CV folds, which accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_rmse = np.sqrt(mean_squared_error(y, oof_matrix[:, i]))",
+   "reasoning": "The agent only computes and reports RMSE without checking other metrics like MAE or R2 to better understand error distribution or outlier robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a regression problem targeting the G3 score.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_features(df):",
+   "reasoning": "The agent includes a comprehensive feature engineering function with domain-specific interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(rmse_objective, init_weights, method=\"SLSQP\", bounds=bounds, constraints=constraints)",
+   "reasoning": "The agent uses SLSQP optimization to find the optimal weights for ensembling, rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Potential execution failure with Ridge Regressor",
+   "description": "If the dataset contains missing values in numeric columns, the Ridge Regressor and StandardScaler will throw an error since they cannot handle NaNs natively, unlike the tree-based models.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_ridge = Ridge(alpha=10.0)\n    model_ridge.fit(X_tr_sc, y_tr)"
+  }
+ ],
+ "summary": "The agent builds a robust pipeline with thoughtful feature engineering, 5-fold cross validation, and an optimized ensemble. However, it entirely skips data cleaning and missing value handling, which leaves the Ridge regression model vulnerable to crashing if missing data exists in numeric columns. Additionally, the evaluation is limited to a single metric (RMSE).",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

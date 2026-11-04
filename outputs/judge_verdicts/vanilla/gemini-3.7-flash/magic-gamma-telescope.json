@@ -1,0 +1,149 @@
+{
+ "task": "magic-gamma-telescope",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and categorical encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are calculated only on the training set (X), so test missing-value statistics are not leaked (though validation data is leaked).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Classification models are correctly used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold StratifiedKFold split is used for validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 cross-validation folds, which evaluates the stochastic models multiple times.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent doesn't report any evaluation metrics at all, rather than reporting only one unverified metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col]).copy()",
+   "reasoning": "Raw columns are used without any derived features, domain-informed transforms, or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += lgb_model.predict_proba(X_test)[:, 1] / (3 * n_splits)",
+   "reasoning": "The agent uses a simple unweighted average to ensemble three different gradient boosting frameworks without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation leakage during imputation",
+   "description": "Imputation statistics (like median or mean) are computed on the entire training set before performing cross-validation splits, leaking information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\n        X[col] = X[col].fillna(median_val)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):"
+  },
+  {
+   "name": "No evaluation metric calculated",
+   "description": "The agent trains models and performs cross-validation but completely fails to calculate, log, or print any validation metrics (e.g. ROC AUC). This makes it impossible to assess the model's quality or verify performance internally.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cb_model.fit(X_tr, y_tr, eval_set=(X_va, y_va), early_stopping_rounds=50, verbose=False)\n    test_preds += cb_model.predict_proba(X_test)[:, 1] / (3 * n_splits)"
+  }
+ ],
+ "summary": "The agent successfully establishes a cross-validation strategy and combines multiple gradient boosting models but uses a naive equal-weight average. However, the agent fails to perform any feature engineering, leaks validation data by imputing before the CV split, and completely neglects to calculate or output the task's required evaluation metric (ROC AUC) to assess model performance.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

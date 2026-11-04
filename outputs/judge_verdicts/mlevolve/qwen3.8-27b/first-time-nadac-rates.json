@@ -1,0 +1,153 @@
+{
+ "task": "first-time-nadac-rates",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used during exploratory data analysis or preprocessing design; only its shape is printed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with a constant (-999).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before or after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (fillna(-999)) is performed separately on the train, validation, and test sets after the split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset possesses a temporal structure that requires chronological splitting based on the provided code.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a LightGBM Regressor for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is created and used to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is appropriately held out and only used for final predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_data, val_data = train_test_split( ... random_state=42 )",
+   "reasoning": "The data split and models are evaluated on a single random seed without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse_ensemble = root_mean_squared_error(y_val, val_pred_ensemble)",
+   "reasoning": "Only RMSE is used for model evaluation, with no secondary metrics computed to verify performance robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements several derived features, including log transforms, squared terms, interactions, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses inverse RMSE weighting, which is a tuned combination rather than naive equal weighting.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unapplied Target Encoding",
+   "description": "The agent computes target encoding statistics but its logic explicitly skips applying them to the training set (`if target_enc_dict is not None and not fit:`). Consequently, the target-encoded features are not present in the training set columns, causing them to be completely excluded from the final feature list and models.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if target_enc_dict is not None and not fit:\n... final_features = train_fe.columns.tolist()"
+  },
+  {
+   "name": "Data-dependent feature engineering",
+   "description": "Feature engineering steps conditionally create columns based on split-specific statistics (e.g., checking if the minimum value in the current split is greater than 0). This causes inconsistent feature sets across train and test splits, leading to missing column errors (KeyError) when slicing the dataframes.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if df[col].min() > 0:\n    df[col + \"_log\"] = np.log1p(df[col])"
+  }
+ ],
+ "summary": "The agent builds a robust-looking pipeline with appropriate regression models and an inverse-RMSE weighted ensemble. However, the code contains critical implementation bugs: target encodings are computed but never applied to the training data, and data-dependent feature transformations (log transforms conditioned on a split's minimum value) cause inconsistent schemas between train and test sets, leading to execution failures. Furthermore, evaluation relies on a single metric (RMSE) and a single validation split.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

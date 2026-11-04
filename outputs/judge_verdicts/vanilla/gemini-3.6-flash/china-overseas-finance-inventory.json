@@ -1,0 +1,68 @@
+{
+ "task": "china-overseas-finance-inventory",
+ "failure_modes": {
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date columns, suggesting a temporal component, but it's unclear if a strict time-based split is required to avoid look-ahead bias for this specific task.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "metric='rmse'",
+   "reasoning": "The agent evaluates and optimizes the models solely using RMSE, without reporting secondary metrics (like MAE) to verify robustness to outliers.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (lgb_preds + xgb_preds + cb_preds) / 3.0",
+   "reasoning": "The agent combines predictions from three different models using a naive unweighted average, without attempting to optimize the blend weights or use a stacking meta-model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates submission IDs using a simple sequential range (e.g., `np.arange`) instead of preserving the original identifier column from the test set. This will cause submission scoring to fail or be mismatched if the test set uses specific, non-sequential IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_df))"
+  },
+  {
+   "name": "Categorical Features Treated as Continuous",
+   "description": "The agent label-encodes categorical variables into arbitrary integers but fails to specify them as categorical features to the GBDT models (e.g., via `cat_features` for CatBoost, or by casting to the `category` dtype for LightGBM). Tree-based models will therefore treat these integer mappings as continuous ordinal values, leading to suboptimal splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].map(val_map).fillna(-1).astype(int)"
+  }
+ ],
+ "summary": "The agent implements a solid foundational pipeline with 5-fold cross-validation and a multi-model gradient boosting ensemble. However, it critically fails by hardcoding sequential submission IDs instead of retaining the original test IDs, which will likely invalidate the submission. Additionally, the agent uses naive ensembling and fails to properly declare label-encoded categorical features to the models, causing them to be treated as continuous ordinal variables.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

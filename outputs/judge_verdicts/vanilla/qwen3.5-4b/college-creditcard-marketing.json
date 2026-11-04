@@ -1,0 +1,145 @@
+{
+ "task": "college-creditcard-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test data is read but not used for any data exploration or fitting of transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent uses SimpleImputer to explicitly handle missing values in both numerical and categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "full_pipeline.fit(X_train, y_train)",
+   "reasoning": "Imputation is correctly embedded in a scikit-learn Pipeline and fit only on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no indication of temporal order in this cross-sectional marketing dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cb.CatBoostRegressor",
+   "reasoning": "The agent uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_pipeline.fit(X_train, y_train)\n\n# Predict on test\ny_pred = full_pipeline.predict(X_test)",
+   "reasoning": "The agent trains on the entire training set and immediately generates test predictions without setting aside a validation set to evaluate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_pipeline.fit(X_train, y_train)",
+   "reasoning": "The stochastic CatBoost model is trained and evaluated only once without multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "metric='RMSE'",
+   "reasoning": "The agent specifies RMSE but does not evaluate any supplementary metrics to robustly verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as predicting the continuous variable PAYMENTS_BY_ISSUER via regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(...)",
+   "reasoning": "The agent applies standard imputation and encoding but does not construct any domain-specific or derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure due to invalid argument",
+   "description": "The model constructor is called with an invalid keyword argument, causing the script to crash with a TypeError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "clf = cb.CatBoostRegressor(\n    objective='RootMSE',\n    metric='RMSE',"
+  },
+  {
+   "name": "Early stopping without validation set",
+   "description": "The model is configured to use early stopping, but no evaluation dataset is provided during the `fit` call, making early stopping impossible and likely triggering an error or silent failure.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "early_stopping_rounds=100\n...\nfull_pipeline.fit(X_train, y_train)"
+  }
+ ],
+ "summary": "The agent properly avoids data leakage by encapsulating imputation and encoding inside a scikit-learn pipeline fit only on the training data. However, the solution is critically flawed: it lacks a validation split, fails to perform any feature engineering, and contains a fatal coding error where an invalid argument (`metric='RMSE'`) passed to CatBoostRegressor causes the script to crash. Additionally, early stopping is specified without providing an evaluation set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

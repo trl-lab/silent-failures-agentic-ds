@@ -1,0 +1,95 @@
+{
+ "task": "colleges-and-universities",
+ "failure_modes": {
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "fold_medians = np.nanmedian(X_tr_raw, axis=0)\n...\nX_tr_raw[np.isnan(X_tr_raw[:, col_idx]), col_idx] = fold_medians[col_idx]",
+   "reasoning": "The agent explicitly handles missing values by computing medians and imputing NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "fold_scaler = RobustScaler()\nX_tr = fold_scaler.fit_transform(X_tr_raw)\nX_val = fold_scaler.transform(X_val_raw)",
+   "reasoning": "Scaling is correctly applied strictly inside the cross-validation loop, avoiding data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "fold_medians = np.nanmedian(X_tr_raw, axis=0)",
+   "reasoning": "Imputation statistics are computed locally on the training fold inside the CV loop, preventing test/validation leakage.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "optimizer = torch.optim.AdamW(dcn_model.parameters(), lr=1e-3, weight_decay=1e-4)\n...\ndeep_layers.append(nn.Dropout(dropout))",
+   "reasoning": "The PyTorch model uses Dropout layers and the optimizer uses weight decay (L2 regularization).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "meta_model = Ridge(alpha=10.0, positive=True, fit_intercept=True)\nmeta_model.fit(OOF_matrix, y_train)",
+   "reasoning": "The agent uses Ridge regression as a meta-learner for stacking, which is a sophisticated and robust ensembling method.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "using_id_as_feature",
+   "description": "The ID column is not explicitly dropped from the feature set before training. Because the agent dynamically selects numeric and categorical columns, the ID column is ingested as a feature, which can lead to overfitting by allowing the model to memorize specific rows.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_raw = df_train.drop(columns=[target_col]).copy()\n...\nnum_cols = X_train_raw.select_dtypes(\n    include=[\"int64\", \"float64\", \"int32\", \"float32\"]\n).columns.tolist()"
+  },
+  {
+   "name": "batchnorm_1d_crash",
+   "description": "The PyTorch DataLoader for the training set uses `drop_last=False`. If the total number of training samples leaves a remainder of exactly 1 when divided by the batch size, the final batch will have a size of 1, causing `nn.BatchNorm1d` to crash during the forward pass.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_loader = DataLoader(\n    tr_ds, batch_size=128, shuffle=True, drop_last=False, num_workers=0\n)"
+  },
+  {
+   "name": "categorical_cluster_ids_as_continuous",
+   "description": "The output of KMeans clustering is an array of integers representing nominal cluster IDs. Passing these directly as continuous numerical features to downstream models (especially linear components and neural networks) without one-hot encoding is mathematically incorrect and can degrade performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr_feat[\"spatial_cluster\"] = kmeans.fit_predict(train_coords)\n...\nX_train_unscaled = X_tr_feat[feature_names].values.astype(np.float32)"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated and robust machine learning pipeline. It correctly implements cross-validation, handles missing values and scaling safely inside the fold to prevent leakage, uses a diverse set of models (including a custom PyTorch TabularDCNv2), and combines them using non-negative Ridge stacking. However, the pipeline fails to explicitly drop the ID column from the feature set, risks a runtime crash due to a PyTorch DataLoader edge case with BatchNorm1d, and incorrectly passes nominal KMeans cluster IDs as continuous numerical features.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "petfinder-pawpularity-score",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or to inform preprocessing decisions, only to identify common columns.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data by converting types, handling missing values, and dropping useless columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Constant columns and high cardinality columns are dropped based only on the training set, not the full dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string ('missing') for categoricals, which does not leak statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM with regression_l2 objective) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model using 5-fold cross-validation, averaging the scores across folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_scores.append(np.sqrt(mean_squared_error(y.iloc[val_idx], val_pred)))",
+   "reasoning": "The agent reports only RMSE and does not compute other metrics to verify robustness, although RMSE is the primary competition metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in common_cols:\n        s = X[c]\n\n        if s.dtype == bool:",
+   "reasoning": "The agent uses the raw tabular columns as-is, with no derived features, interaction terms, or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring primary data modality",
+   "description": "The agent completely discards a primary data modality (e.g., images or text) that contains the main signal for the task, severely limiting the model's potential performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "drop_names = {\"id\", \"pawpularity\", \"image\", \"image_path\", \"img\", \"photo\", \"url\", \"link\", \"file\", \"path\", \"filename\"}"
+  },
+  {
+   "name": "Modifying list during iteration",
+   "description": "The agent modifies a list (e.g., calling `.remove()`) while iterating over it in a for-loop. This is a classic Python bug that causes the loop iterator to skip the subsequent element.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in common_cols:\n...\nif s.nunique(dropna=True) > 1000:\n...\ncommon_cols.remove(c)"
+  }
+ ],
+ "summary": "The agent sets up a solid cross-validation pipeline with LightGBM but critically fails by completely discarding the image data, which is the primary source of signal for the Pawpularity task. Additionally, it contains a classic Python bug where a list of columns is modified during iteration, causing subsequent columns to be improperly skipped during preprocessing.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "awarded-grants",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=5000, stop_words=\"english\")\n    tfidf_mat = tfidf.fit_transform(combined_text)",
+   "reasoning": "The agent fits a TF-IDF transformer on the combined text from both train and test sets before splitting, leaking test vocabulary and document frequencies.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by handling missing values, extracting date features, and properly categorizing columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=10, random_state=42)\n    svd_feat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD is applied to the full combined dataset before splitting, leaking test set variance information into the feature reduction.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Constant value imputations are used before splitting, and median imputation is correctly fit only on X_train after splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date features (indicating a temporal component), but the agent uses a random K-fold split rather than a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor, LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models across 5 folds, which accounts for variance, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y_train, oof_preds))",
+   "reasoning": "The agent only computes and reports RMSE, without evaluating any secondary metrics to check robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a regression problem with an appropriate log transformation for the target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date extraction, TF-IDF + SVD, frequency encoding, and grouped aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_val_preds = 0.5 * val_cb_preds + 0.5 * val_lgb_preds",
+   "reasoning": "The agent uses a naive equal-weight blending of the two models without tuning the combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via full-dataset aggregations",
+   "description": "The agent calculates grouped aggregations and frequency encodings on the combined train and test dataset. This causes test set distribution statistics to leak into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped = df_all.groupby(cat)[num].agg([\"mean\", \"std\"]).reset_index()"
+  }
+ ],
+ "summary": "The agent performs extensive preprocessing and feature engineering but critically suffers from data leakage by applying TF-IDF, SVD, and grouped aggregations on the combined train and test dataset before splitting. Additionally, it ignores the temporal nature of the dataset by using a random K-fold split, and relies on a naive equal-weight ensemble without tuning.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

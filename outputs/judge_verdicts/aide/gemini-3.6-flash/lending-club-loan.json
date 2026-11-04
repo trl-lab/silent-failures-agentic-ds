@@ -1,0 +1,108 @@
+{
+ "task": "lending-club-loan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal information (e.g., 'issue_d'), but the agent uses randomized cross-validation instead of a time-based split, introducing look-ahead bias by training on future loans to predict past ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_auc = roc_auc_score(y, oof_preds)",
+   "reasoning": "The agent only computes and relies on ROC AUC, without verifying performance using other metrics like Precision-Recall AUC which are often more informative for imbalanced tasks like loan default prediction.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_pred_blend = 0.5 * val_pred_xgb + 0.5 * val_pred_lgb",
+   "reasoning": "The agent combines predictions from XGBoost and LightGBM using a hardcoded, unweighted average without attempting to optimize the blend weights or use stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage via Post-Issue Features",
+   "description": "The model includes features that are only generated after the event being predicted has occurred or is in progress (e.g., recoveries, outstanding principal, or total payment). This causes massive target leakage because these features directly encode the outcome.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_df[\"recoveries_ratio\"] = combined_df[\"recoveries\"].fillna(0) / (\n        loan_amt + 1.0\n    )"
+  },
+  {
+   "name": "Encoding before splitting",
+   "description": "Categorical frequency encoding is calculated on the combined train and test dataset before splitting, which leaks the distribution of categories from the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].value_counts().to_dict()\n    combined_df[f\"{col}_freq\"] = combined_df[col].map(freq)"
+  }
+ ],
+ "summary": "The agent performs extensive feature engineering and builds an ensemble model. However, the solution suffers from critical target leakage by including post-issue features (like recoveries and payment progress) and look-ahead bias due to randomized cross-validation on temporal data. It also leaks test data statistics by computing frequency encodings on the combined dataset prior to splitting.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

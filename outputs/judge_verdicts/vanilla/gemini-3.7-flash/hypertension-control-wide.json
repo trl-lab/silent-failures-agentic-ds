@@ -1,0 +1,109 @@
+{
+ "task": "hypertension-control-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features ('Project Period Start Date'), but the agent uses a randomized StratifiedKFold rather than a time-based split, which could introduce look-ahead bias if there are temporal dependencies.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": "y_train = train_df[target_col].astype(int)",
+   "reasoning": "The target column is named as a percentage, but the task is binary classification; casting to int might be correct if the underlying values are 0.0/1.0, but would be fundamentally flawed if it's a continuous percentage.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_test_preds + 0.5 * cat_test_preds",
+   "reasoning": "The agent combines predictions from LightGBM and CatBoost using a hardcoded equal-weight average without tuning the blend ratio or using a more sophisticated ensembling method.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metrics computed",
+   "description": "The agent sets up a cross-validation loop and imports metric functions (like roc_auc_score), but completely fails to calculate or report any performance metric on the validation folds, making offline evaluation impossible.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_va)],\n        callbacks=[]\n    )"
+  },
+  {
+   "name": "Test data leakage via category alignment",
+   "description": "The agent aligns categorical variables by taking the union of categories from both the training and test sets, which leaks information about the test set's distribution into the training preprocessing pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categories = sorted(list(set(X_train_proc[col].astype(str)).union(set(X_test_proc[col].astype(str)))))"
+  }
+ ],
+ "summary": "The agent successfully implements a cross-validation pipeline with LightGBM and CatBoost, alongside some basic date feature engineering. However, it relies on a naive equal-weight ensemble and fails to calculate or print any validation metrics during the CV loop. Furthermore, the agent leaks test-set information by using test categories to define categorical variables during preprocessing, and ignores potential temporal ordering by shuffling the data for cross-validation.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

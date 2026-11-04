@@ -1,0 +1,138 @@
+{
+ "task": "occupancy-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data; transformations are fit on training data and applied to test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing target values and handles categorical NaNs, leaving numeric NaNs to be handled natively by the GBDT models.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping all-NA columns) is correctly based only on the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_part, val_part = train_test_split(\n            train_df,\n            test_size=0.2,\n            random_state=42,\n            stratify=y_full,\n        )",
+   "reasoning": "Occupancy detection relies on sensor time-series data, but the agent uses a random split, introducing look-ahead bias and temporal leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An internal train/validation split is explicitly performed.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not used for model evaluation or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "model.fit(X_train_part, y_train_part)\n            val_preds[name] = model.predict_proba(X_val_part)[:, 1]",
+   "reasoning": "The agent evaluates stochastic models (like XGBoost with subsampling) only once on the validation set to determine ensemble weights, ignoring variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "aucs = {\n            name: roc_auc_score(y_val_part, pred)\n            for name, pred in val_preds.items()\n        }",
+   "reasoning": "The agent relies entirely on ROC AUC to weight its ensemble, without checking other metrics (like precision/recall) that might be useful for occupancy detection.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts numerous datetime features and cyclical sin/cos transforms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a heuristic weighting scheme based on validation AUC scores, which is a step above naive unweighted averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a generally solid machine learning pipeline with appropriate GBDT models, datetime feature extraction, and validation-weighted ensembling. However, its major critical failure is ignoring the temporal structure of the occupancy detection dataset by using a random train/test split, which introduces significant look-ahead bias and invalidates the validation strategy. Additionally, stochastic models are evaluated only once when calculating ensemble weights.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

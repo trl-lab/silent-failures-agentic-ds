@@ -1,0 +1,134 @@
+{
+ "task": "insurance-company-complaints",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "print(f\"Test missing: {X_test.isnull().sum().sum()}\")\n...\nX_all = pd.concat([X_train, X_val, X_test], ignore_index=True)\n...\nle.fit(X_all[col])",
+   "reasoning": "The agent inspects missing values in the test set and leaks test distribution information by fitting the LabelEncoder on all data combined (including the test set).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using mode and median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the full dataset before splitting (though it is applied incorrectly on each split individually).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression and a suitable regressor (LightGBM with 'regression' objective) is used.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The data is split into train and validation sets, and evaluated on the holdout validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(...) \n y_val_pred = model.predict(X_val_processed)",
+   "reasoning": "The agent trains a stochastic LightGBM model and evaluates it only once without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = mean_squared_error(y_val, y_val_pred, squared=False)",
+   "reasoning": "Only RMSE is calculated, with no secondary metrics to provide a robust understanding of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated as a standard regression problem, matching the requirements.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses raw features directly without attempting any derived features, interactions, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent imputation statistics across splits",
+   "description": "The agent calculates imputation parameters (like median or mode) separately for the train, validation, and test datasets. Instead, statistics should be calculated solely on the training data and used to impute missing values in the validation and test sets to prevent data leakage and ensure consistency.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "def handle_missing(df, feature_cols):\n...\nresult[col] = result[col].fillna(result[col].median())\n...\nX_train_processed = handle_missing(X_train, feature_cols)\nX_test_processed = handle_missing(X_test, feature_cols)"
+  }
+ ],
+ "summary": "The agent successfully sets up a LightGBM regression model with early stopping, but fails in its preprocessing logic. It improperly imputes missing values by calculating median/mode statistics on the validation and test sets independently rather than learning them from the training set, and leaks test data by fitting a LabelEncoder on the combined dataset. Additionally, the solution lacks any feature engineering and evaluates the stochastic model with only a single run and metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

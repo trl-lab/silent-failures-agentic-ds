@@ -1,0 +1,149 @@
+{
+ "task": "sberbank-russian-housing-market",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes no effort to handle missing values or outliers, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a strong temporal component (housing prices over time), but the agent uses a random cross-validation split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 different folds, accounting for some variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly report or optimize a single computed metric; it merely runs model.fit.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a regression problem and appropriately applies a log1p transform to align with the RMSLE metric.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates several derived features (e.g., relative floor, relative kitchen area, date parts).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent uses a simple unweighted average to combine the predictions from the cross-validation folds.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Destruction of test IDs",
+   "description": "The agent drops the original ID column from the dataset and later generates a generic sequential ID for the submission file. In competitions or practical scoring systems, predictions must be mapped back to their original IDs, and generating a new sequence will cause the submission to fail or score zero.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "output = pd.DataFrame({'id': range(len(final_preds)), 'price_doc': final_preds})"
+  },
+  {
+   "name": "Missing evaluation metric computation",
+   "description": "The agent implements cross-validation but never calculates, logs, or prints any validation metric (such as RMSLE or RMSE) for the folds. This makes it impossible to assess the model's offline performance without submitting to an external leaderboard.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], callbacks=[])"
+  }
+ ],
+ "summary": "The agent successfully sets up a LightGBM regression pipeline with feature engineering and cross-validation, but commits critical errors in temporal validation and submission formatting. By using a random KFold split instead of a time-based split, the model leaks future macro-economic trends into the training data. Additionally, the agent discards the original test IDs and replaces them with a generated range, which will result in an invalid submission file.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

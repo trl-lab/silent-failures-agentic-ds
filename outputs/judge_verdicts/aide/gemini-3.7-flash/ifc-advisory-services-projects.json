@@ -1,0 +1,142 @@
+{
+ "task": "ifc-advisory-services-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform manual EDA or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling them with empty strings for text, 'missing' for categoricals, and relies on LightGBM's native handling for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to numerical features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\n    svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent applies TF-IDF and TruncatedSVD on the combined train and test dataset before splitting, leaking test set vocabulary and variance into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fit on the combined data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Despite identifying and extracting features from date columns, the agent uses a random K-Fold split, ignoring the temporal nature of the project data and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a budget prediction task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses K-Fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)\n...\nmodel = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The stochastic LightGBM model and random CV split are evaluated exactly once with a fixed random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying performance via other metrics like MAE which might be more robust to budget outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers date components, date differences, TF-IDF features, and frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent blends fold predictions using a naive, equal-weight average with no blend optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Frequency encoding on combined data",
+   "description": "Computing category frequencies on the combined train and test sets leaks test set distribution statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = s.map(s.value_counts(normalize=True)).rename(f\"{col}_freq\")"
+  }
+ ],
+ "summary": "The agent provides a comprehensive pipeline with reasonable feature engineering for text, dates, and categorical data, and correctly frames the regression task using LightGBM. However, it suffers from critical data leakage by applying TF-IDF, TruncatedSVD, and frequency encoding on the combined train and test datasets prior to splitting. Furthermore, it ignores the temporal order of the projects by using a random K-Fold split, risking look-ahead bias.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

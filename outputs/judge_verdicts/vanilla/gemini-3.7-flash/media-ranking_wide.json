@@ -1,0 +1,145 @@
+{
+ "task": "media-ranking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = pd.concat([X_train_df[col], X_test_df[col]]).value_counts()\n    X_train_df[f'{col}_freq'] = X_train_df[col].map(freq).fillna(0)",
+   "reasoning": "The agent computes frequency encodings by combining the training and test datasets, which leaks test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by dropping missing targets and filling missing values in categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is done with a constant ('Missing') which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for the continuous target 'Overall'.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A K-Fold cross-validation strategy is implemented to generate out-of-fold predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate or report metrics explicitly, instead relying on default loss functions during training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the 'Overall' target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Multiple features are engineered, including text length, word counts, and TF-IDF vectors.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Ridge regression to stack the out-of-fold predictions, which is a sound ensembling method.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "cross_validation_leakage",
+   "description": "Transformers (like TF-IDF or OneHotEncoder) are fitted on the entire training dataset before performing cross-validation splits. This leaks information from the validation folds into the training folds, making the out-of-fold predictions overly optimistic and potentially biasing any meta-models trained on them.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_tfidf = tfidf.fit_transform(X_train_df['all_text'])\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(train_df)):"
+  },
+  {
+   "name": "no_offline_evaluation",
+   "description": "The script trains models and makes predictions on the test set, but it never calculates or prints any evaluation metric (e.g., RMSE) on the validation folds. This makes it impossible to verify the model's true performance offline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_ridge[val_idx] = ridge.predict(X_train_sparse[val_idx])"
+  }
+ ],
+ "summary": "The agent implements a generally solid machine learning pipeline with robust feature engineering, cross-validation, and stacking. However, it suffers from data leakage by using test set distribution statistics for frequency encoding and fitting global transformers before cross-validation. Furthermore, the agent completely omits calculating any offline evaluation metrics on its out-of-fold predictions.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

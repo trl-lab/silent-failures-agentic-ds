@@ -1,0 +1,141 @@
+{
+ "task": "ieee-fraud-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"null_count\"] = df.isnull().sum(axis=1).astype(np.int16)\n...\n# Convert categorical columns to category dtype for LightGBM",
+   "reasoning": "The agent computes a null count feature but relies entirely on LightGBM's native missing value handling without any explicit imputation or cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection techniques are used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed; missing values are left as NaN.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[\"hour\"] = (df[\"TransactionDT\"] / 3600) % 24\n...\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a clear temporal component (TransactionDT), but the agent uses a randomly shuffled cross-validation split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a binary objective is appropriate for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, so a train/validation split is present.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_va, val_pred)",
+   "reasoning": "The agent evaluates the model using only ROC-AUC and does not report other metrics like Precision-Recall AUC, which is highly relevant for imbalanced fraud datasets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including time extraction, log transforms, interactions, frequency encoding, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent uses standard cross-validation prediction averaging, which is a standard bagging technique rather than naive ensembling of disparate models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature Engineering Data Leakage",
+   "description": "Computing distribution-dependent features (like frequency encoding or group-by aggregations) on the combined train and test dataset before splitting. This leaks the test set distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train, test], ignore_index=True)\n...\ndf[f\"{col}_freq\"] = df[col].map(df[col].value_counts(dropna=False))\n...\ncard1_amt_mean = df.groupby(\"card1\")[\"TransactionAmt\"].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a LightGBM model with solid domain-specific feature engineering, but critically undermines the solution with two major forms of data leakage. First, it computes frequency encodings and group aggregations on the combined train and test sets, leaking test distributions into the training data. Second, it uses a randomly shuffled StratifiedKFold on a time-dependent dataset, introducing look-ahead bias instead of performing a proper temporal split.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

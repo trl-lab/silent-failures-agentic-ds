@@ -1,0 +1,156 @@
+{
+ "task": "medically-underserved-areas-populations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or exploratory statistics on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by dropping missing targets and explicitly filling missing values in categorical and datetime features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled using a constant string '__MISSING__' which does not leak statistics across the train/test split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is a cross-sectional dataset of underserved areas, not a time series task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (LightGBMRegressor, CatBoostRegressor) are correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation, creating a proper train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 folds, effectively averaging over multiple runs for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics, so it does not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineered features by extracting date parts from datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent combines predictions from LightGBM and CatBoost using a naive, equal-weighted average rather than optimizing the blend weights via validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing evaluation metric computation",
+   "description": "The agent implements cross-validation but fails to calculate and report the validation performance (e.g., out-of-fold RMSE), making it impossible to evaluate model quality without submitting to an oracle.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X, y): ... # No metric calculation is performed on the validation set"
+  },
+  {
+   "name": "Categoricals treated as continuous",
+   "description": "The agent ordinal-encodes categorical variables but does not inform the tree-based models (LightGBM, CatBoost) that these are categorical features, causing the models to treat them as ordered continuous variables.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_model.fit(X_tr, y_tr, eval_set=(X_va, y_va), early_stopping_rounds=50, verbose=False) # cat_features argument is omitted"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates submission IDs using a simple sequence instead of preserving the actual identifier column from the test set, which will cause submission mismatches if the original test IDs are not 0-indexed and sequential.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(final_preds))"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold cross-validation pipeline with LightGBM and CatBoost, but it critically fails to compute or report any out-of-fold validation metric to assess model quality. Additionally, it ensembles the models with a naive equal-weight average, loses the original test IDs, and fails to specify categorical feature indices to the gradient boosting algorithms.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

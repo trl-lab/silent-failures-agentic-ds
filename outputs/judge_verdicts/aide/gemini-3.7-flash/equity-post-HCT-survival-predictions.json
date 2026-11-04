@@ -1,0 +1,142 @@
+{
+ "task": "equity-post-HCT-survival-predictions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no peeking at test data occurs.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in feature_cols:\n        if train[col].dtype == \"object\" or train[col].dtype.name == \"category\":",
+   "reasoning": "The agent makes no explicit effort to handle missing values or outliers, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is a standard survival analysis dataset and random stratified splitting by event is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a Cox survival model, which is perfectly suited for a task evaluated on the concordance index.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation to validate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 different data splits via cross-validation, thus accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_c_index = compute_c_index(\n            train_time[val_idx], val_pred, train_efs[val_idx]\n        )",
+   "reasoning": "The agent only computes and reports the concordance index, without verifying performance on other metrics like Brier score or log-likelihood.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a survival analysis problem using LightGBM's Cox objective, integrating both event status and time.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col not in drop_cols]",
+   "reasoning": "The agent uses the raw columns as-is without engineering any derived features, interactions, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(test[feature_cols]) / n_splits",
+   "reasoning": "The agent uses a naive, unweighted average of the fold models for the final test predictions without any tuning of the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unsynchronized categorical encoding",
+   "description": "Independent casting of train and test columns to pandas 'category' can result in mismatched integer codes if the sets of unique values differ between the splits, which corrupts tree-based model inference on the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train[col] = train[col].astype(\"category\")\n            test[col] = test[col].astype(\"category\")"
+  }
+ ],
+ "summary": "The agent successfully frames the problem as a survival analysis task using a Cox objective and sets up a robust 5-fold cross-validation scheme. However, it fails to execute any data cleaning or feature engineering, relies on basic unweighted ensembling, and introduces a critical data corruption bug by casting train and test sets to categorical variables independently.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "paediatric-investigation-plan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans data by replacing missing tokens with NaN and extracting useful features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is used in the pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants, not with statistics fitted on the full dataset, preventing leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y)",
+   "reasoning": "The dataset contains temporal components like 'Decision date' and 'First published date', but the agent uses a random split instead of a time-based split for validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostClassifier is appropriate for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "_ = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent performs a validation split and calculates the accuracy score, but assigns it to '_' and discards it, meaning no validation is actually used to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_model = make_model(cat_cols)\nval_model.fit(X_tr, y_tr, eval_set=(X_val, y_val), verbose=False)",
+   "reasoning": "The agent trains the stochastic CatBoost model exactly once without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "_ = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent only computes accuracy for validation and does not evaluate any other metrics that might be more informative.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date parts, text lengths, word counts, and regex patterns from IDs.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Silent exception handling",
+   "description": "The agent wraps model training, validation blocks, and prediction logic in broad try-except blocks that silently pass (e.g., `except Exception: pass`). This masks potential errors like stratification failures on rare classes or type mismatches, leading to silent fallback behaviors that hide bugs.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "except Exception:\n            pass"
+  }
+ ],
+ "summary": "The agent creates a functional pipeline with decent feature engineering for text and dates, but fails to implement a useful evaluation strategy. It ignores the temporal nature of the data by using a random split, and more critically, it computes the validation accuracy only to discard it completely (`_ = accuracy_score(...)`). Additionally, the use of broad, silent try-except blocks hides potential bugs during execution.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

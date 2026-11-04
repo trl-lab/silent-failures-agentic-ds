@@ -1,0 +1,160 @@
+{
+ "task": "financial-product-complaint",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col], X_test[col]], axis=0).astype(str)\n    le.fit(combined)",
+   "reasoning": "The agent fits a LabelEncoder on the combined training and test sets, leaking test set categories into the training pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data is cleaned by filling missing numeric values with the median and dropping unneeded columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection was applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies strictly on the median of the training set, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset contains temporal columns that should dictate the splitting strategy.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a distinct validation set.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated on the validation set, and the test set is strictly used for final prediction.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n    X_train, y_train_encoded, test_size=0.2, random_state=42, stratify=y_train_encoded\n)",
+   "reasoning": "The agent performs only a single train-validation split with one random seed, failing to account for variance through cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_acc = (val_prob.argmax(axis=1) == y_val).mean()",
+   "reasoning": "The agent evaluates the models using only accuracy, which may not adequately reflect performance if the classes are imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "drop_cols = ['Consumer complaint narrative', 'Company public response', 'Complaint ID', 'ZIP code', 'Tags']",
+   "reasoning": "The agent discards all text and complex columns without extracting any derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_ensemble = np.mean(val_probs, axis=0)",
+   "reasoning": "The ensemble is a simple unweighted average of the predicted probabilities from three models without tuning combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dropping high-signal text features",
+   "description": "The agent completely drops text columns instead of applying NLP techniques like TF-IDF or embeddings, discarding potentially the most predictive information for the task.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "drop_cols = ['Consumer complaint narrative', 'Company public response', 'Complaint ID', 'ZIP code', 'Tags']"
+  },
+  {
+   "name": "Treating categorical features as continuous",
+   "description": "The agent label-encodes categorical features into integers but fails to inform CatBoost or LightGBM that these features are categorical (e.g., via `cat_features` or `category` dtype), causing the tree models to treat them as continuous variables with false ordinality.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = le.transform(X_train[col].astype(str))"
+  },
+  {
+   "name": "Discarding original ID column for submission",
+   "description": "The agent drops the original ID column from the test set and creates a sequential 'id' column from scratch for the submission file, which will likely fail evaluation if the system joins predictions using the original IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "output_df = pd.DataFrame({'id': range(len(test_pred)), 'Company response to consumer': test_pred})"
+  }
+ ],
+ "summary": "The agent implements a generally sound modeling pipeline with appropriate validation and ensembling. However, it severely limits predictive performance by discarding critical text features and treating categorical encoded variables as continuous integers in the tree models. Additionally, creating a synthetic ID column rather than preserving the original 'Complaint ID' for the submission file will likely cause the evaluation to fail.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

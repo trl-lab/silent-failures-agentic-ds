@@ -1,0 +1,134 @@
+{
+ "task": "health-professional-shortage-areas",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if (\n            train_num.notna().sum() == train[col].notna().sum()\n            and test_num.notna().sum() == test[col].notna().sum()\n        ):",
+   "reasoning": "The agent uses test data to decide whether a column should be cast as numeric or categorical, leaking test set properties into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train[TARGET] = pd.to_numeric(train[TARGET], errors=\"coerce\")\ntrain = train.dropna(subset=[TARGET])",
+   "reasoning": "The agent actively cleans the data by handling missing target values, cleaning data types, and filtering out constant columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if train[col].nunique(dropna=True) > 1:\n        clean_features.append(col)",
+   "reasoning": "Feature filtering (removing constants) is correctly based only on the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputation is performed before splitting; LightGBM handles the missing values inherently.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset involves a temporal component requiring a time-based split, as no explicit time structures are evident in the context.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\n    \"objective\": \"regression\",\n    \"metric\": \"rmse\",",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent implements a 5-fold cross-validation strategy, ensuring proper train/validation splitting.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(train), start=1):",
+   "reasoning": "The model is evaluated across multiple cross-validation folds, which inherently accounts for variance in the data split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "validation_rmse = root_mean_squared_error(train[TARGET].to_numpy(dtype=float), oof_pred)",
+   "reasoning": "The agent evaluates the model solely using RMSE and does not compute secondary metrics (like MAE or R-squared) to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately framed as a standard regression task predicting the HPSA Score.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Basic type cleanup: datetime -> numeric, object -> numeric if possible, otherwise category.",
+   "reasoning": "The agent only performs basic type conversions and does not derive any new features, interactions, or domain-specific transforms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_pred += model.predict(test_X, num_iteration=best_iter) / n_splits",
+   "reasoning": "The agent ensembles the predictions from the cross-validation folds using a naive unweighted average without attempting any blend optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a solid baseline LightGBM model utilizing 5-fold cross-validation and early stopping. However, it suffers from minor test data leakage during the data preprocessing step when deciding column data types based on test set nullability. Additionally, the solution lacks any feature engineering and relies on a simple unweighted average for its fold predictions.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

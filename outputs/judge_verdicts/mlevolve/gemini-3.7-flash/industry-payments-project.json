@@ -1,0 +1,153 @@
+{
+ "task": "industry-payments-project",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any interactive EDA or inspect test data distributions before modeling.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "extracted[col] = vals.fillna(0.0).astype(np.float32)",
+   "reasoning": "The agent explicitly handles missing values by filling them with 0.0, global means, or 'MISSING' categories.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scalers are fitted on the combined train and test datasets before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is handled through simple fillna operations without fitting an imputer on the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent extracts date features and uses a random KFold split, which would ignore temporal order if a time component exists, but it's unclear if the dataset is strictly a time series.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_params = {'objective': 'regression', ...}",
+   "reasoning": "The agent correctly uses regression models (LightGBM, XGBoost, CatBoost) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a 5-fold cross-validation strategy, properly evaluating on held-out validation sets.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for evaluating models or selecting parameters.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_params = get_lgb_params(seed=42 + fold)",
+   "reasoning": "The agent evaluates models across multiple CV folds and even varies the random seed per fold.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse_lgb = np.sqrt(mean_squared_error(y_va, val_pred_lgb))",
+   "reasoning": "The agent only uses RMSE for evaluation and optimizing ensemble weights, without calculating secondary metrics like MAE to check robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"projectPayment\"",
+   "reasoning": "The agent correctly formulates the problem as a standard regression task predicting the payment target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_fe = extract_base_features(X_train_raw)",
+   "reasoning": "The agent implements extensive feature engineering, including TF-IDF, SVD, group-by aggregations, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(blend_objective, init_weights, method=\"SLSQP\", ...)",
+   "reasoning": "The agent optimizes the ensemble weights using SLSQP on out-of-fold predictions rather than naive averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering leakage within cross-validation",
+   "description": "Stateful feature engineering transformations (like TF-IDF, SVD, frequency encoding, and group-by aggregations) are fitted on the entire training set before the cross-validation loop. This leaks information from the validation folds into the training folds, making the CV scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_train = tfidf.fit_transform(combined_train_text)\nsvd_train = svd.fit_transform(tfidf_train)"
+  },
+  {
+   "name": "Brittle train-test feature alignment",
+   "description": "Conditional logic applied independently to the train and test sets can result in mismatched columns. If a feature meets a condition (e.g., minimum value >= 0) in the train set but not in the test set, the resulting dataframes will have different columns, leading to runtime errors when aligning them.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if min_val >= 0:\n    extracted[f\"{col}_log1p\"] = np.log1p(...)"
+  }
+ ],
+ "summary": "The agent provides a robust, well-structured solution with cross-validation, multiple gradient boosting models, and an optimized ensemble. However, there is data leakage within the cross-validation loop where stateful features (TF-IDF, SVD, and aggregations) are fitted on the entire training set before splitting. Additionally, a logic flaw in feature extraction could cause runtime errors if test set distributions differ slightly from the training set.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

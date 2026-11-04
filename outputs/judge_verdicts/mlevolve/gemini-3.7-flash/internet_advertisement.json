@@ -1,0 +1,157 @@
+{
+ "task": "internet_advertisement",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including handling of missing values using SimpleImputer and fillna.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied inside the cross-validation loop (scaler.fit_transform on X_tr_raw).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test information is not leaked into feature choice, as the test dataset is not used to fit any feature selection or dimensionality reduction models.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fit only on the training set, meaning test missing-value statistics are not leaked (though validation leakage occurs).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset has no temporal components.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Binary classification models are correctly used for the binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model uses appropriate regularization, including Dropout, LayerNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 10-fold StratifiedKFold cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 10 cross-validation folds, which inherently averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly optimizes for and evaluates using the required ROC AUC metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including geometric interactions, SVD/NMF, and aggregate token statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Ensembling is sophisticated, utilizing SLSQP to optimize weights on rank-transformed out-of-fold predictions.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage during Feature Engineering",
+   "description": "The agent computes target-based features (e.g., token log-odds) using the entire training dataset's labels before creating cross-validation splits. This leaks the validation labels into the training features, artificially inflating out-of-fold performance estimates and biasing the ensemble weights.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pos_counts = np.sum(X_train_bin[pos_mask], axis=0)\n...\ntoken_log_odds = np.log(p_pos / p_neg).astype(np.float32)\n...\ntrain_odds_df = compute_token_log_odds_features(\n    X_train_bin, token_log_odds, X_train_raw.index\n)"
+  },
+  {
+   "name": "Validation Leakage during Preprocessing",
+   "description": "The agent fits unsupervised preprocessing steps like SVD, NMF, and Imputation on the entire training dataset before cross-validation splitting. This leaks information from validation folds into the training features during the cross-validation loop.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_svd_components, random_state=42)\ntrain_svd = svd.fit_transform(X_train_bin)"
+  }
+ ],
+ "summary": "The agent implements a sophisticated solution with extensive feature engineering, multiple models, and a robust optimization-based ensembling strategy (SLSQP on rank-transformed OOF predictions). However, it commits a critical error by performing target encoding (log-odds calculation) on the entire training set before cross-validation, leading to massive target leakage. Additionally, unsupervised preprocessing steps like SVD and imputation are also fitted prior to the CV split, causing further validation leakage.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

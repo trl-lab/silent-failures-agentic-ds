@@ -1,0 +1,151 @@
+{
+ "task": "predict-who-is-more-influential-in-a-social-network",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set distributions before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles potential missing values during feature engineering using fillna(0) and relies on gradient boosting models which natively support missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no scaling or normalisation applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No stateful imputer is fit before the train/test split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (LGBMClassifier, CatBoostClassifier, XGBClassifier) for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not reused to select models or tune hyperparameters.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimises logloss, which is an appropriate and standard surrogate loss metric for accuracy in classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is excellent; the agent properly recognises the symmetric nature of the pairs and augments/evaluates accordingly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers highly relevant interaction features like differences, log differences, and ratios.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "inconsistent_categorical_encoding",
+   "description": "Categorical variables are encoded using independent label encoding (e.g., `.astype('category').cat.codes`) on different subsets (train and test) separately. This assigns different integer codes to the same category if the subsets contain different unique values.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_feat[col] = df_feat[col].astype('category').cat.codes"
+  },
+  {
+   "name": "overwriting_fold_predictions",
+   "description": "During cross-validation, test predictions are generated within the fold loop but are assigned to a local variable that gets overwritten in each iteration, instead of being accumulated into an array. As a result, only the predictions from the final fold are kept.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "p1_lgb = model_lgb.predict_proba(X_test_eng)[:, 1]\n    p2_lgb = model_lgb.predict_proba(X_test_swapped_eng)[:, 1]\n    p_lgb = (p1_lgb + (1.0 - p2_lgb)) / 2.0"
+  },
+  {
+   "name": "unused_trained_models",
+   "description": "Models are trained (CatBoost, XGBoost) but their predictions are never generated or used in the final output, wasting computation and missing ensembling opportunities.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_cat.fit(\n        X_tr_eng, y_tr_aug,\n        eval_set=(X_va_eng, y_va),\n        early_stopping_rounds=50\n    )\n    \n    model_xgb = XGBClassifier(...)"
+  }
+ ],
+ "summary": "The data science strategy is conceptually very strong, correctly leveraging the symmetric nature of the task through data augmentation and test-time symmetric predictions without causing target leakage. However, execution flaws severely undermine the solution: categorical encoding is done independently on each split causing misaligned features, test predictions are overwritten in each fold rather than ensembled, and additionally trained models (CatBoost, XGBoost) are entirely unused.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

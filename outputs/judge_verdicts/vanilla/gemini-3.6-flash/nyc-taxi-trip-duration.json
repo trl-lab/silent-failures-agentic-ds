@@ -1,0 +1,148 @@
+{
+ "task": "nyc-taxi-trip-duration",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by filtering out anomalous trip durations.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a clear temporal component (pickup_datetime) but the agent uses a random K-fold split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE on a log-transformed target, which exactly corresponds to the task's RMSLE metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts many rich features including datetime components and distance heuristics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages CV folds, which is a standard and appropriate ensembling method for fold predictions rather than naive ensembling of disparate models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid Submission IDs",
+   "description": "The agent generates synthetic sequential IDs for the submission file instead of preserving and using the actual IDs from the test set. This will result in a completely invalid submission file that cannot be scored.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub = pd.DataFrame({'id': np.arange(len(X_test)), 'trip_duration': final_preds})"
+  },
+  {
+   "name": "Test Feature Leakage",
+   "description": "The agent computes group-based feature statistics (like means) on the combined train and test dataset before splitting. This leaks the distribution of test set features into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df['hour_dist_mean'] = df.groupby('hour')['haversine_dist'].transform('mean')"
+  }
+ ],
+ "summary": "The agent implements a generally solid solution with appropriate data cleaning, extensive feature engineering (distances and time components), and a well-configured LightGBM cross-validation loop. However, it makes a critical error by discarding the test set IDs and replacing them with a synthetic range, rendering the submission invalid. Additionally, there are moderate issues with ignoring the temporal nature of the data during splitting and leaking test set feature distributions through pre-split group aggregations.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

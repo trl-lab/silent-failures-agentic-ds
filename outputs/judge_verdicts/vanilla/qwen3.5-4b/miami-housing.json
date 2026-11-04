@@ -1,0 +1,138 @@
+{
+ "task": "miami-housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed prior to model training.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "preprocessor.fit(X_train)",
+   "reasoning": "The imputer is properly fit only on the training features, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the provided pre-split train and test sets directly.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train)",
+   "reasoning": "The agent trains on the full training set without performing any internal validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n        n_estimators=1000,\n        learning_rate=0.05,\n        max_depth=-1,\n        min_child_samples=20,\n        num_leaves=31,\n        subsample=0.8,\n        colsample_bytree=0.8,\n        reg_alpha=0.1,\n        reg_lambda=0.1,\n        random_state=42,\n        verbose=-1\n    )",
+   "reasoning": "The agent fits the stochastic LightGBM model exactly once with a fixed random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics locally.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TARGET_COL = 'SALE_PRC'",
+   "reasoning": "The task is correctly formulated as a regression problem predicting the continuous target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]",
+   "reasoning": "The agent uses the raw features with basic imputation and encoding, without deriving any new features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Failure due to Mismatched Columns in Preprocessor",
+   "description": "The agent extracts column names for a preprocessor from the entire dataframe (including the target and ID columns), but applies the preprocessor to a subset dataframe that excludes those columns. This leads to a ValueError/KeyError during fitting because the expected columns do not exist in the training subset.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "num_cols = train_df.select_dtypes(include=['number']).columns.tolist()\n...\npreprocessor.fit(X_train)"
+  }
+ ],
+ "summary": "The agent attempts to train an LGBMRegressor but fails completely during execution due to passing missing target and ID columns into the ColumnTransformer. Additionally, the solution lacks internal validation or cross-validation, omits feature engineering, and only evaluates a stochastic model once.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

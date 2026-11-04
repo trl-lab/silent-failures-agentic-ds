@@ -1,0 +1,105 @@
+{
+ "task": "ilpd",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_ensemble)\nprint(f\"5-Fold CV ROC-AUC: {cv_auc:.5f}\")",
+   "reasoning": "The agent only computes and relies on the ROC-AUC score, failing to verify the model's performance on other relevant metrics like precision, recall, or log loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "weights = {\n    \"catboost\": 0.25,\n    \"lightgbm\": 0.20,\n    \"xgboost\": 0.20,\n    \"rf\": 0.20,\n    \"et\": 0.15,\n}",
+   "reasoning": "The agent uses a manually hardcoded, near-equal weighted average for the ensemble without performing any weight search, tuning, or stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputation before cross-validation splitting",
+   "description": "The agent computes the imputation statistic (median) on the entire training set before performing the K-Fold split. This leaks information from the validation folds into the training folds, which can lead to overly optimistic cross-validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in feature_cols:\n    median_val = X[col].median()\n    X[col] = X[col].fillna(median_val)"
+  },
+  {
+   "name": "Batch-dependent test predictions (Transductive ranking)",
+   "description": "The agent applies rank normalization to the test predictions within each fold. This means a single test sample's prediction depends on the other samples present in the test batch, breaking the assumption of independent predictions and making the model entirely unsuitable for single-instance inference in production.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "def rank_norm(arr):\n    return (rankdata(arr) - 0.5) / len(arr)\n\npreds_te = {\n    \"catboost\": rank_norm(cb_te),"
+  }
+ ],
+ "summary": "The agent implements a generally strong pipeline with domain-specific feature engineering, Stratified K-Fold cross-validation, and an ensemble of five tree-based models. However, it suffers from cross-validation leakage due to imputing missing values before splitting, uses a manually weighted ensemble without any tuning, and applies rank normalization to test predictions, which critically makes inference batch-dependent.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

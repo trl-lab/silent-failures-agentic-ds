@@ -1,0 +1,138 @@
+{
+ "task": "house_sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "common_cols = list(set(available_cols_train) & set(available_cols_test))",
+   "reasoning": "The agent only checks for common columns to ensure consistency, which is standard and does not leak test statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipe_num = Pipeline([\n        ('imputer', SimpleImputer(strategy='median'))\n    ])",
+   "reasoning": "The agent attempts to handle missing values and encode categoricals using a ColumnTransformer pipeline.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection based on data statistics is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "preprocessor.fit(X_train)\n    \n    # Transform data\n    X_train_final = preprocessor.transform(X_train)\n    X_test_final = preprocessor.transform(X_test)",
+   "reasoning": "The imputation pipeline is correctly fitted only on the training set and then applied to the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The agent does not perform any data splitting, so it cannot be determined if temporal order would have been ignored.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = XGBRegressor(n_estimators=100, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, max_depth=6, random_state=42)",
+   "reasoning": "The agent correctly uses a regression model (XGBRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_final, y_train)\n    \n    # Predict\n    preds = model.predict(X_test_final)",
+   "reasoning": "The agent trains the model on the full training set and directly predicts on the test set without any internal validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = XGBRegressor(n_estimators=100, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, max_depth=6, random_state=42)",
+   "reasoning": "The agent uses a stochastic model (XGBoost with subsampling) but only trains it once with a fixed random seed, failing to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preds = model.predict(X_test_final)",
+   "reasoning": "Because there is no validation step, the agent fails to evaluate the model entirely and does not use or verify any metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = 'price'",
+   "reasoning": "The agent correctly formulates the task as predicting the house price.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_features = X_train.loc[:, feature_cols].select_dtypes(include=[np.number]).columns.tolist()\n    cat_features = X_train.loc[:, feature_cols].select_dtypes(include=['object']).columns.tolist()",
+   "reasoning": "The agent only applies basic imputation and one-hot encoding without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "execution_error_undefined_variable",
+   "description": "The script attempts to call a function or variable that has not been defined, causing an immediate crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "('num', numeric_transformer, numeric_cols_indices(X_train))"
+  }
+ ],
+ "summary": "The agent attempts to build a standard preprocessing pipeline and an XGBoost regression model but fails critically due to an execution error (calling undefined functions like `numeric_cols_indices`). Even if the code executed, it lacks any internal validation strategy to estimate generalization performance and performs no feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "eucalyptus",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = Pipeline(\n    [(\"categorical\", LabelEncoder()), (\"numerical\", SimpleImputer(strategy=\"median\"))]\n)",
+   "reasoning": "The agent defines a preprocessing pipeline with a SimpleImputer but never actually applies it to the data, completely relying on LightGBM's default handling of missing values without an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is actually performed on the data, as the pipeline is unused.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The eucalyptus dataset is not a time series, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM classifier is appropriate for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, which averages over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scores = cross_val_score(model, X_train, y_train, cv=cv, scoring=\"accuracy\")",
+   "reasoning": "The agent relies entirely on accuracy, without checking for class imbalances or using additional metrics like F1-score or log-loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correct (multi-class classification).",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in feature_cols:\n    if train_df[col].dtype == \"object\" or train_df[col].dtype == \"category\":",
+   "reasoning": "The agent only applies basic LabelEncoding to categorical features and casting to numerical ones, with no derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unseen categories in LabelEncoder",
+   "description": "Using `LabelEncoder` on features rather than the target variable can cause the script to crash if the test set contains categories that were not present in the training set, as `transform()` will raise a ValueError. `OrdinalEncoder` with `handle_unknown='use_encoded_value'` is the safer, standard approach for feature encoding.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test[col] = le.transform(X_test[col].astype(str))"
+  }
+ ],
+ "summary": "The agent correctly sets up a LightGBM classification pipeline with cross-validation but makes several critical implementation errors. It defines a preprocessing pipeline for imputation but forgets to use it (leaving data uncleaned), evaluates solely on accuracy without checking class distributions, and uses `LabelEncoder` for features which introduces a high risk of crashing on unseen test categories.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

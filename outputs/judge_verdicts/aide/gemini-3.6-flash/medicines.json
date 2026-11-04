@@ -1,0 +1,137 @@
+{
+ "task": "medicines",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([train_df[feature_cols], test_df[feature_cols]], ignore_index=True)\n...\ntfidf = TfidfVectorizer(max_features=500, stop_words=\"english\")\ntext_vecs = tfidf.fit_transform(s_str)",
+   "reasoning": "The agent concatenates the train and test sets and fits a TF-IDF vectorizer (as well as calculates frequency encodings) on the full dataset, leaking test distribution information into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with constants and adding indicator columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use any feature scalers like StandardScaler or MinMaxScaler.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\nsvd_feats = svd.fit_transform(text_vecs)",
+   "reasoning": "The agent applies TruncatedSVD (a dimensionality reduction technique) to the combined train and test data before splitting, causing data leakage into the feature extraction process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses constant imputation (e.g. fillna(-1), fillna('')) which does not learn statistics from the full dataset, thus avoiding imputation leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 cross-validation folds, accounting for variance across different data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)\nprint(f\"5-Fold CV ROC AUC Score: {cv_auc:.5f}\")",
+   "reasoning": "The agent calculates and reports only the ROC AUC score without verifying other potentially informative metrics like precision, recall, or accuracy.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including datetime parsing, text length, word count, TF-IDF, and SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / kf.n_splits",
+   "reasoning": "The agent ensembles the predictions from the 5 cross-validation folds using a simple unweighted average without attempting to tune the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent ignores the ID column from the test dataset (which it dropped during preprocessing) and instead hardcodes sequential IDs using `np.arange`. This will likely result in a mismatched submission file that fails scoring if the true test set IDs are non-sequential or non-numeric strings.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub = pd.DataFrame({\"id\": np.arange(len(test_preds)), \"Medicine status\": test_preds})"
+  }
+ ],
+ "summary": "The agent built a robust LightGBM model with good feature engineering and cross-validation, but critically flawed its data preprocessing by fitting transformers (TF-IDF and TruncatedSVD) on the combined train and test sets, causing severe data leakage. Additionally, the agent ignored the actual test IDs and hardcoded sequential IDs for the submission file, which will likely cause the submission to fail evaluation.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

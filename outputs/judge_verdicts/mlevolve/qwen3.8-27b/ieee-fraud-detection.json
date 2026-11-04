@@ -1,0 +1,145 @@
+{
+ "task": "ieee-fraud-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and clips extreme values appropriately.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before the train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection and filtering is done properly after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation and clipping are done using training set statistics, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a time-based split at the 85th percentile of TransactionDT.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classification LightGBM model is used, which is appropriate for the task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a temporal validation set and uses it for early stopping and evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    lgb_params,\n    train_lgb,\n    num_boost_round=3000,\n    valid_sets=[train_lgb, val_lgb],...",
+   "reasoning": "The agent trains a single LightGBM model (with random subsampling parameters like bagging_fraction) and evaluates it once without multiple seed runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val, val_pred)\nprint(f\"\\nValidation ROC-AUC: {val_auc:.6f}\")",
+   "reasoning": "The agent evaluates the model solely on ROC-AUC (the official metric) and does not report other metrics like PR-AUC which are useful for imbalanced datasets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including aggregations, ratios, and temporal features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Stateful features computed independently on data splits",
+   "description": "Time-series or rolling features (e.g., expanding mean, time since last transaction) are computed independently on the train, validation, and test splits. This causes the features for validation and test sets to reset and lose their historical context from the training set, leading to incorrect and misaligned feature values during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_feat, _, _, _ = engineer_features(val_split, is_train=False, train_df=train_split)\ntest_feat, _, _, _ = engineer_features(test, is_train=False, train_df=train_split)"
+  },
+  {
+   "name": "Destructive numeric conversion of categorical features",
+   "description": "The code blindly applies `pd.to_numeric(errors='coerce')` to all remaining features not explicitly excluded. This converts valid categorical string columns (like email domains, device info, and M-columns) entirely into NaNs, effectively destroying their signal before they are filled with a constant.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in feature_cols:\n    train_feat[col] = pd.to_numeric(train_feat[col], errors=\"coerce\")"
+  }
+ ],
+ "summary": "The agent correctly handles the temporal nature of the dataset by using a time-based split and avoids data leakage by computing statistics solely on the training set. However, a critical flaw exists in the feature engineering pipeline: rolling and stateful features are computed independently for the validation and test sets, causing them to lose historical context. Additionally, a blanket numeric conversion destroys the signal of string-based categorical features.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

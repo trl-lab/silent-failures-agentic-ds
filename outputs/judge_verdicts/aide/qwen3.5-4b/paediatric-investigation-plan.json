@@ -1,0 +1,138 @@
+{
+ "task": "paediatric-investigation-plan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or peeking at test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_split, label=y_train_split)",
+   "reasoning": "The agent passes the raw dataset directly to LightGBM, relying entirely on the model to handle missing values without any explicit cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal component that would require time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"multiclass\"",
+   "reasoning": "The agent correctly uses a multiclass objective for a multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_split, X_val, y_train_split, y_val = train_test_split(",
+   "reasoning": "The agent explicitly creates a train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model exactly once, without using cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_val, y_val_pred)",
+   "reasoning": "The agent evaluates the model using only accuracy, ignoring other metrics like F1-score or log-loss which are often important for multiclass evaluation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"Decision type\", axis=1)",
+   "reasoning": "The agent uses the raw features exactly as provided with no domain-informed transformations or derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect multiclass probability decoding",
+   "description": "For multiclass classification, models like LightGBM return class probabilities (a 2D array) rather than discrete class labels. The agent incorrectly applies `np.round()` to this array instead of using `np.argmax(..., axis=1)`. This will cause a shape mismatch error during metric calculation and an invalid 2D array in the submission DataFrame.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_val_pred = model.predict(X_val)\ny_val_pred = np.round(y_val_pred).astype(int)"
+  }
+ ],
+ "summary": "The agent correctly sets up a LightGBM model with a train/validation split for a multiclass classification task, but fails due to a critical execution error in parsing the model's output. The agent incorrectly rounds the 2D output probabilities instead of taking the argmax, which will crash the metric evaluation and submission generation. Additionally, the solution lacks any data cleaning or feature engineering, relying entirely on LightGBM's default handling of raw data.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

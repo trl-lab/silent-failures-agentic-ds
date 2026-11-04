@@ -1,0 +1,152 @@
+{
+ "task": "equity-post-HCT-survival-predictions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only processed after the pipeline is fit on the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is properly fit only on the training data via a ColumnTransformer.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is not clear if there is a strict temporal order in the data that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Although the task is a survival task, the prompt classifies it as 'b-classification', so using a classifier is not formally a mismatch for the given task type string (though it is conceptually wrong, which is covered by FM01).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 distinct folds and averages the score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scores.append(concordance_index(y_val_fold, val_pred))",
+   "reasoning": "The agent only computes the concordance index and does not look at any other metric to evaluate the classification performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col not in [\"id\", \"efs\", \"efs_time\"]]\n...\ny_train = train[\"efs\"].copy()",
+   "reasoning": "The agent explicitly discards the time-to-event column ('efs_time') and collapses the survival analysis problem into a plain binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(...)",
+   "reasoning": "The agent only applies basic imputation and encoding to the raw features without engineering any new domain-specific or derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hallucinated metric import",
+   "description": "The agent attempts to import a metric function from a library that does not contain it, causing an immediate `ImportError`.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import concordance_index"
+  },
+  {
+   "name": "Invalid use of LabelEncoder on 2D arrays",
+   "description": "The agent uses `LabelEncoder` as a transformer step for multiple numerical feature columns. `LabelEncoder` expects a 1D target array and will throw a `ValueError` when given a 2D array of features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "(\"num\", Pipeline(steps=[(\"imputer\", SimpleImputer(strategy=\"median\")), (\"encoder\", LabelEncoder())]), numerical_cols)"
+  },
+  {
+   "name": "Using hard class predictions for ranking metric",
+   "description": "The agent uses `.predict()` to output hard class labels (0 or 1) rather than `.predict_proba()` to output continuous probabilities/risk scores, which makes it impossible to correctly evaluate ranking-based metrics like the concordance index.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_pred = model.predict(X_val_fold)\n    ...\n    scores.append(concordance_index(y_val_fold, val_pred))"
+  }
+ ],
+ "summary": "The agent implements a 5-fold cross-validation pipeline but fundamentally misunderstands the survival analysis task by dropping the time-to-event column and treating it as plain binary classification. Furthermore, the code contains multiple critical execution errors: it hallucinates an import for `concordance_index` from `sklearn.metrics` and inappropriately applies `LabelEncoder` to a 2D array of numerical features, guaranteeing the script will crash.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

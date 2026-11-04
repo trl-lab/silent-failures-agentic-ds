@@ -1,0 +1,109 @@
+{
+ "task": "dont-overfit-ii",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y)\n...\nval_proba = predict_proba(model, X_val)\naucs[name] = float(roc_auc_score(y_val, val_proba))",
+   "reasoning": "The agent trains and evaluates stochastic models (like LGBM, XGBoost, and CatBoost) exactly once on a single validation split, without using multiple seeds or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "aucs[name] = float(roc_auc_score(y_val, val_proba))",
+   "reasoning": "The agent exclusively uses the ROC AUC score to evaluate and weight models without checking any other metrics to verify model calibration or behaviour.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "make_preprocessor(X, scale=True, pca_components=50)",
+   "reasoning": "The agent applies standard scaling and PCA, but does not perform any domain-informed feature engineering or derive interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Iteration unpacking error",
+   "description": "The agent attempts to unpack a 2-tuple from `zip(models.items(), weights)` into three variables (`name, model, weight`). This will raise a ValueError at runtime and crash the execution, causing the fallback logic to output a file of dummy predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for name, model, weight in zip(models.items(), weights):"
+  },
+  {
+   "name": "Insufficient validation strategy for small data",
+   "description": "The dataset contains only 250 training samples, but the agent uses a single train/validation split (leaving only 50 samples for validation) instead of cross-validation. This leads to extremely noisy evaluation metrics and unreliable ensemble weights.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y)"
+  }
+ ],
+ "summary": "The agent correctly implements modular preprocessing pipelines that prevent data leakage and applies a heuristic weighted ensemble. However, a fatal execution error when unpacking variables in the ensembling loop will crash the script, yielding uninformative predictions. Furthermore, using a single train/validation split on an extremely small dataset introduces high variance and unreliable model evaluation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

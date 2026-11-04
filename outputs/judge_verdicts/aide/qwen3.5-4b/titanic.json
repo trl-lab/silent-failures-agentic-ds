@@ -1,0 +1,155 @@
+{
+ "task": "titanic",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA peeking is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by imputing missing values for Age and Embarked.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection methods are used before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies safely on the training data's median, avoiding leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a binary objective is an appropriate model type for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses KFold cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, satisfying the requirement for multiple evaluations.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_score = accuracy_score(y_val_fold, (pred_val >= 0.5).astype(int))",
+   "reasoning": "The agent only calculates and optimises for accuracy, without verifying performance across other metrics like precision, recall, or AUC.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a derived 'FamilySize' feature, meaning feature engineering is present.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid data subsetting (KeyError and Length Mismatch)",
+   "description": "The agent attempts to extract features from a `combined` DataFrame that was created before the engineered columns were added to the individual train/test DataFrames, which will cause a KeyError. Furthermore, it defines `X_train` from this combined dataset (length 1309) but `y_train` from `train_df` (length 891), guaranteeing a length mismatch error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = combined[feature_cols]\ny_train = train_df[\"Survived\"]"
+  },
+  {
+   "name": "LabelEncoder unseen labels error",
+   "description": "The agent uses `LabelEncoder.transform()` on the test set for categorical features like 'Cabin' and 'Ticket'. Because the test set contains categories not present in the training set, this will raise a ValueError during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df[\"Cabin_encoded\"] = le_cabin.transform(test_df[\"Cabin\"])"
+  },
+  {
+   "name": "Early stopping without validation set",
+   "description": "The agent includes an early stopping callback when training the final LightGBM model on the full training set, but does not provide a validation set. LightGBM requires a validation set to evaluate the early stopping criterion, so this will crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    params,\n    final_train_data,\n    num_boost_round=1000,\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)"
+  },
+  {
+   "name": "Optimistic CV score reporting",
+   "description": "The agent tracks the maximum accuracy across all cross-validation folds and reports it as the final score, rather than taking the average. This provides an artificially inflated and optimistic estimate of model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_score > best_score:\n        best_score = fold_score\n...\nprint(f\"\\nFinal CV Accuracy: {best_score:.4f}\")"
+  }
+ ],
+ "summary": "The agent implements a LightGBM model with cross-validation and basic feature engineering, correctly avoiding data leakage during imputation. However, the code contains multiple fatal execution errors: a KeyError and length mismatch caused by extracting `X_train` from an outdated combined DataFrame, a ValueError from unhandled unseen categories in `LabelEncoder`, and a crash from requesting early stopping without a validation set.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

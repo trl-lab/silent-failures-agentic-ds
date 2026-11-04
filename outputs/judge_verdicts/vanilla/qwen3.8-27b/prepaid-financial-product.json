@@ -1,0 +1,142 @@
+{
+ "task": "prepaid-financial-product",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect test data or fit any preprocessors on it during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans text and safely handles missing values during feature engineering.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No formal imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_test_split(\n        train_df,\n        test_size=0.2,\n        random_state=RANDOM_STATE,",
+   "reasoning": "The dataset includes temporal components ('agreement_effective_date', 'created_date'), but the agent splits randomly rather than chronologically, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifiers (LGBMClassifier, XGBClassifier) for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a train/validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_val.fit(X_train_part, y_train_part_binary)\n    lgbm_val_proba = lgbm_val.predict_proba(X_val_part)[:, 1]",
+   "reasoning": "The stochastic models are trained and evaluated exactly once on a single split, with no averaging over multiple runs to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val_part_binary, val_proba)",
+   "reasoning": "The agent evaluates the models using only ROC AUC, without verifying performance with other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as binary classification for the 'current_status' target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements multiple derived features, including date parts, text statistics, and TF-IDF vectors.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_proba = 0.5 * lgbm_val_proba + 0.5 * xgb_val_proba",
+   "reasoning": "The agent ensembles predictions using a naive, unweighted 50-50 average without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "hallucinated_submission_id",
+   "description": "The agent constructs the submission file by generating a new sequence of integers for the ID column instead of using the identifier column provided in the test set. This will cause the submission to fail evaluation if specific IDs are expected.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_df), dtype=int),"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with robust feature engineering that avoids data leakage during preprocessing. However, it relies on a naive 50/50 ensemble without tuning and fails to account for temporal order when splitting the data, potentially introducing look-ahead bias. Critically, the agent hallucinates a sequence of integers for the submission ID column instead of preserving the original test identifiers, which is highly likely to fail benchmark evaluation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

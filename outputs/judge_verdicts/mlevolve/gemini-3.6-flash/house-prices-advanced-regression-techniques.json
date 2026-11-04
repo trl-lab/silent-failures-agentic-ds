@@ -1,0 +1,152 @@
+{
+ "task": "house-prices-advanced-regression-techniques",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed that peeks at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "outlier_mask = (train_df[\"GrLivArea\"] > 4000) & (train_df[\"SalePrice\"] < 300000)",
+   "reasoning": "The agent actively cleans the data by removing known outliers and explicitly handling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler.fit_transform(X_train_encoded)",
+   "reasoning": "The scaler is fitted only on the training set (X_train_encoded), not on the combined or test set, preventing test set leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_mode = df_all.iloc[:n_train][col].mode()",
+   "reasoning": "Imputation statistics (like modes and medians) are computed strictly on the training portion of the combined dataframe.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This task is not treated as a strict time-series problem requiring temporal splitting, and standard KFold is acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor",
+   "reasoning": "The agent uses appropriate regression models for the regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)",
+   "reasoning": "The PyTorch MLP uses Dropout and weight decay (L2 regularization) in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=10, shuffle=True, random_state=seed)",
+   "reasoning": "The agent implements a 10-fold cross-validation loop for validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "random_state=seed + fold_idx",
+   "reasoning": "Stochastic models are evaluated across 10 distinct cross-validation folds with different random seeds, providing a robust estimate.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmsle = np.sqrt(np.mean((oof_final_log - y_train_log) ** 2))",
+   "reasoning": "The agent evaluates using RMSLE, which is the official and appropriate evaluation metric for this competition.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[\"TotalSF\"] = df_all[\"TotalBsmtSF\"] + df_all[\"1stFlrSF\"] + df_all[\"2ndFlrSF\"]",
+   "reasoning": "The agent engineers multiple domain-specific features, ratios, and interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(blend_objective, init_weights, method=\"SLSQP\", bounds=bounds)",
+   "reasoning": "The agent uses an SLSQP optimizer to find the optimal blending weights rather than naively averaging.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Logic Bug",
+   "description": "A logical condition checking for the presence of a new column in a dataframe before creating it prevents the target encoding block from executing, silently dropping intended features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if col in X_train_df.columns and te_col in X_tr.columns:\n    # This is always false because te_col is never added prior to this check."
+  },
+  {
+   "name": "Cross-Validation Data Leakage (Scaling)",
+   "description": "Global transformations (like standard scaling) are applied to the entire training set prior to cross-validation splitting. This leaks statistics from the validation folds into the training folds, making CV scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train_encoded), ...)\n...\nkf = KFold(n_splits=10, shuffle=True, random_state=seed)\ncv_folds = list(kf.split(X_train_scaled))"
+  }
+ ],
+ "summary": "The agent provides a robust solution with solid data cleaning, feature engineering, and a sophisticated optimized ensemble. However, there are two distinct issues: a logical bug that completely skips the execution of target encoding, and cross-validation leakage caused by scaling the entire training set before the CV loop.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

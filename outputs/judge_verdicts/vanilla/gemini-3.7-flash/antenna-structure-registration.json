@@ -1,0 +1,145 @@
+{
+ "task": "antenna-structure-registration",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].value_counts()\n    combined_df[col + '_freq'] = combined_df[col].map(freq)",
+   "reasoning": "The agent calculates frequency encoding on the combined train and test sets, leaking the test set's category distributions into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in numeric_cols:\n    combined_df[col] = combined_df[col].astype(float)",
+   "reasoning": "The agent performs no explicit imputation or outlier handling for numeric features, relying entirely on the gradient boosting models to handle missing values natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fills missing categorical values with a constant ('missing'), which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs 5-fold cross-validation with holdout evaluation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any metrics at all, rather than reporting just one.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives frequency features for categorical variables.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent uses a naive, hardcoded equal-weight average to blend predictions without tuning or optimizing the blend ratio.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing evaluation metric reporting",
+   "description": "The agent trains models using cross-validation but completely fails to calculate or print any evaluation metric (such as RMSE) on the holdout sets, making it impossible to assess model quality without submitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import mean_squared_error\n... [but mean_squared_error is never used in the code]"
+  },
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates submission IDs using an integer sequence (`np.arange`) instead of extracting the actual identifier column from the test dataset. This risks misaligned or invalid submissions if the test dataset IDs are non-sequential or don't start at 0.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "'id': np.arange(len(final_predictions), dtype=int)"
+  }
+ ],
+ "summary": "The agent correctly structures a K-Fold cross-validation loop and handles categorical variables appropriately for boosting models. However, it introduces data leakage via frequency encoding on the combined dataset, fails to report any local validation metrics, and hardcodes the test IDs in the final submission file.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

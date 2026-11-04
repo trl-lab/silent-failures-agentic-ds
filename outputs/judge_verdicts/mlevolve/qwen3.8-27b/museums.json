@@ -1,0 +1,138 @@
+{
+ "task": "museums",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect test data or use it during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values and cleans the data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling and normalization are computed only on the training split and then applied to validation and test splits.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (e.g., dropping constant columns) is done using only the training split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like medians) are computed solely on the training split and mapped to validation/test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset is primarily cross-sectional, so a random train/test split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation set and uses it for evaluation and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_idx, valid_idx = train_test_split(...)\n...\nval_pred = model.predict(valid_X)\nscore = rmse_metric(y_valid, val_pred)",
+   "reasoning": "The agent evaluates the stochastic LGBM model exactly once on a single random split, without averaging over multiple runs or using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "score = rmse_metric(y_valid, val_pred)\nprint(f\"Final Validation Score: {score}\")",
+   "reasoning": "The agent only uses RMSE for evaluation and does not check if it's robust to the potentially highly skewed museum revenue target (where MAE or RMSLE might be more informative).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including group statistics, date parsing, and target encoding.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent preprocessing for final retraining",
+   "description": "The agent concatenates the pre-processed training and validation sets to train the final model. However, the validation features were transformed using statistics (like target encoding and standard scaling) derived solely from the training split, meaning the final model misses out on learning these statistical distributions from the full combined data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_all = pd.concat([train_X, valid_X], axis=0).reset_index(drop=True)\ny_all = pd.concat([y_train, y_valid], axis=0).reset_index(drop=True)\n... final_model.fit(X_all, y_all)"
+  }
+ ],
+ "summary": "The agent provides a robust and well-structured solution that avoids most data leakage pitfalls by carefully fitting preprocessing steps on the training split only. However, it fails to account for variance by evaluating the stochastic model on only a single split. It also concatenates pre-processed train and validation sets for final training without refitting the preprocessing on the combined dataset, which is statistically inconsistent and suboptimally utilizes the validation data.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

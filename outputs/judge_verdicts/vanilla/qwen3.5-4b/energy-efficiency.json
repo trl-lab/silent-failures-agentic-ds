@@ -1,0 +1,141 @@
+{
+ "task": "energy-efficiency",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data during the setup or preprocessing phases.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "imp = SimpleImputer(strategy='median')",
+   "reasoning": "The agent uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('estimator', model)])",
+   "reasoning": "Imputation is correctly placed inside a scikit-learn pipeline, preventing data leakage before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(random_state=42, n_estimators=100, learning_rate=0.1)",
+   "reasoning": "A regression model is correctly chosen for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline.fit(X_train, y_train)\n\n# Transform test data and predict\nX_test = test_df[feature_columns]\ny_pred = pipeline.predict(X_test)",
+   "reasoning": "The agent fits the model on the full training set and predicts on the test set without any internal validation split or cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any scores, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are reported or optimized against.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "target_col = 'heating_load'",
+   "reasoning": "The task is correctly formulated as predicting the heating load.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_columns = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns directly without deriving any new features, despite the physical nature of the energy efficiency dataset which lends itself well to interaction terms (e.g., surface area ratios).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Potential Target Leakage",
+   "description": "The agent automatically includes all columns except the primary target as features. If the dataset contains secondary targets (e.g., 'cooling_load' often paired with 'heating_load' in energy efficiency datasets), it will be improperly used as a feature, causing massive data leakage.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "feature_columns = [col for col in train_df.columns if col != target_col]"
+  },
+  {
+   "name": "ID Column Used as Feature",
+   "description": "By blindly using all non-target columns as features, the agent may inadvertently include identifier columns (like 'id') in the training process, which carry no predictive signal and can lead to overfitting.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "feature_columns = [col for col in train_df.columns if col != target_col]"
+  }
+ ],
+ "summary": "The agent provides a minimal but functionally executing scikit-learn pipeline for the regression task. However, it fails to implement any internal validation to gauge model generalisation (FM06) and entirely skips feature engineering (FM07). Additionally, dynamically including all non-target columns poses a high risk of target leakage if alternative target variables (like 'cooling_load') or identifiers are present in the dataset.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

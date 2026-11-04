@@ -1,0 +1,137 @@
+{
+ "task": "awarded-grants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(train_path)\ntest = pd.read_parquet(test_path)\n...\ndf_all = pd.concat([X_train_raw, X_test_raw], axis=0, ignore_index=True)",
+   "reasoning": "The agent concatenates the raw data and proceeds directly to feature engineering without any explicit handling of missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the provided code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=35000, ngram_range=(1, 2), min_df=2, sublinear_tf=True)\n    X_tfidf = tfidf.fit_transform(text_data)\n    ...\n        svd = TruncatedSVD(n_components=n_comp, random_state=42)\n        X_svd = svd.fit_transform(X_tfidf)",
+   "reasoning": "TFIDF and TruncatedSVD (a PCA-like dimensionality reduction) are fit on the combined train and test datasets, leaking test set distribution information into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if temporal splitting is required for this specific task, and the code fails before making the main train/test split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent imports regression models (Ridge, LGBMRegressor, etc.) which are appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The code ends abruptly before any final model training or validation split is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The code fails before any evaluation occurs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The code fails before any metric is evaluated.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation appears correct for regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_all[f'{col}_freq'] = df_all[col].map(freq).astype(np.float32)",
+   "reasoning": "The agent performs extensive feature engineering including datetime extraction, frequency encoding, TFIDF, and out-of-fold Ridge predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incomplete Code / SyntaxError",
+   "description": "The generated code is incomplete and ends abruptly with an unclosed parenthesis, causing a SyntaxError that prevents execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all.drop(columns=obj_cols, inplace=True,"
+  }
+ ],
+ "summary": "The agent attempts a sophisticated feature engineering pipeline using TFIDF, TruncatedSVD, and out-of-fold predictions. However, it introduces severe data leakage by fitting the TFIDF and SVD transformers on the combined train and test data. Furthermore, no data cleaning is performed, and the code ultimately fails due to being incomplete and ending with a SyntaxError.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,163 @@
+{
+ "task": "lending-club-loan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[col].fillna(df[col].mean(), inplace=True)",
+   "reasoning": "The agent performs basic data cleaning by explicitly imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalizing is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the full dataset before splitting (train and test are imputed separately).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Not applicable to this dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_xgb = xgb.XGBClassifier(use_label_encoder=False, eval_metric='auc')",
+   "reasoning": "The agent correctly uses classification models for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_xgb.fit(X_final_train, y_train_)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without any internal holdout or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_xgb.fit(X_final_train, y_train_)",
+   "reasoning": "The agent fits stochastic models (XGBoost, LightGBM, CatBoost) exactly once without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the models locally, so it does not report or optimize using only one metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the task correctly as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_enc = le.fit_transform(X_train_temp[col].astype(str))",
+   "reasoning": "The agent uses raw columns as-is with only basic label encoding, missing opportunities for domain-informed derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pred_proba /= len(models)",
+   "reasoning": "The agent uses a naive, unweighted equal average of the model predictions without tuning the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "IndentationError",
+   "description": "The code has a syntax error due to inconsistent indentation, which causes a failure during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if min(y_train) == 0 and max(y_train) == 1:\n                 pass\n            else:"
+  },
+  {
+   "name": "Invalid argmax on 1D array",
+   "description": "The agent attempts to compute np.argmax with axis=1 on a 1D array, which will raise an AxisError and prevent final predictions from being generated.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predicted_labels = np.argmax(pred_proba, axis=1)"
+  },
+  {
+   "name": "Hard labels for ROC AUC metric",
+   "description": "The agent converts output probabilities to hard class labels before saving predictions. This discards probability ranking information and severely degrades performance on an ROC AUC evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predicted_labels = np.argmax(pred_proba, axis=1)"
+  },
+  {
+   "name": "Imputing test data with test statistics",
+   "description": "The agent imputes missing values in the test set using the mean and mode of the test set itself, rather than using statistics fitted on the training set. This is a poor practice that violates the assumption of independent test samples.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "raw_test = test_df.copy()\ntest_processed = preprocess(raw_test)"
+  }
+ ],
+ "summary": "The agent's solution suffers from critical execution failures, including a syntax IndentationError and an AxisError caused by attempting a 2D argmax on a 1D probability array. Methodologically, it fails to perform a local train/validation split, completely lacks feature engineering, and incorrectly generates hard labels for a ROC AUC metric. Furthermore, the test data is improperly imputed using test set statistics rather than parameters learned from the training set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

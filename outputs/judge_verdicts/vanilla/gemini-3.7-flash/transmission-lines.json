@@ -1,0 +1,156 @@
+{
+ "task": "transmission-lines",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].value_counts()\n        combined_df[f'{col}_freq'] = combined_df[col].map(freq)\n        le = LabelEncoder()\n        combined_df[col] = le.fit_transform(combined_df[col])",
+   "reasoning": "The agent calculates frequency encoding statistics and fits a LabelEncoder on the combined train and test dataset, leaking test set distributions into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in dates and categoricals, and relies on LightGBM's native missing value handling for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is performed before splitting (only constant filling).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The target is a static property of infrastructure (voltage class), so a random split is appropriate and does not violate temporal ordering.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A multiclass classification model (LGBMClassifier) is correctly used for a multiclass target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs cross-validation using StratifiedKFold, so the data is split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any metrics, so it cannot be penalised for using only one inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers several date components and categorical frequency features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Averaging cross-validation fold predictions is a standard and appropriate test-time aggregation strategy.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric calculated",
+   "description": "The agent establishes a cross-validation loop but never actually calculates or logs an evaluation metric (like accuracy) on the validation folds, making it impossible to estimate the model's generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_va)],\n        callbacks=[]\n    )"
+  },
+  {
+   "name": "No early stopping",
+   "description": "The agent passes an evaluation set to a gradient boosting model but disables early stopping, causing the model to train for a fixed number of iterations which increases the risk of overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "callbacks=[]"
+  },
+  {
+   "name": "Ineffective missing value handling for categoricals",
+   "description": "Casting a column to string before filling NaNs converts actual null values to the string 'nan', rendering the subsequent `.fillna()` operation ineffective.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined_df[col] = combined_df[col].astype(str).fillna('missing')"
+  }
+ ],
+ "summary": "The agent implements a generally sound modeling pipeline with cross-validation and feature engineering, but introduces a data leak by calculating categorical frequency statistics and fitting a LabelEncoder on the combined train and test sets. Furthermore, the agent fails to calculate any validation metric during cross-validation and disables early stopping for the LightGBM model, leaving model performance unestimated and prone to overfitting.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "osha-accidents",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for exploration or to fit transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling them with constants and extracting date components.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical scalers are applied to the dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=30, random_state=42)\nX_train_svd = svd.fit_transform(X_train_tfidf)",
+   "reasoning": "TruncatedSVD and TfidfVectorizer are fitted on the entire training dataset before cross-validation splitting, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies on constant values ('missing', -1), which does not leak distribution statistics across splits.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains an 'Event Date' column indicating a temporal component, but the agent uses randomized StratifiedKFold, ignoring temporal order and potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation (StratifiedKFold) to train the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 5 folds (with different seeds), not just once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any single evaluation metric in the code.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers date features, text length, word counts, and SVD features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_test_preds = 0.45 * test_preds_lr + 0.30 * test_preds_lgb + 0.25 * test_preds_cb",
+   "reasoning": "The agent computes out-of-fold predictions but relies on an arbitrary, hardcoded weighted average instead of tuning the ensemble weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric computed",
+   "description": "The agent sets up cross-validation and computes out-of-fold predictions, but never calculates or reports any validation metric (such as ROC AUC) to estimate model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_lr = np.zeros(len(train_df))"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline using text features, tabular features, and cross-validated models. However, it applies TfidfVectorizer and TruncatedSVD to the entire training set before splitting, causing validation leakage into the training folds. Furthermore, the agent ignores the temporal nature of the data with a randomized split, arbitrarily hardcodes ensemble weights without tuning, and completely fails to compute a validation score to evaluate model performance.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "walmart-recruiting-store-sales-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is only used for final predictions, with no peeking during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = preprocess(train_df.drop(columns=[target_col]))",
+   "reasoning": "The code lacks any explicit data cleaning, outlier handling, or missing value imputation, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No train/validation split is performed at all, so there is no random split to cause look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, sample_weight=sample_weights)\n\n# Predict\ntest_preds = model.predict(X_test)",
+   "reasoning": "The agent trains on the entire training dataset and predicts on the test set without establishing a validation split to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report a score, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No metrics are reported, meaning there is no reliance on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts several derived features from the Date column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing lag features for time-series",
+   "description": "The task is a time-series forecasting problem, but the agent uses a tree-based regression model without creating any lag, rolling window, or historical features, severely limiting the model's ability to capture temporal dependencies.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df['Year'] = date_series.dt.year\n        df['Month'] = date_series.dt.month"
+  },
+  {
+   "name": "Numerical encoding of nominal categories",
+   "description": "Nominal categorical variables (like Store or Department IDs) that are stored as integers are not explicitly cast to a categorical datatype. Tree-based models will incorrectly treat them as ordinal continuous numerical features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if df[col].dtype == 'object' or df[col].dtype.name == 'category':\n            df[col] = df[col].astype('category')"
+  }
+ ],
+ "summary": "The solution is a basic LightGBM model that appropriately weights the regression objective for the WMAE metric but completely skips internal validation. It suffers from a lack of explicit data cleaning and misses critical time-series feature engineering (such as lags) required for tree-based forecasting. Additionally, it fails to cast integer-based ID columns (Store, Dept) into categorical types, causing the model to treat them as continuous variables.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

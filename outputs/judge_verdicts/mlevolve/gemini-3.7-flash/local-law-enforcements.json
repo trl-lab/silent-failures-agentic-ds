@@ -1,0 +1,153 @@
+{
+ "task": "local-law-enforcements",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or leak test statistics during exploration.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive data cleaning and missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on the training fold and applied to the validation fold and test set inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No improper feature selection before splitting; SVD for text features is correctly done inside the CV loop.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med = train_processed[col].median()\n    if np.isnan(med):\n        med = 0.0\n    train_processed[col] = train_processed[col].fillna(med).astype(np.float32)",
+   "reasoning": "The agent computes the median for numerical columns over the entire training dataset before performing cross-validation, which leaks validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no temporal component to the data requiring a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a regression task and uses regressors (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a TabularResNet with MSE loss).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network includes Dropout, weight decay in the AdamW optimizer, and early stopping based on validation loss.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated over 5 cross-validation folds, which inherently averages over multiple stochastic subsets.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for and reports RMSE, which is the specified metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task predicting the number of officers.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including extracting law enforcement keywords, spatial features, text metadata, target encoding, and TF-IDF SVD features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble weights using scipy.optimize.minimize rather than naively averaging.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Set Data Leakage via Imputation",
+   "description": "The agent imputes missing values in the test set using statistics (e.g., median) computed directly from the test set itself, rather than using statistics learned from the training set. This assumes batch availability of test data and violates the independence of test samples.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lat = pd.to_numeric(df[lat_c], errors=\"coerce\").fillna(df[lat_c].median() if df[lat_c].notnull().any() else 37.0902)"
+  },
+  {
+   "name": "Imputing Missing Target Values",
+   "description": "The agent imputes missing values in the target variable with a constant (e.g., 0) instead of dropping those samples. This introduces incorrect ground truth labels that can degrade model training.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train = (\n    pd.to_numeric(train_df[TARGET_COL], errors=\"coerce\")\n    .fillna(0)\n    .values.astype(np.float32)\n)"
+  }
+ ],
+ "summary": "The agent presents a very sophisticated solution with rigorous modeling techniques, including fold-aware target encoding, text embeddings, a robust deep learning architecture, and an optimally weighted ensemble. However, it introduces data leakage by computing the median on the full training set prior to cross-validation (leaking validation statistics) and by computing spatial medians directly on the test set. Additionally, imputing missing values in the target variable with zeros introduces incorrect labels into the training process.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "online-news-popularity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including handling missing targets and replacing infinities.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Features are selected based on the training data only without leaking test information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly encapsulated inside a scikit-learn Pipeline and fit only on training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "X_train_fit, X_val, y_train_fit, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=RANDOM_STATE,)",
+   "reasoning": "The dataset contains a temporal component (indicated by the 'timedelta' column and publication dates in 'url'), but the agent uses a random split, ignoring temporal order and potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly creates an internal validation set using train_test_split to evaluate the log-transformation approach.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The external test set is not reused across model variants; it is solely used for final predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = make_model(use_log_target)",
+   "reasoning": "The agent evaluates a stochastic LightGBM model (with subsampling) only once per configuration without averaging over multiple runs or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "score = rmse(y_val.to_numpy(dtype=float), y_val_pred)",
+   "reasoning": "The agent relies entirely on RMSE for evaluation, which can be overly sensitive to outliers in highly skewed targets like 'shares'.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "EXCLUDE_COLUMNS = {\"shares\", \"url\", \"timedelta\"}",
+   "reasoning": "The agent completely discards potentially useful columns like 'url' (which contains publication date and category information) and 'timedelta' without extracting any domain-informed derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No early stopping for gradient boosting",
+   "description": "The agent trains a gradient boosting model with a fixed, large number of trees without using early stopping on a validation set, which is highly likely to cause overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "LGBMRegressor(objective=\"regression\", n_estimators=1000, learning_rate=0.05, ...)"
+  }
+ ],
+ "summary": "The agent provides a structurally sound pipeline for the regression task, correctly handling skewed targets via log transformation and avoiding data leakage by encapsulating preprocessing in a pipeline. However, it fails to perform any feature engineering (discarding potentially useful raw columns entirely), ignores the temporal aspect of the data by using a random split, and trains a large LightGBM model without early stopping, risking overfitting. Additionally, it relies on a single evaluation of a stochastic model using only RMSE.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

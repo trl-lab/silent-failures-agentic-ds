@@ -1,0 +1,164 @@
+{
+ "task": "cat-in-the-dat-ii",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "unique_ord_5 = sorted(\n    [\n        v\n        for v in set(train_df[\"ord_5\"].unique()).union(set(test_df[\"ord_5\"].unique()))\n        if v != \"MISSING\"\n    ]\n)",
+   "reasoning": "The agent uses the test dataset to determine the unique values for ordinal encoding, leaking test feature presence into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with 'MISSING' or numerical defaults.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No continuous scalers are fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants, which does not leak statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses classification models for a classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Deep learning is not actually used in the pipeline, and the defined model includes dropout.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models using 5-fold cross-validation, averaging predictions across folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "ROC AUC is the appropriate metric for this task and is correctly used.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including cyclical, interaction, frequency, and target encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the blend weight between models rather than using a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in CV via Precomputed OOF Target Encoding",
+   "description": "The agent precomputes Out-Of-Fold (OOF) target encodings for the entire training set and then uses these features to train models in a cross-validation loop. This causes critical target leakage because the OOF encoding for a training sample was computed using the targets of its validation fold, leaking validation targets into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (trn_idx, val_idx) in enumerate(skf.split(train_df, y_train)):\n...\ndf_dense_train.loc[df_dense_train.index[val_idx], f\"{col}_te\"] = ...\n...\nfor fold in range(n_splits):\n...\ntrn_data = lgb.Dataset(df_dense_train.iloc[trn_idx], label=y_trn_fold, free_raw_data=False)"
+  },
+  {
+   "name": "Data Leakage: Preprocessing Before CV Splitting",
+   "description": "The agent fits a OneHotEncoder (with min_frequency=2) and computes frequency encodings on the entire training dataset before the cross-validation loop. This leaks validation set category frequencies into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ohe = OneHotEncoder(dtype=np.float32, handle_unknown=\"ignore\", min_frequency=2)\nohe.fit(train_df[all_cat_cols])\n...\nfreq_map = train_df[col].value_counts(normalize=True).to_dict()"
+  },
+  {
+   "name": "Dead Code / Unused Model Architecture",
+   "description": "The agent defines a complex deep learning model (SparseDenseCatNN) and its building blocks but never instantiates, trains, or evaluates it in the pipeline, making it dead code.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "class SparseDenseCatNN(nn.Module):"
+  }
+ ],
+ "summary": "The agent's solution contains a critical target leakage flaw: Out-Of-Fold target encodings are precomputed and subsequently used as features within the same cross-validation splits, leaking validation targets into the training data. Additionally, the agent performs frequency encoding and fits a minimum-frequency OneHotEncoder on the entire training set prior to CV, causing minor data leakage, and defines a PyTorch model that is never actually used.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 8,
+ "stage_count_max": 8,
+ "no_code": false
+}

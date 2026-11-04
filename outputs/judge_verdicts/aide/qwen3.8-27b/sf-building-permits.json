@@ -1,0 +1,58 @@
+{
+ "task": "sf-building-permits",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)",
+   "reasoning": "Building permit processing is a time-dependent process, so using a random shuffle split introduces look-ahead bias by allowing the model to train on future permits to predict past ones.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_val, pred_val)",
+   "reasoning": "The agent only evaluates using RMSE, which is highly sensitive to extreme outliers for heavily right-skewed time-to-event targets like time_to_approve, without verifying if a robust metric like MAE would be better.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Treating nominal categorical variables as continuous",
+   "description": "Categorical features are label-encoded into integers but passed to a tree model without specifying them as categorical (e.g., enable_categorical=True in XGBoost). The model will treat them as continuous variables, imposing an arbitrary ordinal relationship on nominal categories and leading to suboptimal splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype(\"string\").map(mapping).fillna(-1).astype(\"int32\")"
+  }
+ ],
+ "summary": "The agent provides a structurally sound pipeline with thoughtful date feature extraction, unseen category handling, and proactive target leakage prevention. However, it fails to account for the temporal nature of the dataset during validation, relying on random splits. Furthermore, it treats label-encoded categorical variables as continuous integers in XGBoost and relies solely on an outlier-sensitive metric (RMSE) for a skewed target.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,155 @@
+{
+ "task": "bank-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled using np.nan_to_num.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is fitted only on the training set before transforming the test set, avoiding leakage from the test set into the training distribution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0.0) rather than imputed using dataset statistics, so no statistical leakage occurs.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM classifier with a binary objective is perfectly appropriate for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_metric = roc_auc_score(y_train, val_preds)",
+   "reasoning": "The agent only computes the ROC-AUC score and does not evaluate any other metrics to verify performance robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\n    \"age\",\n    \"job\",\n    \"marital\",\n    \"education\",\n    \"default\",\n    \"balance\",\n    \"housing\",\n    \"loan\",\n    \"contact\",\n    \"day\",\n    \"month\",\n    \"duration\",\n    \"campaign\",\n    \"pdays\",\n    \"previous\",\n    \"poutcome\",\n]",
+   "reasoning": "The agent uses the raw columns as-is without engineering any derived features, despite the presence of financial and temporal data.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Misaligned cross-validation targets and predictions",
+   "description": "Validation predictions are appended to a list in fold order, but evaluated against the target array in its original un-shuffled order. Since StratifiedKFold shuffles the indices, the predictions and targets are misaligned, resulting in a meaningless validation score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_preds = np.concatenate(all_preds)\nval_metric = roc_auc_score(y_train, val_preds)"
+  },
+  {
+   "name": "Test predictions from single fold model",
+   "description": "When using cross-validation, the test set predictions are generated using only the model trained on the final fold, rather than averaging predictions from all fold models or retraining on the full dataset.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds = model.predict(X_test_scaled, num_iteration=model.best_iteration)"
+  },
+  {
+   "name": "Data leakage in cross-validation scaling",
+   "description": "The scaler is fitted on the entire training dataset before splitting into cross-validation folds. This leaks distribution statistics from the validation folds into the training folds, making the validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n\n# 5-fold cross-validation\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)"
+  },
+  {
+   "name": "Unsafe categorical encoding",
+   "description": "The LabelEncoder is fitted on the training data and blindly transforms the test data. If the test data contains unseen categories, this will throw a ValueError and crash the execution.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_df[col] = le.transform(test_df[col].astype(str))"
+  }
+ ],
+ "summary": "The solution implements a cross-validated LightGBM model but contains a critical logic error: validation predictions are concatenated in fold order and evaluated against the unshuffled original target array, completely invalidating the ROC-AUC score. Additionally, test predictions are generated using only the model from the final fold (discarding the others), the cross-validation suffers from data leakage due to pre-split scaling, and the categorical encoding is unsafe for unseen test categories.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

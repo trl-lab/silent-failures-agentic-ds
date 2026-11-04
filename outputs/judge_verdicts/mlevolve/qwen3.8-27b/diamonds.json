@@ -1,0 +1,138 @@
+{
+ "task": "diamonds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly isolates training data before computing imputation statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by handling zeros, imputing missing values, and clipping outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied, which is appropriate for tree-based models like LightGBM.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median, quantiles) are strictly fitted on the `trn_raw` split, avoiding leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression objective for predicting a continuous price.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 90/10 target-stratified validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "score = np.inf\n...\ncand_score = root_mean_squared_error(val[\"price\"].values, blended)",
+   "reasoning": "The agent trains stochastic LightGBM models on a single random train/validation split and evaluates them once, without using cross-validation or multiple seeds to estimate variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cand_score = root_mean_squared_error(val[\"price\"].values, blended)",
+   "reasoning": "The agent evaluates the model solely using RMSE without verifying against secondary robustness metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple derived features, including volume, surface area, and ordinal encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly tunes the blending weights of the raw and log-price models rather than using a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect domain-specific imputation formula",
+   "description": "When imputing missing values using domain-specific mathematical relationships, the formula contains a critical scale error (e.g. failing to account for percentage scale), leading to wildly incorrect imputed values that corrupt downstream features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "d.loc[z_was_zero, \"z\"] = (d.loc[z_was_zero, \"depth\"] * (d.loc[z_was_zero, \"x\"] + d.loc[z_was_zero, \"y\"]) / 2.0)"
+  }
+ ],
+ "summary": "The agent demonstrates a robust modelling pipeline with excellent practices around data splitting, avoiding leakage, stratifying continuous targets, and tuning ensemble combinations. However, it fails to account for variance by evaluating the stochastic setup only once (FM14) and relies exclusively on a single metric (FM15). Additionally, a mathematical error in the domain-specific imputation of the 'z' dimension causes the imputed values to be 100 times larger than intended.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

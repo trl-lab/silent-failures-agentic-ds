@@ -1,0 +1,156 @@
+{
+ "task": "vehicles",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled in the engineer_features function.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation calculates the median strictly on the training split and correctly applies it to validation and test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for the continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is created and used for evaluation and early stopping.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not reused for model selection or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.train(\n    lgb_params,\n    train_data_lgb,",
+   "reasoning": "Stochastic models (LightGBM, XGBoost, CatBoost) are trained and evaluated exactly once without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ensemble_val_rmse = np.sqrt(np.mean((y_val_split - ensemble_val_pred) ** 2))",
+   "reasoning": "The agent only computes RMSE and does not verify if it's the most appropriate metric or use complementary metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts extensive feature engineering, including interactions, ratios, and encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses inverse-RMSE weighting rather than naive unweighted averaging.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in target encoding",
+   "description": "Target encoding is computed on the training set and mapped directly back to the same training instances without using out-of-fold calculations. This allows the model to memorize the target, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "encoders[col] = (stats['smoothed'], global_mean)\n...\ndf[col + '_te'] = df[col].map(smoothed_map).fillna(global_mean)"
+  },
+  {
+   "name": "Train/test feature mismatch due to stateful logic",
+   "description": "The logic for selecting top features for interactions uses correlation with the target during training, but blindly selects the first N columns during validation/inference. This results in different features being engineered for train vs test, which are then zeroed out during column alignment.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "top_numeric = corr_with_target[corr_with_target > 0.1].index.tolist()[:8]\n    else:\n        top_numeric = num_cols[:8]"
+  },
+  {
+   "name": "Inconsistent transformation based on batch statistics",
+   "description": "Applying transformations like one-hot encoding conditionally based on the number of unique values in the current batch/split. If a validation or test set has a different number of unique values than the training set, the transformation might be skipped entirely, causing a mismatch in features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if df[col].nunique() <= 10:\n            dummies = pd.get_dummies(df[col], prefix=col, dtype=float)"
+  }
+ ],
+ "summary": "The solution implements a reasonable ensemble of gradient boosted trees but contains critical bugs in its feature engineering pipeline. Target encoding is applied without out-of-fold techniques, causing massive target leakage. Furthermore, the feature engineering logic for interactions, ratios, and one-hot encoding changes behavior based on the specific split being processed, resulting in mismatched features between train and test sets that are ultimately zeroed out.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,148 @@
+{
+ "task": "car",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly includes imputation steps in its pipeline to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "preprocessor.fit(X_train)",
+   "reasoning": "The scaler is part of a pipeline fitted exclusively on the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "preprocessor.fit(X_train)",
+   "reasoning": "The imputer is fitted only on the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "LGBMClassifier(random_state=42, n_estimators=100, max_depth=6)",
+   "reasoning": "A classifier is appropriately chosen for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train)\n\n# Predict\ny_pred_probs = model.predict_proba(X_test_processed)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without establishing any internal validation set or computing validation scores.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(random_state=42, n_estimators=100, max_depth=6)",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated a single time without multiple random seeds or cross-validation runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed at all, making this inapplicable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "LGBMClassifier",
+   "reasoning": "The task is appropriately framed as a classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(transformers=[...",
+   "reasoning": "Raw columns are used without any attempt to create derived features or interactions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Accessing Missing Target in Test Data",
+   "description": "The code assumes the target column exists in the test dataset and tries to extract it, which leads to a KeyError in typical evaluation settings where the test target is hidden.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = df_test[TARGET_COL]"
+  },
+  {
+   "name": "Invalid ColumnTransformer Selectors",
+   "description": "The pipeline is configured with string literals corresponding to data types (e.g., 'numeric', 'category') instead of using valid column names or proper dtype selectors like `make_column_selector`, which will cause a KeyError during fitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "('num', numeric_transformer, ['numeric']),\n    ('cat', categorical_transformer, ['category', 'object'])"
+  },
+  {
+   "name": "Class Label Indexing Error",
+   "description": "The agent uses `np.argmax` on predicted probabilities to output predictions. This returns integer indices rather than the original string class labels, breaking the expected submission format.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred_probs = model.predict_proba(X_test_processed)\ny_pred = np.argmax(y_pred_probs, axis=1)"
+  }
+ ],
+ "summary": "The agent's solution contains severe execution flaws that prevent it from running, most notably attempting to access the hidden target column in the test set and passing invalid string literals instead of dtype selectors to the ColumnTransformer. Furthermore, it completely skips model evaluation (no validation split) and makes a logical error by returning integer indices from `np.argmax` rather than the required categorical class labels.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

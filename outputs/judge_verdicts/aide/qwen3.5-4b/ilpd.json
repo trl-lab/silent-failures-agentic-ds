@@ -1,0 +1,148 @@
+{
+ "task": "ilpd",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train_full)",
+   "reasoning": "The agent makes no effort to clean the data, impute missing values, or handle outliers before passing the data to a scaler.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly fits the scaler on the training set and transforms the test set separately, avoiding train/test leakage (though it leaks across CV folds).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification model (LightGBM with binary objective) for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold cross-validation to evaluate the model on held-out validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is evaluated across 5 cross-validation folds, which inherently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(roc_auc_score(y_val, y_pred))",
+   "reasoning": "The agent solely relies on ROC-AUC for evaluation and does not compute other metrics like accuracy, precision, or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\"V1\", \"V2\", \"V3\", \"V4\", \"V5\", \"V6\", \"V7\", \"V8\", \"V9\", \"V10\"]",
+   "reasoning": "The agent uses the raw features exactly as provided without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage during cross-validation",
+   "description": "Transformations like scaling or imputation are applied to the entire training set before cross-validation splitting, rather than being fit inside the CV loop on the training folds only. This leaks validation fold statistics into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train_full)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train_scaled, y_train)):"
+  },
+  {
+   "name": "Unhandled missing values causing crash",
+   "description": "The code applies a scikit-learn transformer (like StandardScaler) that does not support missing values to raw data without prior imputation. This will cause a runtime ValueError if the dataset contains any NaNs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train_full)"
+  },
+  {
+   "name": "Invalid early stopping configuration",
+   "description": "The agent attempts to use an early stopping callback when training a model, but fails to provide a validation set. In libraries like LightGBM, this causes a fatal runtime error as there is no metric to monitor for early stopping.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    params, final_train_data, num_boost_round=1000, callbacks=[lgb.early_stopping(100)]\n)"
+  }
+ ],
+ "summary": "The agent builds a LightGBM model with 5-fold cross-validation but suffers from multiple critical execution flaws. It applies StandardScaler before handling missing values (which will crash on datasets with NaNs like ILPD) and erroneously configures early stopping on the final model without a validation set, guaranteeing a failure. Additionally, scaling the data prior to the CV loop causes data leakage, and there is a complete absence of data cleaning and feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

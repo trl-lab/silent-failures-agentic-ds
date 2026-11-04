@@ -1,0 +1,138 @@
+{
+ "task": "michelin-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no test data peeking occurs.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_transformer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent uses SimpleImputer to handle missing numerical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = Pipeline([\n    ('preprocessor', preprocessor),\n    ('classifier', lgb.LGBMClassifier(...)",
+   "reasoning": "Imputation is correctly placed inside a scikit-learn Pipeline, preventing test data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unknown if the dataset contains temporal columns (like review dates or award years) that require temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.LGBMClassifier(objective='multiclass', ...)",
+   "reasoning": "The agent correctly uses a multiclass classifier for the multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(train_X, train_y)\n\n# Generate Predictions\ntest_processed = model.named_steps['preprocessor'].transform(test_X)",
+   "reasoning": "The agent trains on the full training dataset and predicts on the test dataset without setting aside a validation set or performing cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb.LGBMClassifier(... subsample=0.8, colsample_bytree=0.8, random_state=42...)",
+   "reasoning": "The agent trains a stochastic LightGBM model exactly once without ensembling or averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally, so it doesn't report any metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_column = 'awardFor'\n... lgb.LGBMClassifier(objective='multiclass')",
+   "reasoning": "The task is appropriately framed as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(transformers=[\n    ('num', numeric_transformer, numeric_cols),\n    ('cat', categorical_transformer, categorical_cols)\n])",
+   "reasoning": "The agent uses raw features directly with basic encoding/imputation and creates no derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "dense_one_hot_encoding",
+   "description": "Using OneHotEncoder with `sparse_output=False` on all categorical columns can cause out-of-memory errors if any of the categorical columns have high cardinality.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "categorical_transformer = OneHotEncoder(handle_unknown='ignore', sparse_output=False)"
+  }
+ ],
+ "summary": "The agent builds a standard LightGBM pipeline but critically omits any internal validation, preventing it from estimating generalisation performance. It also neglects feature engineering and risks memory exhaustion by applying dense one-hot encoding to all categorical features.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

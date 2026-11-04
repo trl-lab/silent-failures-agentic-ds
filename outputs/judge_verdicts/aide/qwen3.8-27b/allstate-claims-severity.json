@@ -1,0 +1,152 @@
+{
+ "task": "allstate-claims-severity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[feature_cols].copy()\ny = train[target_col].astype(float)",
+   "reasoning": "The agent makes no effort to check for or handle potential outliers, duplicates, or data inconsistencies before training.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses KFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model multiple times across 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses MAE, which is the specific target metric requested and is appropriate for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[feature_cols].copy()",
+   "reasoning": "The agent uses the raw columns as-is without attempting any feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_predictions += (\n            model.predict(X_test, num_iteration=model.best_iteration) / 5.0\n        )",
+   "reasoning": "The agent computes a simple unweighted average of the cross-validation fold predictions without tuning.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "incorrect_categorical_feature_specification",
+   "description": "The agent passes all features (including continuous ones) as categorical features to the gradient boosting model. Treating continuous variables as categorical forces the model to create a discrete category for every unique float value, leading to severe memory bloat, training crashes, or heavily degraded performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=feature_cols)"
+  },
+  {
+   "name": "unencoded_string_features",
+   "description": "The agent passes raw string columns to a model that expects numeric codes or a specific categorical data type, which will result in runtime errors during dataset construction and training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X = train[feature_cols].copy()  # No encoding or type conversion applied to string features before passing to LightGBM"
+  },
+  {
+   "name": "incorrect_submission_ids",
+   "description": "The agent generates synthetic or sequential IDs for the submission file instead of preserving and using the actual identifier column from the test dataset, leading to misaligned or entirely invalid submissions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(X_test), dtype=int),"
+  }
+ ],
+ "summary": "The agent implements a 5-fold cross-validated LightGBM regression model but fails to perform any data cleaning or feature engineering. Critically, the solution contains execution-breaking bugs: it passes all continuous features as categorical to LightGBM, fails to encode string features, and generates synthetic sequential IDs for the submission file instead of using the true test set IDs.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

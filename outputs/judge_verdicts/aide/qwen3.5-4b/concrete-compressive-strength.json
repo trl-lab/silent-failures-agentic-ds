@@ -1,0 +1,141 @@
+{
+ "task": "concrete-compressive-strength",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed in the final code.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n    test_df = pd.read_parquet(\"./input/test.parquet\")\n\n    # Define features\n    feature_columns = [col for col in train_df.columns if col != \"strength\"]",
+   "reasoning": "The agent directly uses the loaded data without any explicit data cleaning, outlier removal, or missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 folds and averages the results, reducing variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = mean_squared_error(y_val, y_pred, squared=False)",
+   "reasoning": "The agent only computes and reports RMSE, without including other metrics like MAE or R-squared for a more comprehensive evaluation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_columns = [col for col in train_df.columns if col != \"strength\"]\n    X_train = train_df[feature_columns]",
+   "reasoning": "The agent uses the raw columns as-is without engineering any derived features, missing out on important domain features for concrete (like the water-to-cement ratio).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure: early stopping without validation set",
+   "description": "The agent passes an early stopping callback to LightGBM's train function for the final model without providing a validation set. LightGBM requires at least one validation set to monitor for early stopping, so this will raise a ValueError and crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n        params,\n        lgb.Dataset(X_train, label=y_train, feature_name=feature_columns),\n        callbacks=callbacks,\n        num_boost_round=1000,\n    )"
+  },
+  {
+   "name": "Ignoring optimal iterations from CV for final model",
+   "description": "When training the final model on the full dataset, the agent hardcodes the maximum number of boosting rounds (1000) instead of using the average or optimal number of iterations found during cross-validation. If early stopping didn't crash the script, this would lead to severe overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_boost_round=1000,"
+  }
+ ],
+ "summary": "The solution implements a reasonable 5-fold cross-validation strategy with LightGBM, but falls short in data preparation by skipping all data cleaning and feature engineering (missing key domain relationships like water-to-cement ratios). Most critically, the script contains a fatal execution bug: attempting to use an early stopping callback on the final model training without passing a validation set, which will cause LightGBM to throw an error.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "cosmetic-event",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "le = LabelEncoder()\n        combined_df[col] = le.fit_transform(combined_df[col])",
+   "reasoning": "The agent fits a LabelEncoder on the combined train and test dataset, which applies a transformer to test data before splitting and leaks test set categories.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in categorical columns and replaces infinite values in numeric columns, relying on LightGBM's native handling for numeric NaNs which is a valid strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is performed before splitting; categorical NaNs are just cast to strings.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "elif pd.api.types.is_datetime64_any_dtype(combined_df[col]): ... skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The code extracts temporal features from datetime columns, indicating the data has a temporal dimension, yet uses a randomized K-fold split which ignores temporal order and can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A multiclass LightGBM model is correctly used for this m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 distinct CV folds, which accounts for variance, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses multi_logloss for early stopping and reports accuracy, which aligns with the task's specified target metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic feature engineering by extracting date parts (year, month, day, dayofweek) from datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Averaging predictions across CV folds is standard best practice, not naive ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "ID column mishandling",
+   "description": "The agent uses all columns except the target as features, which typically includes the dataset's ID column. Including an ID column as a predictor can lead to severe overfitting. Furthermore, the submission file generates arbitrary IDs using `np.arange` rather than preserving the test set's original IDs, which will likely cause evaluation to fail if the IDs do not match.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "features = [c for c in train_df.columns if c != target_col] ... submission = pd.DataFrame({'id': np.arange(len(test_df)), 'outcomes': predicted_outcomes})"
+  },
+  {
+   "name": "Ineffective missing value filling",
+   "description": "The agent converts columns to strings before filling missing values. In pandas, `astype(str)` converts `np.nan` to the string `'nan'`, meaning `.fillna('__MISSING__')` will have no effect.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined_df[col] = combined_df[col].astype(str).fillna(\"__MISSING__\")"
+  }
+ ],
+ "summary": "The agent implements a generally solid LightGBM solution with 5-fold cross-validation. However, it fits a categorical encoder on the combined train/test data (minor leakage) and uses a randomized split on temporal data, risking look-ahead bias. Additionally, it likely includes the ID column as a feature and fails to use the original test IDs in the submission file, which could invalidate the predictions.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,134 @@
+{
+ "task": "historical-volcanic-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute statistics or fit transformers on the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with -999.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent intentionally skips scaling for tree-based models, thus avoiding pre-split scaling leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a hardcoded constant (-999), which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df['century'] = (df['YEAR'] // 100).astype(int)\n...\ntrain_idx, val_idx = train_test_split(\n    range(len(train_feat)), test_size=0.2, random_state=42, stratify=y_encoded\n)",
+   "reasoning": "The dataset consists of historical events with chronological timestamps (e.g., 'YEAR'), but the agent uses a random split instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers (LightGBM and XGBoost) for the multi-class task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into train and validation sets and evaluates on the validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 different random seeds and averages their predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_acc = accuracy_score(y_val_enc, val_pred_idx)\n...\nprint(f\"Equal-weight ensemble validation accuracy: {val_acc:.4f}\")",
+   "reasoning": "The agent exclusively uses accuracy to evaluate model performance, even though the target is likely imbalanced (as indicated by stratify=y_encoded and class_weight='balanced').",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive domain-specific feature engineering, including temporal, geographic, and domain-specific index features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "# Equal-weight ensemble (no tuning on small validation set)\nval_proba = 0.5 * lgb_val_avg + 0.5 * xgb_val_avg",
+   "reasoning": "The agent combines LightGBM and XGBoost models using a hardcoded equal-weight average without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a well-structured solution with solid feature engineering, multi-seed training, and robust target encoding. However, it fails to account for the temporal and grouped nature of the historical data by using a random train-test split, leading to potential data leakage (FM05). Additionally, it relies solely on accuracy for an imbalanced target (FM15) and applies a naive equal-weight ensemble (FM12).",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

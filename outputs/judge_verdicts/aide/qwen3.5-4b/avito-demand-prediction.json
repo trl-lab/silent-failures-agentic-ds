@@ -1,0 +1,138 @@
+{
+ "task": "avito-demand-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df[col] = train_df[col].fillna(0)",
+   "reasoning": "The agent explicitly handles missing values in numeric columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0), which does not leak statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains an 'activation_date' column, but the agent uses random cross-validation instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a regressor for a regression task, which is appropriate.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross-validation to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using cross-validation, which averages over multiple folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def compute_rmse(y_true, y_pred):\n    return np.sqrt(mean_squared_error(y_true, y_pred))",
+   "reasoning": "The agent only computes RMSE and does not verify performance with other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_features = train_df[categorical_cols + numeric_cols].copy()",
+   "reasoning": "The agent uses raw columns as-is, completely failing to extract features from rich text columns (title, description) or decompose the activation_date.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unencoded categorical and text features",
+   "description": "The agent passes raw string and text columns directly to a gradient boosting model without encoding them as numeric or pandas category types, which will result in a runtime crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(\n        X_train_fold,"
+  }
+ ],
+ "summary": "The agent's solution is fundamentally broken because it passes raw string and text features directly into LightGBM without encoding, causing an inevitable runtime crash. Furthermore, the agent completely skips feature engineering for rich text and date columns, and uses random splitting instead of grouping by user or respecting temporal order, introducing data leakage.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "competitive-data-science-predict-future-sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute statistics or fit transformers on the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna()\ntest_df = test_df.dropna()",
+   "reasoning": "The agent simply drops all rows with missing values instead of employing a proper imputation strategy, discarding potentially valuable data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are used before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0) rather than using a fitted imputer that could leak statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series (sales over time), but the agent uses randomized shuffling for cross-validation, introducing severe look-ahead bias by predicting past events using future data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 distinct cross-validation folds rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = mean_squared_error(y_val_fold, y_pred_val)",
+   "reasoning": "The agent only calculates and reports RMSE without evaluating other metrics like MAE that might be robust to outliers in sales data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a regression problem predicting item counts.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[\"item_price_item_id\"] = df[\"item_price\"] * df[\"item_id\"]\n    df[\"date_block_num_shop_id\"] = df[\"date_block_num\"] * df[\"shop_id\"]",
+   "reasoning": "The agent creates basic derived features like log transformations and interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test set row deletion",
+   "description": "The agent drops rows with missing values from the test dataset. In predictive modeling tasks, test sets must remain intact to provide a prediction for every queried instance; dropping rows leads to misaligned IDs and missing predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = test_df.dropna()"
+  },
+  {
+   "name": "Training data leakage in early stopping",
+   "description": "The agent uses a subset of the training data as the validation set for early stopping of the final model, without removing those samples from the training dataset. This completely compromises early stopping by monitoring training error instead of generalization error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train, label=y_train)\nval_data = lgb.Dataset(X_train.iloc[:1000], label=y_train.iloc[:1000], reference=None)"
+  },
+  {
+   "name": "Misleading cross-validation aggregation",
+   "description": "The agent reports the cross-validation score by taking the minimum (best) score across all folds instead of the average. This yields an overly optimistic estimate of model performance and defeats the variance-reduction purpose of k-fold CV.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_rmse < best_rmse:\n        best_rmse = fold_rmse\n        best_model = model\n\nprint(f\"Best RMSE on CV: {best_rmse:.4f}\")"
+  }
+ ],
+ "summary": "The agent successfully sets up a LightGBM pipeline with cross-validation and basic feature engineering. However, the solution contains critical data science flaws: it shuffles time-series data during cross-validation (causing look-ahead bias), drops missing values from the test set (which will break submission alignment), and leaks training data into the final model's early stopping validation set. Additionally, it misleadingly reports the best single-fold CV score instead of the average.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

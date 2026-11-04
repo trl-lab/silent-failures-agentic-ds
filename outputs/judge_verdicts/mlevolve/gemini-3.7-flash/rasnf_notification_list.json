@@ -1,0 +1,146 @@
+{
+ "task": "rasnf_notification_list",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data during exploratory data analysis.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing data using median imputation and explicitly cleans and formats text and categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fit only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "SVD and TF-IDF are fitted exclusively on the training subset, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation uses the median computed strictly from the training subset, preventing test missing-value leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Although datetime features are extracted, it is unclear if the specific task requires a temporal split or if random stratified splitting is acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Binary classification models are used, matching the required b-classification task type.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, BatchNorm, and weight decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold StratifiedKFold cross-validation strategy is implemented to evaluate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Cross-validation inherently evaluates the stochastic models across multiple distinct runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "curr_val_auc = roc_auc_score(y_val, val_probs)",
+   "reasoning": "The agent only tracks and optimises for ROC AUC without verifying performance on other metrics (e.g. log loss or accuracy).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent applies extensive feature engineering, including datetime parsing, text length/SVD features, categorical frequencies, and interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_val_blend = 0.45 * lgb_val_pred + 0.45 * xgb_val_pred + 0.10 * best_nn_val_pred",
+   "reasoning": "The agent uses a hardcoded, arbitrary weighted average for ensembling without performing any weight search, stacking, or blend-ratio optimisation.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation leakage",
+   "description": "Transformers (like TF-IDF, SVD, frequency encoders, and imputers) are fitted on the full training dataset prior to the cross-validation split. This leaks validation fold statistics into the training folds, yielding overly optimistic CV scores and potentially suboptimal hyperparameters or early stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_word.fit(train_text)\n...\nsvd.fit(full_tfidf.tocsr()[train_mask])\n...\nfill_val = combined.loc[combined[\"__is_train__\"] == 1, c].median()"
+  }
+ ],
+ "summary": "The agent delivers a strong and comprehensive solution featuring deep learning, gradient boosting, and robust feature engineering. However, it relies on a hardcoded, naive ensemble blend rather than optimising weights. Additionally, while the agent correctly prevents test data leakage, it suffers from cross-validation leakage by fitting text transformers and imputers on the full training dataset prior to splitting into CV folds.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

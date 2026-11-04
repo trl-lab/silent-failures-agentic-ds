@@ -1,0 +1,149 @@
+{
+ "task": "store-sales-time-series-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set distribution.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data is properly cleaned; missing values are explicitly filled and target is clipped.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is fit exclusively on X_train, preventing test statistic leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled using a constant value (0), which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The split is strictly temporal, utilizing a validation cutoff date (val_start_date).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models used (LGBMRegressor, XGBRegressor, etc.) are appropriate for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout and Weight Decay, alongside early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train, validation, and test split strategy is implemented.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is kept entirely unseen during model training and early stopping; validation data is correctly utilized.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(**lgb_params)\n    lgb_model.fit(",
+   "reasoning": "The agent trains stochastic models (LightGBM, XGBoost, CatBoost, PyTorch) exactly once and reports a single validation score, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmsle_lgb = calc_rmsle(pred_val_lgb, val_sales_raw)\n...\nprint(f\"Validation RMSLE - LightGBM: {rmsle_lgb:.5f}\")",
+   "reasoning": "The agent computes and reports only the RMSLE metric, without verifying model behavior using other regression metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a time-series direct multi-step forecasting task using sophisticated backward lags.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and highly appropriate feature engineering (calendar, cyclical, rolling windows, EWM, and lags).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensembling utilizes SLSQP optimization over the validation set to determine optimal blending weights, rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "future_leakage_in_target_encoding",
+   "description": "The agent calculates historical target statistics (mean, std) over the entire training period and merges them back onto the training set. In a time series problem, this means early training rows receive features calculated using future target values, violating temporal causality and risking overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "hist_train_mask = df[\"date\"] < val_start_date\n    hist_df = df[hist_train_mask]\n    sf_stats = (\n        hist_df.groupby([\"store_nbr\", \"family\"])[\"log_sales\"]\n        .agg([\"mean\", \"std\"])\n        .reset_index()\n    )\n    ... \n    df = df.merge(sf_stats, on=[\"store_nbr\", \"family\"], how=\"left\")"
+  }
+ ],
+ "summary": "The agent provides a robust and highly sophisticated solution utilizing advanced time-series feature engineering, multiple GBDT models, and a PyTorch ResNet, correctly combined via an optimized ensemble. However, it computes categorical target statistics over the entire training set which introduces temporal target leakage into early training rows. Furthermore, stochastic models are trained only once, and only a single metric is used for evaluation.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

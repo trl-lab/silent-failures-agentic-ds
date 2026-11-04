@@ -1,0 +1,134 @@
+{
+ "task": "home-credit-credit-risk-model-stability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by using a SimpleImputer for numerical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is only fit on the training data, so test missing-value statistics are not leaked.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses XGBClassifier for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "# Evaluate on a holdout split to ensure robustness if possible\nval_split = len(X_train_processed) // 2\n...\n# In this simplified environment, we trust the initial training.",
+   "reasoning": "The agent creates validation split variables but completely ignores them, failing to compute any validation metric.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = XGBClassifier(\n    n_estimators=1000,\n    max_depth=8,\n    learning_rate=0.05,\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n    use_label_encoder=False,\n    eval_metric='auc'\n)\n\nmodel.fit(X_train_processed, y_train_processed)",
+   "reasoning": "The agent trains a stochastic XGBoost model (with subsample and colsample_bytree) exactly once without cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent skips evaluation entirely, making this failure mode inapplicable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task formulation is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(\n    transformers=[\n        ('num', numeric_transformer, numerical_columns),\n        ('cat', categorical_transformer, categorical_columns)\n    ],\n    remainder='drop'\n)",
+   "reasoning": "The agent applies only basic imputation and one-hot encoding without deriving any new features from the dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "UndefinedVariableError",
+   "description": "The code attempts to use a variable that has not been defined, which will cause the script to crash with a NameError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pred_probs = model.predict_proba(X_test_processed)[:, 1]"
+  }
+ ],
+ "summary": "The agent successfully sets up a basic pipeline but fails to evaluate the model, completely skipping validation despite writing dead code for a validation split. Furthermore, the agent forgets to apply the preprocessing pipeline to the test data, attempting to predict on an undefined variable (`X_test_processed`) which guarantees a runtime crash.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

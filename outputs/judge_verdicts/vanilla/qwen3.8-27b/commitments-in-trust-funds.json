@@ -1,0 +1,146 @@
+{
+ "task": "commitments-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_cats = set(X_train[col].cat.categories) | set(X_test[col].cat.categories)\n    X_train[col] = X_train[col].cat.set_categories(all_cats)",
+   "reasoning": "The agent uses the test dataset to define the categorical levels for the training set, leaking information about the test distribution during preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and drops identifier columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied in this tree-based pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].fillna(X_train[col].median())\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The agent calculates the median for imputation on the entire training set before performing the internal validation split, leaking validation statistics into the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not explicitly present as a time series in the provided context, so it is unclear if temporal splitting is required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for predicting a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An internal train/validation split is created and used to measure RMSE.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates its models on the validation split, not the test split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_model.fit(X_tr, y_tr)\nlgbm_val_pred = lgbm_model.predict(X_val)",
+   "reasoning": "The agent evaluates stochastic models (LightGBM, XGBoost, CatBoost) exactly once on a single validation split without averaging over multiple random seeds or cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_rmse = np.sqrt(np.mean((lgbm_val_pred - y_val) ** 2))",
+   "reasoning": "The agent optimises and evaluates strictly on RMSE, with no verification using secondary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Standard regression framing is correct for this task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != target and c not in drop_cols]\n\nX_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses raw features directly with basic imputation and encoding, making no attempt to create derived features or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses inverse-RMSE weighting, which is slightly more sophisticated than equal-weight averaging, avoiding strict naive ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Non-deterministic categorical encoding",
+   "description": "Using an unordered collection like `set` to establish categorical levels leads to non-deterministic category ordering across Python runs due to hash randomization. This causes tree-based algorithms to receive different integer encodings for the same categories across runs, breaking reproducibility.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_cats = set(X_train[col].cat.categories) | set(X_test[col].cat.categories)"
+  }
+ ],
+ "summary": "The agent implements a generally reasonable regression pipeline with native categorical handling for tree models and an inverse-RMSE weighted ensemble. However, there are notable data leakage issues: median imputation is performed before the validation split (leaking validation statistics into the training loop), and test data is peeked at to construct the categorical superset. Additionally, using `set` for category union introduces non-determinism, and the solution lacks any substantive feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

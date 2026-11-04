@@ -1,0 +1,138 @@
+{
+ "task": "us-school-bus-fleet",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly separates train and test data, computing all EDA statistics and feature transforms on the training split only.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data, handling missing values via a map and median imputation, and standardizing column names.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is performed inside `transform_df` using statistics derived exclusively from the training split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (correlation for top numeric features) is computed on the training split only.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like median and target means) are computed on the training partition before being applied to validation and test data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The task does not have a strict chronological order that mandates temporal splitting; a random stratified split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task of predicting Bus age.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into train and validation sets using train_test_split and evaluates on the validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n...\nsubsample=0.9,\nsubsample_freq=1,\ncolsample_bytree=0.9,\nrandom_state=SEED,\n...",
+   "reasoning": "The model uses stochastic elements (subsample, colsample) but is trained and evaluated only once rather than across multiple seeds or cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = root_mean_squared_error(y_val, val_pred)",
+   "reasoning": "The agent only computes and reports RMSE, without investigating other metrics like MAE which might be informative for age prediction.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem to predict bus age.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including interaction terms, date parsing, and age estimates.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage",
+   "description": "Target encoding is applied to the training data using the training target without out-of-fold (OOF) calculation or noise injection. This causes the target to leak directly into the features, leading the model to overfit heavily on the training set and produce overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_enc_map = (cat_count * cat_mean + m * global_mean) / (cat_count + m)\n...\nout[c + \"_target_enc\"] = s.map(st[\"target\"]).fillna(global_mean).astype(float)"
+  }
+ ],
+ "summary": "The agent implements a structured machine learning pipeline with appropriate data cleaning, feature engineering, and a proper train/validation split. However, it suffers from a critical target leakage issue by applying target encoding without out-of-fold calculation, which will cause the LightGBM model to severely overfit. Additionally, the agent relies on a single evaluation of a stochastic model and only computes one evaluation metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

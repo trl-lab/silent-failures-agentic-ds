@@ -1,0 +1,142 @@
+{
+ "task": "rasnf_notification_list",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(combined[col])",
+   "reasoning": "The agent fits a TF-IDF vectorizer on the concatenated train and test sets, leaking test set vocabulary and document frequencies into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with constants (-1, empty string, or 'missing').",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit scaling like StandardScaler is applied to the combined dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent applies TruncatedSVD (dimensionality reduction) on the combined train and test text features, leaking test data structure into feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses constant imputation (fillna) rather than fitting an imputer on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "Despite extracting datetime features from date columns, the agent uses a random stratified split instead of a time-based split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification objective for a b-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implicitly averages over multiple runs by using 5-fold cross-validation rather than evaluating a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_roc_auc = roc_auc_score(y, oof_preds)",
+   "reasoning": "The agent only computes and reports the ROC-AUC score, without examining other metrics like precision, recall, or confusion matrices to fully understand model behaviour.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The problem is framed properly as a binary classification task, matching the specification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including datetime extraction, TF-IDF + SVD, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test, num_iteration=model.best_iteration) / n_splits",
+   "reasoning": "The agent uses a naive unweighted average to combine predictions from the 5 CV folds rather than optimising blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "Calculating the frequency of categorical variables on the combined train and test dataset leaks the test set distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts()\ncombined[f\"{col}_freq\"] = combined[col].map(freq)"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering pipeline (TF-IDF, SVD, date extraction) and evaluates using 5-fold CV with LightGBM. However, it fits transformers (TF-IDF, SVD) and computes frequency encodings on the combined train and test datasets, leading to severe data leakage. Furthermore, it ignores the temporal nature of the dataset by using a random split, relies on naive averaging for ensembling, and evaluates performance using only a single metric.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

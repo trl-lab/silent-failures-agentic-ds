@@ -1,0 +1,142 @@
+{
+ "task": "nyc-taxi-trip-duration",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data or use it to inform preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values with a constant fill for 'passenger_count', showing some effort to clean data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (1), which does not calculate or leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a strong temporal component (pickup_datetime), but the agent uses a random K-Fold split instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model 5 times (across 5 folds), successfully averaging out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "'metric': 'rmse'",
+   "reasoning": "The agent only tracks and optimizes for RMSE (which equates to RMSLE due to the log transform) and does not evaluate any supplementary metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem predicting trip duration.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts numerous domain-relevant features, including datetime components, Haversine/Manhattan distances, and bearing angles.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent combines the predictions from the 5 cross-validation folds using a naive, unweighted average without attempting any optimization of the blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring target outliers",
+   "description": "The agent makes no effort to filter or clip extreme outliers in the target variable before training. In datasets like NYC Taxi, anomalous trip durations (e.g., several days long or under a minute) can heavily distort a regression model, even when log-transformed.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train_log = np.log1p(train_df['trip_duration'].values)"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline, utilizing a well-parameterized LightGBM model, 5-fold cross-validation, and strong geographical feature engineering. However, it fails to account for the temporal nature of the data during splitting (FM05) and misses a critical dataset-specific step by failing to filter extreme outliers in the trip duration target.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

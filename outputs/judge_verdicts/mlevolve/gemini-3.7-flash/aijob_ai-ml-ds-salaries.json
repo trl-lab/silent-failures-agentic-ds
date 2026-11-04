@@ -1,0 +1,53 @@
+{
+ "task": "aijob_ai-ml-ds-salaries",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)\nfor fold, (train_idx, val_idx) in enumerate(skf.split(train_fe, binned_target)):",
+   "reasoning": "The dataset contains a temporal component ('work_year'), but the agent uses random stratified splitting, which can introduce look-ahead bias by training on future data to predict past salaries.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_lgb = root_mean_squared_error(y_val_true, oof_preds[\"lgb\"][val_idx])",
+   "reasoning": "The agent only computes and reports RMSE for validation, without verifying if it is robust to the potentially right-skewed salary target compared to metrics like MAE.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage in PCA",
+   "description": "PCA is fit on the entire training set before the cross-validation loop, leaking validation set information into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pca = PCA(n_components=n_components, random_state=42)\ntr_pca = pca.fit_transform(tr_raw_mat)"
+  },
+  {
+   "name": "Test Data Leakage in Vocabulary/Encoding Fit",
+   "description": "The agent fits text vectorizers (TF-IDF fallback) and label encoders on the union of training and test sets, leaking test set distribution and vocabulary into the model.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "all_vals = list(set(train_fe[col].unique()).union(set(test_fe[col].unique())))\nle.fit(all_vals)"
+  }
+ ],
+ "summary": "The agent provides a highly robust and sophisticated solution, employing out-of-fold target encoding, a deep residual network, and an optimized ensemble. However, it fails to account for the temporal nature of the data during cross-validation, and performs PCA on the full training set before splitting, causing minor validation leakage.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

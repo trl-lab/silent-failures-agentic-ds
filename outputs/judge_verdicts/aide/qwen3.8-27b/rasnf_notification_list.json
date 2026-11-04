@@ -1,0 +1,130 @@
+{
+ "task": "rasnf_notification_list",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data for exploratory data analysis or preprocessing decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs data cleaning, including fixing data types, handling infinities, and dropping constant/all-NaN columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature dropping is calculated strictly on the training set (X_train), preventing test set leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputation is fit on the data (missing values are natively handled by LightGBM).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset involves notifications (which are inherently temporal), but without inspecting the dataset directly to see if a temporal split is strictly required, it is unclear if random K-Fold introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a binary classification model (LightGBM with objective='binary'), matching the task type.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a robust StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic LightGBM model is evaluated across multiple cross-validation folds, which inherently averages performance and accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "aucs.append(roc_auc_score(y[va_idx], pred))",
+   "reasoning": "The agent only computes and reports the ROC AUC score without verifying model performance using any other complementary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "y = (y_values > 0).astype(int)",
+   "reasoning": "The agent forcibly binarizes a count target ('num_countries_affected') by thresholding at >0, which discards the actual task signal (e.g. predicting single vs multiple countries affected) and risks collapsing the dataset into a single class if all notifications affect at least one country.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = preprocess(X_train, features)",
+   "reasoning": "The agent uses raw columns as-is, executing only basic type conversions (like turning datetimes into raw integers) without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a structurally sound LightGBM pipeline with cross-validation and proper test-set separation, but completely skips feature engineering. Most critically, it arbitrarily frames the target variable by binarizing it at >0, which is highly likely to discard the actual predictive signal or collapse the entire dataset into a single class.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

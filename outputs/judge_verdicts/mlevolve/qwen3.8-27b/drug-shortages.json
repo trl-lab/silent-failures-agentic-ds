@@ -1,0 +1,54 @@
+{
+ "task": "drug-shortages",
+ "failure_modes": {
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "optimizer = torch.optim.AdamW(...)\n...\nscore = accuracy_score(y_val.to_numpy(), val_preds_final)",
+   "reasoning": "The agent trains a stochastic deep learning model exactly once without setting any random seeds or averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "score = accuracy_score(y_val.to_numpy(), val_preds_final)",
+   "reasoning": "The model's performance is evaluated using only accuracy, which may not be sufficient to understand performance on potentially imbalanced classes without looking at other metrics like F1-score.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unsafe DataLoader multiprocessing",
+   "description": "Setting num_workers > 0 in PyTorch DataLoaders can cause a RuntimeError in containerized environments with limited shared memory (/dev/shm) or specific OS restrictions, which is a highly probable cause for the execution failure noted in the logs.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)"
+  }
+ ],
+ "summary": "The agent implements a solid end-to-end deep learning pipeline with extensive feature engineering, missing value handling, and proper data splitting. However, it fails to account for the stochastic nature of neural network training by only evaluating a single run (FM14) and relies solely on accuracy as an evaluation metric (FM15). Additionally, the use of multiple workers in the PyTorch DataLoader may be causing the RuntimeError observed in the execution logs.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

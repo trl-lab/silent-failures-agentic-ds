@@ -1,0 +1,144 @@
+{
+ "task": "food-prices_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train = train.dropna(subset=[target_col]).reset_index(drop=True)",
+   "reasoning": "Data is cleaned by dropping missing targets and filling missing values in categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No stateful imputer is fit before splitting; filling missing values with a constant string is stateless.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models (LGBMRegressor, CatBoostRegressor) are used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Cross-validation is implemented properly with a KFold split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_preds += model_lgb.predict(X_test) / kf.n_splits",
+   "reasoning": "Predictions are averaged across 5 cross-validation folds, explicitly accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "'metric': 'rmse'",
+   "reasoning": "The agent only optimizes for RMSE (the task metric) without evaluating other metrics like MAE to check robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[col + '_year'] = converted.dt.year",
+   "reasoning": "Feature engineering is performed (datetime extraction, frequency encoding, target encoding).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_preds + 0.3 * lgb_log_preds + 0.3 * cb_log_preds",
+   "reasoning": "The agent uses an arbitrary, hardcoded weighted average to combine models without any blend-ratio search or tuning.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage: Frequency Encoding on Full Dataset",
+   "description": "Frequency encoding is applied to the concatenated train and test datasets, which leaks the distribution of categories in the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts().to_dict()\n    df_all[col + '_freq'] = df_all[col].map(freq)"
+  },
+  {
+   "name": "Data Leakage: Target Encoding Validation Leakage",
+   "description": "Out-of-fold target encoding is performed prior to the cross-validation loop using the exact same KFold splits. During model training, the target encodings in the training fold contain information derived from the targets of the validation fold, causing severe data leakage into the evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (tr_idx, val_idx) in enumerate(kf.split(X_train)):"
+  }
+ ],
+ "summary": "The agent implements a structured machine learning pipeline with appropriate model choices, feature engineering, and cross-validation. However, the solution suffers from severe data leakage: frequency encoding is computed on the combined train and test sets, and target encoding is performed using the same KFold object as the training loop, leaking validation targets into the training features. Furthermore, the final ensemble relies on arbitrary, untuned weights.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

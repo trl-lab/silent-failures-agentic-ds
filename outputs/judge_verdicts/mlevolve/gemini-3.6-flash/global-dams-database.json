@@ -1,0 +1,159 @@
+{
+ "task": "global-dams-database",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at test data distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans data by replacing infinities and imputing missing values with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The spatial scaler is fit only on the training coordinates, not the combined train/test dataset, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation is fit on X_train only, not the combined dataset, so test missing-value statistics do not leak into training.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so random/stratified splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a custom NN) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm, and weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a robust 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models across 5 folds, implicitly averaging over multiple data subsets rather than relying on a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "def loss_func(w):\n        pred = P_va @ w\n        return np.sqrt(np.mean((pred - y_va_raw) ** 2))",
+   "reasoning": "The agent exclusively optimizes and evaluates on RMSE without checking other metrics like MAE, which would verify robustness to outliers given the skewed target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent generates extensive domain-informed physical and spatial features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP convex optimization to find the best ensemble weights rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-fold data leakage in preprocessing",
+   "description": "Imputation medians and spatial scalers are computed on the entire training dataset before the cross-validation loop, leaking validation statistics into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med_val = X_train[f].replace([np.inf, -np.inf], np.nan).median()\n...\nscaler_geo = StandardScaler().fit(coords_train)"
+  },
+  {
+   "name": "Execution failure (KeyError) from positional loc",
+   "description": "Using `.loc[val_idx, 'fold'] = fold` with positional integer indices returned by `StratifiedKFold` will raise a KeyError if the DataFrame's index is not a default RangeIndex.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (_, val_idx) in enumerate(skf.split(train_df, quantile_bins)):\n    train_df.loc[val_idx, \"fold\"] = fold"
+  },
+  {
+   "name": "Execution failure (KeyError) from mismatched test columns",
+   "description": "If a categorical column found in train_df has a slightly different casing in test_df, `col in test_df.columns` evaluates to False, falling back to `X_test[col]` which raises a KeyError because the raw column is not in X_test.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "src_te = test_df[col] if col in test_df.columns else X_test[col]"
+  }
+ ],
+ "summary": "The agent provides a sophisticated solution with extensive feature engineering, target encoding, and an optimized multi-model ensemble. However, the preprocessing pipeline suffers from cross-fold leakage by applying imputation and scaling on the full training set before CV. Additionally, the code is prone to execution failures (KeyErrors) due to using positional indices with `.loc` and unsafe fallback logic for test set column names.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

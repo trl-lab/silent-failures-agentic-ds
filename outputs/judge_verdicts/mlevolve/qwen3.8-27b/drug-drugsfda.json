@@ -1,0 +1,138 @@
+{
+ "task": "drug-drugsfda",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code does not perform EDA or peek at test data distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code cleans the target column by dropping NaNs and fills missing feature values with medians or specific strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scalers are explicitly fit only on the train_split before transforming other splits.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Variance thresholding is performed using only the training split's variances.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation values (like medians) are computed solely on the training split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classifiers (LGBM, XGBoost) for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is created and used for evaluation and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_split, val_split, y_train, y_val = train_test_split(...)",
+   "reasoning": "The models are trained and evaluated on a single train/validation split, without multiple runs or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = float(roc_auc_score(y_val, rank_averaged_val_proba))",
+   "reasoning": "The agent evaluates and reports only a single metric (ROC AUC) without inspecting other metrics to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard binary classification problem, which is properly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers numerous features including TF-IDF with SVD, datetime parts, and text aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "rank_averaged_val_proba = rank_average_proba(lgbm_val_probas + [xgb_val_proba])",
+   "reasoning": "The predictions from multiple models are combined using a naive, unweighted rank average without any tuning of ensemble weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-sample target encoding leakage",
+   "description": "Target encoding is computed on the entire training split and applied to the same split without out-of-fold or leave-one-out techniques. This leaks the target variable into the training features and artificially inflates model performance, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_enc_maps[col] = smoothed.to_dict()\n...\nfeats[f\"{col}__target_enc\"] = (\n            s_str.map(target_enc_maps[col])\n            .fillna(global_target_means[col])\n            .astype(float)\n        )"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering pipeline but makes a critical error by calculating target encodings in-sample without out-of-fold regularization, leading to target leakage. In addition, it employs naive ensembling (equal-weight rank average), relies on a single validation split for stochastic models, and evaluates solely using ROC AUC.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,130 @@
+{
+ "task": "financial-management",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X, X_test], axis=0).reset_index(drop=True)\n...\nfreq_map = combined[col].value_counts(normalize=True).to_dict()\n...\ngrp_mean = combined.groupby(cat)[num].transform(\"mean\")",
+   "reasoning": "The agent concatenates the training and test sets and computes frequency maps and group aggregations on the combined data, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are implicitly handled by the tree-based models and explicitly handled by SimpleImputer in the Ridge pipeline.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within the cross-validation loop using a scikit-learn Pipeline for the Ridge model.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied inside the CV loop via the Ridge pipeline, and tree models handle NaNs natively.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LightGBM, CatBoost, XGBoost, Ridge) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which intrinsically involves multiple runs (folds) to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, ensemble_oof))\nprint(f\"5-Fold CV RMSE (Ensemble): {cv_rmse:.6f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying if it's the most appropriate metric or supplementing it with other metrics like MAE for robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including interaction terms, group aggregations, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble blending weights using SLSQP rather than relying on a naive simple average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The solution implements a robust modeling pipeline with 5-fold cross-validation, comprehensive feature engineering, and an optimized ensemble of four diverse models. However, it suffers from critical data leakage (FM02) by concatenating the train and test sets before computing frequency maps and group aggregations, meaning test data statistics contaminate the training features. Additionally, it relies solely on RMSE for evaluation without considering other metrics.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

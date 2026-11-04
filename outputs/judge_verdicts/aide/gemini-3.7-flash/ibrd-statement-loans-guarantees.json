@@ -1,0 +1,142 @@
+{
+ "task": "ibrd-statement-loans-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or manually design preprocessing based on test statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any data cleaning or outlier handling, relying entirely on LightGBM's default handling for missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputer is fit on the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal components (as evidenced by the agent's date feature extraction), but the agent uses a random KFold split which ignores temporal order and introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 cross-validation folds, avoiding a single point estimate.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_va, val_pred)",
+   "reasoning": "The agent only uses RMSE for evaluation and does not verify performance robustness with other metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers several features, including pairwise date differences and frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent simply averages predictions across CV folds, which is standard bagging practice and does not constitute naive ensembling of distinct model types.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via frequency encoding before splitting",
+   "description": "Applying dataset-wide transformations like frequency encoding to the combined train and test sets before splitting leaks test set distribution statistics into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X, X_test], axis=0).reset_index(drop=True)\n...\nfreq = combined[col].value_counts(dropna=False)\ncombined[f\"{col}_freq\"] = combined[col].map(freq)"
+  }
+ ],
+ "summary": "The agent provides a functional LightGBM solution with decent date-based feature engineering. However, it introduces critical data leakage by applying frequency encoding to the combined train and test sets before splitting. Furthermore, it fails to respect the temporal nature of the dataset by using a random KFold split, risking look-ahead bias, and entirely skips basic data cleaning.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

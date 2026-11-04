@@ -1,0 +1,138 @@
+{
+ "task": "heart-failure-clinical",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]",
+   "reasoning": "The agent passes the raw data directly to the model without any checks or handling for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not treated as a time series.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(\n    X_train, y_train,\n    eval_set=[(X_train_val, y_train_val), (X_test_val, y_test_val)]\n)\n\n# Make predictions on validation set\ny_val_pred = model.predict(X_train_val)",
+   "reasoning": "Due to a code bug, the agent fits the model on the full training set (X_train) rather than the training split (X_train_val), meaning the model is trained and evaluated on the exact same data, invalidating the validation score and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(\n    n_estimators=100,\n    learning_rate=0.1,\n    num_leaves=31,\n    random_state=42\n)",
+   "reasoning": "The agent trains a stochastic LightGBM model once and reports a single validation score without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = roc_auc_score(y_train_val, y_val_pred_proba)",
+   "reasoning": "The agent evaluates the model using only the ROC AUC score, without looking at other metrics like precision, recall, or calibration which are crucial for clinical datasets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = ['age', 'anaemia', 'creatinine_phosphokinase', 'diabetes', 'ejection_fraction',\n                'high_blood_pressure', 'platelets', 'serum_creatinine', 'serum_sodium',\n                'sex', 'smoking', 'time']",
+   "reasoning": "The agent treats a survival analysis problem (with a follow-up 'time' and 'DEATH_EVENT') as a plain binary classification task, directly using the time-to-event as a predictive feature.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]",
+   "reasoning": "The agent uses the raw clinical features exactly as they are without any domain-specific engineering, interaction terms, or binning.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The agent includes a feature that is inherently tied to the target and would not be known at prediction time. In survival datasets, using follow-up time to predict the event indicator is a classic form of target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [... 'time']"
+  }
+ ],
+ "summary": "The agent's solution contains critical flaws, most notably a coding error that causes the model to train and evaluate on the exact same data (X_train), artificially inflating the validation score to 1.0. Additionally, the agent falls into a severe target leakage trap by using the 'time' feature (follow-up duration) to predict the outcome in a survival dataset, completely misframing the task.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

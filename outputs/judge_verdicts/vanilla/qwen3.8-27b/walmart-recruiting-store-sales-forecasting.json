@@ -1,0 +1,138 @@
+{
+ "task": "walmart-recruiting-store-sales-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent loads test data but does not peek at it during EDA or use it to inform preprocessing decisions prior to splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning, including replacing infinities and coercing types, before training.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is correctly performed on the training and validation sets after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation and target encoding are strictly fitted on the training split and then transformed on the validation/test splits, preventing leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly sorts the data chronologically (by Date, Store, Dept) before doing an 80/20 train/validation split, respecting temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM Regressor is an appropriate model type for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a time-based train/validation split and uses it for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(..., random_state=RANDOM_STATE, ...)",
+   "reasoning": "The agent evaluates a stochastic model (LightGBM with subsampling) using a single random seed and does not average over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_metric=\"l1\"",
+   "reasoning": "The agent evaluates the model using only the L1 metric during training and does not report or calculate any other metrics to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the problem correctly as predicting Weekly_Sales using a regression model.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts several useful features, including calendar features (year, month, sin/cos embeddings) and store/dept target-aggregated statistics.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect metric weighting logic",
+   "description": "The task specifies a custom metric (Weighted Mean Absolute Error) where samples should be weighted according to specific criteria (e.g., holiday vs. non-holiday weeks in this dataset). The agent implements sample weighting but uses an irrelevant heuristic (sum of sales per store-department) instead of the correct weighting scheme.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "weights = tmp.groupby(tmp[\"Store_Dept\"].astype(str))[TARGET].transform(\"sum\")"
+  }
+ ],
+ "summary": "The agent correctly handles temporal splitting, feature engineering, and prevents data leakage by fitting target statistics only on the training set. However, it fails to correctly implement the task's custom WMAE metric weighting (holiday weeks weighted 5x), instead inventing an arbitrary sample weight based on total store-department sales. It also only evaluates a single stochastic model run and uses solely L1 loss without assessing other metrics.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "diamonds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Load data\ntrain = pd.read_parquet(\"./input/train.parquet\")\n...\n# Feature engineering\ncategorical_cols = [\"cut\", \"color\", \"clarity\"]",
+   "reasoning": "The agent makes no effort to clean the data, remove potential outliers, or explicitly handle missing values before model training.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the model across multiple folds rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(np.mean((val_pred - y_train.iloc[val_idx]) ** 2))",
+   "reasoning": "The agent evaluates the model using only RMSE and does not compute other metrics (like MAE) to verify robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correct for predicting a continuous target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categorical_cols = [\"cut\", \"color\", \"clarity\"]\nnumeric_cols = [\"carat\", \"x\", \"y\", \"z\", \"depth\", \"table\"]",
+   "reasoning": "The agent uses raw columns as-is and fails to create obvious derived features like diamond volume (x*y*z) or density.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Early stopping without validation set",
+   "description": "Including an early stopping callback in model training without providing a validation set will cause the training algorithm to throw an execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=500,\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)"
+  },
+  {
+   "name": "LabelEncoder crash on unseen labels",
+   "description": "Using LabelEncoder's transform method on test data without handling unseen categories will raise a ValueError if the test set contains labels not present in the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le.fit(train[col])\n    label_encoders[col] = le\n    train[col] = le.transform(train[col])\n    test[col] = le.transform(test[col])"
+  }
+ ],
+ "summary": "The agent successfully implements a 5-fold cross-validation setup with LightGBM. However, the solution is severely lacking in data cleaning and feature engineering (missing key physical attributes like volume). Crucially, the code will fail to execute during the final model training phase because an early stopping callback is passed without a validation set, and the categorical encoding strategy is vulnerable to unseen labels in the test set.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "california_housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within the cross-validation loop, fitted only on the training folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputers are fit only on the training dataset, completely excluding the holdout test set, thus not leaking test statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates LayerNorm, Dropout, AdamW weight decay, and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a robust 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "By using a 5-fold cross-validation strategy, the agent evaluates the models across multiple subsets, mitigating variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Final Validation Score: {final_score}\")",
+   "reasoning": "The agent optimizes and reports only the RMSE metric without verifying if other metrics (like MAE, which is robust to housing price outliers) would provide useful secondary insights.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and highly appropriate domain-specific and spatial feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated SLSQP optimization process to find the optimal ensemble blending weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-Validation Leakage via Imputation",
+   "description": "The agent fits missing-value imputers on the entire training dataset prior to the cross-validation loop. This causes the missing values in the validation folds to be imputed using median statistics that include the validation data itself, leaking validation distribution information into the training process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_imputer = SimpleImputer(strategy=\"median\")\ntrain_feat[feature_cols] = final_imputer.fit_transform(train_feat[feature_cols])"
+  },
+  {
+   "name": "Validation Leakage via Early Stopping",
+   "description": "The agent uses the same validation fold for both early stopping and generating out-of-fold (OOF) predictions. This optimistically biases the OOF predictions because the model's number of iterations is explicitly tuned to minimize error on that specific fold, which subsequently biases the meta-ensemble weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "xgb_model.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], verbose=False)\noof_preds[\"xgb\"][val_idx] = xgb_model.predict(X_va)"
+  }
+ ],
+ "summary": "The agent provides an exceptionally strong solution with advanced spatial feature engineering, proper out-of-fold target encoding, and a rigorously optimized SLSQP ensemble. However, the pipeline suffers from two moderate cross-validation leakage issues: fitting the missing-value imputers on the full training set before the CV loop, and using the exact same validation folds for both early stopping and out-of-fold prediction generation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

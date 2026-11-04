@@ -1,0 +1,146 @@
+{
+ "task": "contract-awards-investment-project-financing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_df[col].astype(str), test_df[col].astype(str)], axis=0)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on the combined train and test sets, which leaks information about the categorical distribution of the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and drops high-cardinality columns, so basic data cleaning is performed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection using statistical tests or models is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (-999), which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "drop_cols = [... 'As of Date', 'Contract Signing Date']\n... X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.15, random_state=42)",
+   "reasoning": "The dataset contains date features indicative of temporal order, but the agent drops them and performs a random split, likely introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses regression models appropriately for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation split is explicitly created and used to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for the final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.15, random_state=42)",
+   "reasoning": "Models with random elements are trained and evaluated on a single train/validation split rather than using cross-validation or multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_val_rmse = np.sqrt(mean_squared_error(y_val, lgbm_val_pred))",
+   "reasoning": "The agent relies solely on RMSE for evaluation and optimization without checking alternative metrics like MAE, which could be relevant given potential outliers in financial amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly framed as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "drop_cols = ['Project Name', 'Contract Description', 'Borrower Contract Reference Number', 'Supplier', 'As of Date', 'Contract Signing Date']",
+   "reasoning": "The agent simply drops text, date, and high-cardinality categorical features rather than engineering them into useful derived features (e.g., date parts, text embeddings).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "weights = (1.0 / rmses) ** 2\nweights = weights / weights.sum()",
+   "reasoning": "The agent uses a heuristically tuned weighted average based on validation performance, so it is not completely naive.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Un-transformed skewed target",
+   "description": "Financial amounts (like Contract Amount) are typically highly right-skewed. Training directly on the raw amount with an RMSE loss function will cause the model to over-index on massive outliers, severely degrading predictions for the majority of the data. A log transform (e.g., log1p) is highly recommended.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train_df[target]\n... eval_metric='rmse'"
+  }
+ ],
+ "summary": "The agent implements a basic regression pipeline with a weighted model ensemble, but it takes problematic shortcuts in preprocessing. Crucially, it drops important temporal and text features rather than engineering them, and leaks test set categories by fitting its LabelEncoder on the combined data. Furthermore, random splitting on a dataset with date columns introduces look-ahead bias.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

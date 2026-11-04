@@ -1,0 +1,148 @@
+{
+ "task": "california_housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by filling missing values in totalBedrooms.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scalers are fit correctly within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation does not use the full combined dataset; it uses train_raw, avoiding test leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models used are appropriate for regression tasks.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is correctly used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated using K-Fold CV, which naturally averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_score = root_mean_squared_error(y, final_oof_preds)\n    print(f\"Final Validation Score: {final_score}\")",
+   "reasoning": "The agent only computes RMSE and does not verify performance with any other metric to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive spatial and domain feature engineering is applied.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper Ridge regression meta-learner is used for ensembling.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "KNN Self-Matching Data Leakage",
+   "description": "When generating KNN features on the training set, the nearest neighbors model is queried with the training points themselves. This results in the first neighbor always being the point itself (distance 0), which introduces a systemic train-test distribution shift because validation and test sets will not contain this self-match distance of 0.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dists, indices = knn.kneighbors(rad_coords)\n...\ndf_target[\"knn_mean_dist_15\"] = np.mean(dists_km[:, :15], axis=1)"
+  },
+  {
+   "name": "Cross-Validation Data Leakage",
+   "description": "Global statistics are calculated on the entire training dataset before cross-validation splitting. This leaks information from the validation folds into the training folds, slightly compromising the integrity of the out-of-fold validation.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "br_ratio = (train_raw[\"totalBedrooms\"] / train_raw[\"totalRooms\"]).median()\ntrain_raw[\"totalBedrooms\"] = train_raw[\"totalBedrooms\"].fillna(train_raw[\"totalRooms\"] * br_ratio)"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution with strong feature engineering, deep learning, and stacking. However, it suffers from a subtle data leakage issue where KNN features query the training set against itself, causing a train-test distribution shift (self-matching). Additionally, there is minor cross-validation leakage from calculating imputation ratios prior to the K-Fold split.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

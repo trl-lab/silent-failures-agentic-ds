@@ -1,0 +1,105 @@
+{
+ "task": "lending-club-loan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Lending club data often has a temporal component (issue date) where a time-based split is standard, but without specific task instructions, it is unclear if a temporal split was strictly required here.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "val_preds = np.mean(val_preds_list, axis=0)",
+   "reasoning": "The agent combined the predictions from multiple LightGBM seeds using a simple unweighted average without exploring weighted blending, though for seed averaging this is generally acceptable.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "inconsistent_transform_application",
+   "description": "The agent applies a data transformation conditionally based on the statistics of the current batch/split rather than the training set. This can result in a feature being transformed in the training set but left in its raw scale in the test set, completely breaking the model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skew = non_null.skew()\nif skew > 1.0:\n    df[col] = np.log1p(df[col])"
+  },
+  {
+   "name": "unspecified_categorical_features_lgb",
+   "description": "The agent label-encodes categorical features but does not inform LightGBM that they are categorical via the `categorical_feature` parameter, causing the model to treat them as continuous numerical variables and potentially degrading performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dtrain = lgb.Dataset(X_train_eng, label=y_train, feature_name=all_cols)"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with solid feature engineering, proper categorical encoding mapping, and multiple seeds to reduce variance. However, it contains a critical data-leakage/transformation flaw where the log-transform for skewed features is applied based on the skewness of the current dataset (train/val/test) independently, which can lead to severe train-test distribution mismatches. Additionally, categorical features are not explicitly flagged for LightGBM.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

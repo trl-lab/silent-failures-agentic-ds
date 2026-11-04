@@ -1,0 +1,98 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n    test_df = pd.read_parquet(\"./input/test.parquet\")\n\n    # Ensure output directory exists\n    os.makedirs(\"./working\", exist_ok=True)",
+   "reasoning": "The agent makes no effort to check for or clean missing values, duplicates, or outliers in the raw data, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_mae = mean_absolute_error(y_train, oof_predictions)\n    print(f\"5-Fold CV MAE: {cv_mae:.4f}\")",
+   "reasoning": "The agent evaluates the model using only MAE and does not report any other metrics (such as RMSE or R2) to contextualise the error distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Temporal Data Leakage",
+   "description": "The agent computes global aggregates across all time steps for a subject (e.g., mean score over all games) and uses them as features for every row, leaking future performance information into past predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "player_stats = (\n        train_data.groupby(\"nickname\")\n        .agg(\n            player_mean_score=(\"score\", \"mean\"),\n            player_std_score=(\"score\", \"std\"),"
+  }
+ ],
+ "summary": "The agent implements a solid relational feature engineering pipeline and uses an appropriate LightGBM regression model with cross-validation. However, it suffers from two critical leakage issues: failing to group by player 'nickname' during CV splitting (causing subject overlap) and computing global player aggregates that leak future information into past game predictions.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

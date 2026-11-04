@@ -1,0 +1,106 @@
+{
+ "task": "jigsaw-unintended-bias-in-toxicity-classification",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if val_auc > best_epoch_auc:\n    best_epoch_auc = val_auc\n    best_val_p = val_p.copy()\n...\nfinal_val_score = roc_auc_score(y_val, ensemble_val_p)",
+   "reasoning": "The agent uses the validation set to perform early stopping (selecting the best epoch) for each model, and then reports the final ensembled score on this exact same validation set, leading to an optimistic performance estimate.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "SGDClassifier(\n                loss=\"log_loss\",\n                penalty=\"l2\",\n                alpha=1e-5,\n                random_state=42,\n                learning_rate=\"optimal\",\n            )",
+   "reasoning": "The agent trains stochastic SGD models with a single fixed random seed per configuration, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = (tr_df[\"target\"].values >= 0.5).astype(np.int32)",
+   "reasoning": "The agent binarizes the continuous target variable before training, discarding the valuable soft-probability signal provided by the dataset which indicates the severity and consensus of toxicity.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ensemble_val_p = np.clip(np.mean(best_val_preds, axis=0), 0.0, 1.0)",
+   "reasoning": "The agent combines predictions from multiple distinct models using a simple unweighted mean, missing the opportunity to optimize blend weights using the validation predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Timeout / Inefficient Feature Extraction",
+   "description": "The script attempts highly computationally expensive operations on a massive dataset, specifically extracting character n-grams up to length 5 on 1.5 million text strings, which leads to memory exhaustion or execution timeout.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "char_tfidf = TfidfVectorizer(\n        ngram_range=(2, 5), max_features=25000, sublinear_tf=True, analyzer=\"char\"\n    )"
+  }
+ ],
+ "summary": "The agent correctly implements text feature extraction, TF-IDF vectorization, and iterative model training. However, it inappropriately binarizes the continuous target variable, thereby discarding important signal. Furthermore, it reports the final ensemble score on the same validation set used for early stopping (overestimating model generalization) and suffers from a critical timeout due to inefficient character n-gram extraction on a massive dataset.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

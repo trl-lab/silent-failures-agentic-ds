@@ -1,0 +1,137 @@
+{
+ "task": "wall-robot-navigation",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n...\nX_train = extract_features(train_df)",
+   "reasoning": "The agent loads the data and directly feeds it into the feature extraction function without any explicit checks or handling for missing values, outliers, or duplicates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multi-class classifier (CatBoostClassifier with loss_function='MultiClass') for the multi-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a StratifiedKFold cross-validation scheme to separate training and validation data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates across 5 cross-validation folds rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "accuracy = accuracy_score(y_train, oof_class_preds)\nprint(f\"Validation Accuracy: {accuracy:.5f}\")",
+   "reasoning": "The agent solely calculates and reports the accuracy score, without verifying if it is fully appropriate for the dataset's class distribution or looking at other metrics like F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multi-class classification problem predicting the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering in the extract_features function (e.g., coordinates, spatial aggregates, derivatives).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test) / n_splits",
+   "reasoning": "The agent uses a naive unweighted average to combine the predictions of the cross-validation models without any attempt to tune or optimize the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid temporal features and validation mismatch",
+   "description": "The agent creates temporal lag features assuming the dataset rows are sequential, but then uses a randomized cross-validation split. If the data is temporal, random splitting causes future leakage; if it is not temporal, the lag features are meaningless.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lag1 = np.vstack([data[0:1], data[:-1]])\n...\nskf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)"
+  }
+ ],
+ "summary": "The agent demonstrates good effort in feature engineering and setting up a robust cross-validation scheme with an appropriate model. However, it completely skips data cleaning, relies exclusively on accuracy as an evaluation metric, and uses naive fold averaging for its ensemble. Most critically, the agent introduces lag features implying temporal dependencies, while concurrently randomizing the validation splits, which either introduces meaningless noise or temporal data leakage depending on the true nature of the data.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

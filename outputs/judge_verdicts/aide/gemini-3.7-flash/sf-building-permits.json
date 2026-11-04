@@ -1,0 +1,149 @@
+{
+ "task": "sf-building-permits",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning, such as coercing types and handling missing values with fillna(0).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "type_mean = combined.groupby(permit_type_col)[est_cost_col].transform(\"mean\")\n    type_std = combined.groupby(permit_type_col)[est_cost_col].transform(\"std\")\n    combined[\"cost_type_zscore\"] = (est_c - type_mean) / (type_std + 1e-5)",
+   "reasoning": "The agent calculates group-wise means and standard deviations on the combined train and test dataset to compute z-scores, leaking test set statistics into the training features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0) rather than an imputer that computes statistics across the dataset, avoiding imputation leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset involves building permit approval times, which has an inherent temporal sequence, but the agent uses standard randomized K-Fold instead of time-based splitting, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 different cross-validation folds rather than just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(mean_squared_error(y_va, val_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying if it is the most appropriate metric or evaluating secondary metrics like MAE to understand the impact of outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, time differences, and cost aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test, num_iteration=model.best_iteration) / n_splits",
+   "reasoning": "The agent ensembles the predictions of the 5 cross-validation folds using a simple unweighted average without attempting to optimize the fold weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage through combined frequency encoding",
+   "description": "Frequency encoding is performed on the combined train and test dataset. This leaks the distribution and frequencies of categories from the test set into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(dropna=False)\n    combined[f\"{col}_freq\"] = combined[col].map(freq)"
+  },
+  {
+   "name": "Suboptimal target transformation for skewed duration data",
+   "description": "The target variable represents a duration (time to approve), which is strictly positive and typically highly right-skewed. Training directly on the raw target with RMSE makes the model overly sensitive to long-tail outliers; a log-transform or Poisson objective is usually more appropriate.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "y = train_df[target_col].values\n...\nlgb_params = {\n    \"objective\": \"regression\",\n    \"metric\": \"rmse\","
+  }
+ ],
+ "summary": "The agent correctly identifies the task as regression and implements a thorough feature engineering pipeline using a LightGBM model with 5-fold cross-validation. However, it introduces critical data leakage by calculating group aggregations (z-scores) and frequency encodings on the combined train-test dataset. Furthermore, it ignores the temporal nature of building permits by using a randomized split, which causes look-ahead bias.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

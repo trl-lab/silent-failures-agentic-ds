@@ -1,0 +1,153 @@
+{
+ "task": "house_prices_ames",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only uses test data to check for column existence, which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the target variable, fills categorical missing values, and replaces infinite values with NaNs to rely safely on tree-based models' native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant columns) is performed only on the training set, not the combined full dataset, meaning test data is not leaked.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing categorical values are imputed with a constant string ('missing'), which does not leak distribution statistics across the train/test split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While the dataset contains temporal columns (Year_Sold), standard evaluation on this dataset does not strictly require a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this continuous target prediction task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is completely isolated and only used for final predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )",
+   "reasoning": "The agent trains stochastic models (LightGBM, XGBoost, CatBoost) and evaluates them on a single train/validation split without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmse(y_true, y_pred):\n    return float(np.sqrt(mean_squared_error(y_true, y_pred)))",
+   "reasoning": "The agent evaluates model performance using only RMSE, without verifying robustness using other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem with log-transformations on the target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates multiple derived features (Total_SF, Age, Total_Bath, etc.) from the raw columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an inverse-RMSE weighted average rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing early stopping in final refit",
+   "description": "The agent uses early stopping during validation to prevent overfitting (e.g., CatBoost with early_stopping_rounds=100), but when refitting the model on the full training set for test predictions, it omits the optimal iteration count and trains for the maximum number of iterations.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X, y_log, cat_features=cat_cols, verbose=0)"
+  },
+  {
+   "name": "Silent exception handling",
+   "description": "The agent wraps model training and prediction steps in generic try-except blocks that silently pass, which could mask critical execution or memory errors and silently drop models from the ensemble without warning.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "except Exception:\n        pass"
+  }
+ ],
+ "summary": "The agent implements a solid regression pipeline with effective feature engineering, appropriate handling of categorical variables, and a robust inverse-RMSE weighted ensemble. However, it evaluates stochastic models only once on a single split, relies entirely on a single metric, and risks overfitting CatBoost by not utilizing the optimal early-stopping iteration count during the final refit on the full dataset.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

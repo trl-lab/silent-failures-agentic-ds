@@ -1,0 +1,149 @@
+{
+ "task": "food-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design; test data is only used for final predictions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "data[col] = df[col].fillna(\"\").astype(str)",
+   "reasoning": "The agent explicitly handles missing values in text columns by filling them with empty strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling before splitting; TF-IDF vectorization is properly contained within a Pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation consists of filling with a constant empty string, which does not leak statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset requires temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (LogisticRegression, SGDClassifier) for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly implements a train/validation split using StratifiedKFold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, implicitly evaluating the stochastic models multiple times, although it fails to print or aggregate the scores.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_scores.append(accuracy_score(y_va, preds))",
+   "reasoning": "The agent only computes accuracy, which may be misleading if the multi-class target is imbalanced; no other metrics are considered.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "data[\"combined_text\"] = ...",
+   "reasoning": "The agent engineers a combined text feature to capture rich context across multiple text columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ensemble = VotingClassifier(\n    estimators=[(\"lr1\", clf1), (\"sgd\", clf2), (\"lr2\", clf3)], voting=\"soft\"\n)",
+   "reasoning": "The agent uses a naive unweighted soft voting ensemble without tuning the weights or considering stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring test ID column",
+   "description": "The agent generates artificial sequential IDs for the submission file instead of using the actual identifier column from the test dataset. This typically breaks automated scoring systems or misaligns predictions if the test set IDs are non-contiguous.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame(\n    {\"id\": np.arange(len(test_preds)), \"classification\": test_preds}\n)"
+  },
+  {
+   "name": "Silent validation evaluation",
+   "description": "The agent computes validation scores during cross-validation but never prints, logs, or aggregates them, making the validation process entirely useless for informing the user of the model's performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_scores.append(accuracy_score(y_va, preds))"
+  }
+ ],
+ "summary": "The agent successfully implements a proper modeling pipeline with TF-IDF vectorization and an ensemble of linear models, avoiding data leakage. However, it relies on a naive unweighted ensemble, only uses accuracy for evaluation without checking class balance, and critically fails to use the actual test IDs for the submission file, which will likely result in an invalid submission. Furthermore, it silently discards its cross-validation scores without printing them.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

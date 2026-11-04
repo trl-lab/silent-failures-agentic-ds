@@ -1,0 +1,145 @@
+{
+ "task": "wine-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or use the test data to inform preprocessing logic.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements multiple data cleaning and extraction functions (e.g., clean_text_series, extract_abv).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit scalers on the combined train/test dataset; test data is strictly transformed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the combined train/test dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled using constant defaults (e.g., 'missing', 0), avoiding any global statistic leakage from the test set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set for early stopping and ensemble weighting.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_fit, X_val, y_fit, y_val = train_test_split(train_features, y_train, test_size=0.2, random_state=RANDOM_STATE)",
+   "reasoning": "The stochastic tree models are trained and evaluated on a single train/validation split without averaging across multiple random seeds or cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmse_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:",
+   "reasoning": "The agent evaluates and optimizes the models exclusively using RMSE, without checking robustness with other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a regression problem targeting the 'Price' column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including TF-IDF, text length/word counts, and regex-based numeric extraction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an inverse-RMSE weighted ensemble rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation data leakage during preprocessing",
+   "description": "The agent applies data-dependent transformations like TF-IDF and frequency encoding on the entire training set before performing the train/validation split. This leaks validation statistics into the training features, leading to overly optimistic validation scores and suboptimal early stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "vectorizer.fit_transform(train_series)\n... mapping = fit_categorical_mapping(train_cat, top_n=250)\n... X_fit, X_val, y_fit, y_val = train_test_split(train_features, ...)"
+  },
+  {
+   "name": "Missing log-transformation for skewed target",
+   "description": "The agent trains models directly on the raw 'Price' target. Prices are typically heavily right-skewed, making RMSE highly sensitive to extreme outliers; a log-transformation (e.g. np.log1p) is standard practice to stabilize variance and improve generalization for such targets.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train = train_df[TARGET].astype(float)"
+  }
+ ],
+ "summary": "The agent provides a high-quality, robust solution with excellent feature engineering, safe missing-value handling, and a sophisticated weighted ensemble. However, it fails to log-transform the heavily skewed 'Price' target, evaluates stochastic models on a single validation split, and leaks validation data into the training process by applying TF-IDF and frequency encodings prior to the train/validation split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

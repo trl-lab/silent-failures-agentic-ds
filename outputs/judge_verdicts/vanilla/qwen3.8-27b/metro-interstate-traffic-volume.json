@@ -1,0 +1,109 @@
+{
+ "task": "metro-interstate-traffic-volume",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_scores[name] = float(np.sqrt(mean_squared_error(y_val, pred)))",
+   "reasoning": "The agent trains and evaluates stochastic models (LGBM, XGB, CatBoost with set random seeds) exactly once without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "float(np.sqrt(mean_squared_error(y_val, pred)))",
+   "reasoning": "The agent exclusively calculates RMSE on the validation set without verifying model performance using any other robust metrics (e.g. MAE).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_pred = np.mean(test_preds, axis=0)",
+   "reasoning": "The agent uses a naive, unweighted average to combine predictions from three different models without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dead code for validation",
+   "description": "The agent computes validation scores but never prints, logs, or uses them to make decisions (like hyperparameter tuning or model selection), making the validation step completely useless in practice.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_scores = {} ... val_scores[name] = float(np.sqrt(mean_squared_error(y_val, pred)))"
+  },
+  {
+   "name": "No early stopping in iterative models",
+   "description": "The agent trains gradient boosting models for a fixed number of iterations (e.g., 1000) without using the validation set for early stopping, which can easily lead to overfitting or suboptimal generalization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with robust feature engineering, appropriate handling of temporal components, and correct data splitting/preprocessing logic. However, it fails to utilize early stopping for its gradient boosting models and computes validation scores without ever outputting or utilizing them. Additionally, it ensembles models using a naive unweighted average and evaluates its stochastic models only once.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

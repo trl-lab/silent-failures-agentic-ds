@@ -1,0 +1,138 @@
+{
+ "task": "external-clinician-dashboard",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_test = test_df[feature_cols]\ny_pred = pipeline.predict(X_test)",
+   "reasoning": "The test data is only used at the very end for generating predictions, with no peeking during training or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "numeric_imputer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly configures an imputer to handle missing values in the data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline = Pipeline(steps=[\n    ('preprocessor', preprocessor),\n    ('model', model)\n])\n\n# Fit model\npipeline.fit(train_df[feature_cols], train_df[target_col])",
+   "reasoning": "Scaling is correctly applied within a scikit-learn Pipeline, ensuring it is only fit on the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline.fit(train_df[feature_cols], train_df[target_col])",
+   "reasoning": "Imputation is correctly contained within a Pipeline and fit only on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no indication of temporal order in the provided context or code.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline.fit(train_df[feature_cols], train_df[target_col])\n\n# Transform test data and predict\nX_test = test_df[feature_cols]\ny_pred = pipeline.predict(X_test)",
+   "reasoning": "The model is trained on the full training set and predicts on the test set without any internal validation split or cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n    objective='regression',\n    metric='rmse',\n    num_leaves=31,\n    learning_rate=0.05,\n    max_depth=-1,\n    min_child_samples=20,\n    random_state=42,\n    n_jobs=-1,\n    verbose_eval=False\n)",
+   "reasoning": "A stochastic model (LightGBM) is trained and evaluated only once, without multiple runs or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "metric='rmse'",
+   "reasoning": "The task specifies RMSE as the evaluation metric, so optimizing for it is the correct approach.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = 'Score'",
+   "reasoning": "The problem is appropriately framed as predicting the Score target via regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_data = train_df[feature_cols].select_dtypes(include=[np.number])\ncategorical_data = train_df[feature_cols].select_dtypes(include=['object'])",
+   "reasoning": "The agent uses the raw numeric and categorical columns directly without applying any domain-informed feature engineering or interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Parallel Preprocessing of Sequential Steps",
+   "description": "Sequential preprocessing steps (like imputation and scaling) are placed as parallel transformers in a ColumnTransformer instead of being chained in a Pipeline. This causes the model to receive duplicate sets of features: one set that is imputed but unscaled, and another set that is scaled but still contains missing values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(\n    transformers=[\n        ('num_imp', numeric_imputer, numeric_cols),\n        ('num_scaler', numeric_scaler, numeric_cols),\n        ('cat_enc', cat_encoder, cat_cols)\n    ],\n    remainder='drop'\n)"
+  }
+ ],
+ "summary": "The agent correctly utilizes a pipeline structure to avoid data leakage during imputation and scaling, and correctly selects a regression model. However, it fails to perform any internal validation or cross-validation, applying the model directly to the test set. Additionally, a significant flaw exists in the ColumnTransformer where imputation and scaling are applied in parallel rather than sequentially, leading to duplicated and improperly processed features.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

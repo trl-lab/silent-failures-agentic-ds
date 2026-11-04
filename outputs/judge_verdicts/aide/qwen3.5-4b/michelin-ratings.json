@@ -1,0 +1,141 @@
+{
+ "task": "michelin-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so test data cannot be peeked at during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=['awardFor']).copy()\ny = train_df['awardFor'].copy()",
+   "reasoning": "The agent makes no effort to handle missing values or outliers, relying entirely on LightGBM's internal handling without an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a strict temporal structure requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a multiclass objective is appropriate for an m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y_val, preds)\naccuracies.append(acc)",
+   "reasoning": "The agent only calculates accuracy and does not evaluate other metrics like F1-score or log-loss to verify robustness on potentially imbalanced classes.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in X.select_dtypes(include=['object']).columns:\n    X[col] = X[col].astype('category')",
+   "reasoning": "The agent uses the raw columns as-is (only converting object types to categories) with no attempt at creating derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM14": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "F_INDEPENDENT_CATEGORICAL_ENCODING",
+   "description": "The agent encodes categorical variables independently in the training and test sets, which can lead to mismatched category mappings and execution errors or corrupted predictions if the test set has unseen or missing categories.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype('category')\ntest_df[col] = test_df[col].astype('category')"
+  },
+  {
+   "name": "F_BIASED_FINAL_MODEL_EPOCHS",
+   "description": "The agent uses the optimal number of boosting rounds (early stopping epoch) from only the final cross-validation fold to train the final model on the entire dataset, rather than averaging the optimal epochs across all folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_boost_round=model.best_iteration if model.best_iteration else 100"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM solution with 5-fold cross-validation but completely neglects data cleaning and feature engineering. Furthermore, the agent introduces critical bugs by independently casting train and test object columns to categorical types (which can lead to mismatched internal mappings) and arbitrarily reusing the early stopping iteration from only the final CV fold for the full-dataset retraining.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": false
+ },
+ "stage_count": 0,
+ "stage_count_max": 8,
+ "no_code": false
+}

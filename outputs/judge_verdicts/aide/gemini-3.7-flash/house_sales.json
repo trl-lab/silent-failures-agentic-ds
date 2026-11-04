@@ -1,0 +1,149 @@
+{
+ "task": "house_sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)",
+   "reasoning": "The agent relies entirely on XGBoost's native handling of missing values and performs no explicit imputation or missing value strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a 'date' column, but the agent uses a random k-fold split instead of a time-based split, which ignores temporal order and can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An XGBRegressor is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, which inherently averages over multiple evaluations to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_val, val_pred)",
+   "reasoning": "The agent only calculates and evaluates using RMSE, without checking other metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including distance calculations and area ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across CV folds, which is standard practice, rather than naively ensembling disparate models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Failed implementation of target encoding",
+   "description": "The agent leaves a comment indicating it is performing target encoding within cross-validation to prevent leakage, but the code merely casts the column to a pandas category type globally.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Target encoding for zipcodes within cross-validation to prevent leakage\ncat_cols = [\"zipcode\"]\nfor c in cat_cols:\n    X[c] = X[c].astype(\"category\")"
+  },
+  {
+   "name": "Incorrect geographic distance calculation",
+   "description": "The agent calculates Euclidean and Manhattan distances directly on latitude and longitude coordinates, ignoring the spherical shape of the Earth and the varying physical distance of degrees at different latitudes.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "data[\"dist_to_seattle\"] = np.sqrt(data[\"dist_lat\"] ** 2 + data[\"dist_long\"] ** 2)"
+  }
+ ],
+ "summary": "The agent provides a solid XGBoost solution with extensive feature engineering and 5-fold cross-validation. However, it fails to explicitly handle missing values, ignores the temporal nature of the sales data during splitting, and incorrectly implements target encoding as a simple category cast despite commenting otherwise. Additionally, it calculates geographic distances naively.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

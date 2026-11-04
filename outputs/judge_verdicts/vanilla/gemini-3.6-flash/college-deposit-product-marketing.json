@@ -1,0 +1,108 @@
+{
+ "task": "college-deposit-product-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[c].value_counts().to_dict()\n  df_all[f\"{c}_freq\"] = df_all[c].map(freq)",
+   "reasoning": "The agent computes frequency encoding and ordinal encoding (via pd.factorize) based on the combined train and test dataset, leaking test set distribution statistics into the training features."
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train = train.dropna(subset=[target_col]).reset_index(drop=True)",
+   "reasoning": "The agent actively cleans data by dropping missing targets, filling NaNs in categorical columns, and replacing infinities."
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed on the data."
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "or df_all[c].nunique(dropna=False) <= 1:\n    cols_to_drop.append(c)",
+   "reasoning": "The agent drops constant columns based on the unique values of the combined train and test dataset, which is a form of feature selection that leaks test set information."
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[c] = df_all[c].fillna(\"missing\").astype(str)",
+   "reasoning": "Missing values are filled with a constant string ('missing') or left as NaN, which does not leak distribution statistics like mean or mode."
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset has datetime columns, but it's unclear if strict temporal splitting is required for this task."
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor) for the regression task."
+  },
+  "FM06": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code truncates before any evaluation or full cross-validation loop can be observed."
+  },
+  "FM14": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code truncates before model evaluation."
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code truncates before any metric is computed."
+  },
+  "FM01": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The task formulation is standard regression, but due to truncation, the full formulation isn't visible."
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[f\"{c}_parsed_year\"] = parsed.dt.year",
+   "reasoning": "The agent performs feature engineering, including datetime parsing, frequency encoding, and proper out-of-fold target encoding."
+  },
+  "FM12": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code truncates during the training loop of the first model, so the ensembling strategy cannot be evaluated."
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "SyntaxError_and_Truncated_Code",
+   "description": "The provided code contains markdown formatting (```python) at the beginning, leading to a SyntaxError. Furthermore, the code is abruptly truncated in the middle of model initialization, preventing any execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "```python\nimport warnings\n...\n  model_lgb = lgb.LGBMRegressor(\n      n_estimators=1000,\n      learning_rate=0.03,\n      num_leaves=31,"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering pipeline with out-of-fold target encoding and datetime parsing. However, it introduces data leakage by computing frequency encodings and dropping constant columns on the combined train and test datasets. Most critically, the script fails to execute due to a syntax error from markdown backticks and is severely truncated mid-model initialization.",
+ "recovered_from_parse_error": true,
+ "no_code": false
+}

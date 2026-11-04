@@ -1,0 +1,138 @@
+{
+ "task": "champs-scalar-coupling",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent aligns train and test columns programmatically without manual peeking or fitting transformers on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train = X_train.replace([np.inf, -np.inf], np.nan).astype(np.float32)",
+   "reasoning": "The agent leaves missing values as NaNs and relies entirely on LightGBM's native missing value handling without applying any explicit imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping all-NaN columns) is only applied using statistics from the training set (X_train).",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed; NaNs are left as-is.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with 'regression_l1' objective) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses MAE ('l1'), which is exactly the appropriate target metric specified for this competition.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "exclude = {\"id\", target, \"full_mol_idx\", \"atom_idx1\", \"atom_idx2\"}",
+   "reasoning": "The agent explicitly excludes atom indices and uses only raw columns, failing to engineer critical domain features (like interatomic distances) which are essential for this molecular task.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across K-fold models, which is the standard and mathematically sound approach for cross-validation bagging, rather than a naive multi-algorithm ensemble.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid Submission IDs",
+   "description": "The agent hardcodes submission IDs as a sequence starting from 0 instead of using the actual 'id' column from the test set, leading to an invalid or zero-scoring submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test))"
+  }
+ ],
+ "summary": "The agent implements a standard LightGBM regression pipeline with randomized Group K-fold cross-validation. However, it completely fails at feature engineering by discarding crucial atom indices needed to derive interatomic distances, throwing away most of the task's signal. Furthermore, it introduces a critical execution bug by hardcoding submission IDs instead of preserving the test set's original IDs.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

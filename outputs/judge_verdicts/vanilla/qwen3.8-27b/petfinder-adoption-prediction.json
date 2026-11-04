@@ -1,0 +1,138 @@
+{
+ "task": "petfinder-adoption-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test data for any EDA or preprocessing logic before the split.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including handling missing values and dropping unhelpful ID columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is used in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation uses constants (-1 and 'missing'), which does not compute statistics over the data and therefore avoids leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is handled as a multiclass classification problem where probabilities are converted into expected ordinal labels, which is a valid formulation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_qwk = quadratic_weighted_kappa(y_val.values, val_pred)\n    print(f\"Validation QWK: {val_qwk:.6f}\")",
+   "reasoning": "The agent trains stochastic models (LightGBM, XGBoost, CatBoost) on a single train/validation split and reports one score without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Validation QWK: {val_qwk:.6f}\")",
+   "reasoning": "Only the QWK metric is reported, lacking auxiliary metrics like log loss or accuracy that are helpful for diagnosing multiclass probability predictions.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is framed correctly, converting multiclass probabilities to ordinal predictions via expected values.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature engineering is present, such as extracting text statistics from Name and Description, and combining Breed and Color columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "avg_proba /= len(models)",
+   "reasoning": "The agent averages the predicted probabilities of multiple models using equal weights without attempting to optimize the blending ratios.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid submission format",
+   "description": "The agent drops the required identifier column for the submission file and generates a dummy sequential ID instead, resulting in a submission that will fail evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_pred), dtype=int)"
+  }
+ ],
+ "summary": "The solution implements a reasonable ordinal classification approach using expected values of multiclass probability predictions from an ensemble of gradient boosting models. However, it suffers from a critical execution flaw where the required 'PetID' column is dropped and replaced with sequential integers in the final submission. Additionally, the ensembling is naive (equal weights) and model evaluation lacks robustness due to single-split validation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

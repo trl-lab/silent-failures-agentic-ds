@@ -1,0 +1,57 @@
+{
+ "task": "house_prices_ames",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=RANDOM_SEED)",
+   "reasoning": "The Ames housing dataset contains temporal columns (Yr_Sold, Mo_Sold), but the agent uses a randomized stratified split instead of a time-based split, which ignores the temporal order of sales and introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def compute_rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:\n    return float(np.sqrt(mean_squared_error(y_true, y_pred)))",
+   "reasoning": "The agent exclusively computes and optimizes for RMSE without verifying its robustness, ignoring the fact that the skewed Sale_Price target makes RMSE highly sensitive to expensive outliers where metrics like MAE or RMSLE would provide necessary context.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Skewness Ignored",
+   "description": "The agent trains its models directly on a highly right-skewed target variable (house prices) using an RMSE objective. This causes the models to disproportionately penalize errors on high-priced outliers. A common best practice is to log-transform the target before training (optimizing RMSLE implicitly) and exponentiate the predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train_all = train_raw[target_col].values\n...\nobjective=\"regression\""
+  },
+  {
+   "name": "Test Set Leakage in Categorical Encoding",
+   "description": "The categorical mapping dictionary is built using unique values from both the training and test sets combined. This leaks the test set's categorical distribution into the training pipeline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "all_cats = sorted(list(set(s_tr.unique()) | set(s_te.unique())))"
+  }
+ ],
+ "summary": "The agent has built a mechanically sound and robust ML pipeline with extensive domain-informed feature engineering, proper out-of-fold cross-validation, and an optimized ensemble. However, it fails to account for the temporal aspect of the data, ignores the severe right-skewness of the target variable by not applying a log transformation, and introduces a minor leak by constructing categorical encoders using both train and test sets.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

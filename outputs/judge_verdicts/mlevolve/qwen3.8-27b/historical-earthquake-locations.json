@@ -1,0 +1,142 @@
+{
+ "task": "historical-earthquake-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly fits transformations only on the training set (or what it considers the training set) and applies them to the test set without leaking test statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values in categorical columns are handled via an explicit '__UNSEEN__' category or 0.0, and numeric NaNs are safely left for LightGBM to handle natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scalers or normalisers are used before splitting, although other feature engineering steps do leak data (captured separately).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard imputers are fit before the split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y\n)",
+   "reasoning": "The dataset contains historical earthquake events (which are inherently temporal and explicitly have datetime columns extracted), but the agent uses a random stratified split instead of a time-based split, risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification model for a multiclass task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation split is created and evaluated before retraining on the full dataset.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains and evaluates the model across 3 different random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_val, val_pred)\nprint(f'Final Validation Score: {val_accuracy:.4f}')",
+   "reasoning": "The agent only computes and reports accuracy, despite explicitly checking for class imbalance and setting class weights, which makes accuracy alone an insufficient metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including datetime extraction, geographic centroids, and magnitude/depth interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_proba += model.predict_proba(X_val)\n...\ntest_proba += model.predict_proba(test_features)",
+   "reasoning": "The agent aggregates predictions from multiple random seeds using a simple, unweighted sum of probabilities without attempting to optimize the ensemble weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage During Feature Engineering",
+   "description": "The agent computes global statistics (e.g., frequency encoding, geographic centroids, and quantile bins) on the full training dataset before performing the train/validation split. This leaks information from the validation set into the training features, resulting in overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = X[col].value_counts(normalize=True)\n...\ncentroid_lat = lat_train.mean()\n...\nedges = np.unique(np.quantile(train_geo.dropna().to_numpy(), np.linspace(0, 1, 21)))\n...\nX_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)"
+  }
+ ],
+ "summary": "The agent implements a solid LightGBM pipeline with extensive domain-specific feature engineering and a commendable retraining strategy for the final ensemble. However, the solution suffers from critical data leakage because global statistics (frequency encoding, centroids, quantiles) are computed before the validation split is made. Additionally, it ignores the temporal nature of earthquake data by using a random split, and evaluates performance solely on accuracy despite acknowledging potential class imbalance.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

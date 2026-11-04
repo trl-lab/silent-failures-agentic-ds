@@ -1,0 +1,105 @@
+{
+ "task": "gainful-employment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_lgb_rmse = np.sqrt(mean_squared_error(y, oof_lgb))\ncv_xgb_rmse = np.sqrt(mean_squared_error(y, oof_xgb))\ncv_ensemble_rmse = np.sqrt(mean_squared_error(y, oof_ensemble))",
+   "reasoning": "The agent only computes and reports RMSE for its models without checking any other metrics (such as MAE or R2) to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_ensemble = 0.5 * oof_lgb + 0.5 * oof_xgb\nfinal_test_preds = 0.5 * test_preds_lgb + 0.5 * test_preds_xgb",
+   "reasoning": "The agent combines LightGBM and XGBoost predictions using a naive, unweighted 50/50 split without any attempt to optimize the blending weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage during feature engineering",
+   "description": "The agent computes feature statistics (e.g., frequencies, group means) using the combined train and test sets, leaking test set distribution and numerical values into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[[cat, num]], X_test[[cat, num]]], axis=0)\n        group_mean = combined.groupby(cat, observed=False)[num].mean().to_dict()"
+  },
+  {
+   "name": "Target encoding leakage across CV folds",
+   "description": "Target encoding is applied to the entire training set using a separate cross-validation scheme before the main model cross-validation. This leaks the validation set targets into the training set features because the folds from the two schemes do not align.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "target_enc = TargetEncoder(smooth=\"auto\", cv=5, random_state=42)\n    te_train = target_enc.fit_transform(X_train[cat_cols], y)"
+  }
+ ],
+ "summary": "The agent implements cross-validation, feature engineering, and ensembling for the regression task. However, it critically leaks test data by computing group means and frequencies on the combined train and test sets. Additionally, target encoding is performed outside the main CV loop causing cross-fold leakage, the ensemble relies on a naive 50/50 blend, and only a single metric is used for evaluation.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

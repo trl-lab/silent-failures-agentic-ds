@@ -1,0 +1,137 @@
+{
+ "task": "community-banking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is completely isolated and not used for EDA or informing preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled using SimpleImputer for numerical columns and filling with 'missing' for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The RobustScaler is fitted strictly on the training set (X_tr_imp) after the validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is performed only on the training split and correctly applied to the validation and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset contains a temporal order, so we cannot definitively say if a random split is inappropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The target is continuous and a regression model (LGBMRegressor) is correctly used.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used for evaluation and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n        objective=\"regression\",\n        metric=\"rmse\",\n        n_estimators=3000,\n        ...\n        subsample=0.8,\n        colsample_bytree=0.8,\n        ...\n        random_state=42,\n        n_jobs=-1,\n    )\n\n    model.fit(\n        X_tr_scaled,\n        y_tr,\n        eval_set=[(X_va_scaled, y_va)],\n        callbacks=[lgb.early_stopping(stopping_rounds=100, verbose=False)],\n    )",
+   "reasoning": "The model uses stochastic elements (subsample, colsample_bytree) but is evaluated on a single seed without cross-validation or averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_va, val_preds))\n...\nprint(f\"Final Validation Score: {val_rmse}\")",
+   "reasoning": "Only RMSE is calculated and reported; no other metrics (like MAE or R-squared) are used to evaluate model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Various feature engineering steps are taken, including row statistics, skewness transformations, and feature interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "DataFrame fragmentation in loop",
+   "description": "Adding many new columns to a pandas DataFrame one by one inside a loop causes severe memory fragmentation and exponential performance degradation, often leading to execution timeouts on wide datasets. It is better to collect new columns in a dictionary or list and concatenate them at once.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in skewed_cols:\n        if (X_tr_imp[col] >= 0).all():\n            X_tr_imp[f\"{col}_log1p\"] = np.log1p(X_tr_imp[col])\n            X_va_imp[f\"{col}_log1p\"] = np.log1p(np.maximum(0, X_va_imp[col]))\n            X_test_imp[f\"{col}_log1p\"] = np.log1p(np.maximum(0, X_test_imp[col]))"
+  }
+ ],
+ "summary": "The solution follows robust data science practices concerning data leakage, successfully fitting all transformers and imputers correctly on the training set after the split. However, it fails to account for the stochastic variance of the model by evaluating it exactly once, and relies solely on one evaluation metric. Additionally, adding transformed features iteratively in a loop modifies the DataFrame in-place, which causes severe memory fragmentation and likely led to the 7200-second execution timeout observed in the logs.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

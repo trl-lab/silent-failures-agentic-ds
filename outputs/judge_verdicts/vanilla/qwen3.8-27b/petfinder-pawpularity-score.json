@@ -1,0 +1,142 @@
+{
+ "task": "petfinder-pawpularity-score",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by replacing infinities with NaNs, dropping all-NaN columns, and imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalising is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection using statistical tests or correlations is performed prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is properly integrated into a pipeline and fit only on the training split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs an explicit train/validation split using train_test_split and evaluates models on the validation set.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for the final prediction, not for selecting models or tuning parameters.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_fit, X_val, y_fit, y_val = train_test_split(X_train_all, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The agent evaluates the stochastic models using only a single random train/validation split rather than performing cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmses[name] = mean_squared_error(y_val, val_pred, squared=False)",
+   "reasoning": "The agent only computes and reports RMSE, without evaluating other metrics like MAE or R2 to better understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a regression problem predicting the Pawpularity score.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_all = train_df.drop(columns=[TARGET, ID_COL], errors=\"ignore\")",
+   "reasoning": "The agent uses the raw columns as-is and does not perform any domain-informed feature engineering or create derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "weights = {name: 1.0 / max(rmse, 1e-8) for name, rmse in val_rmses.items()}",
+   "reasoning": "The agent uses an inverse-RMSE weighting scheme rather than an unweighted average, which is a basic heuristic but not entirely naive.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding test set IDs in submission",
+   "description": "The agent drops the original ID column from the test set and replaces it with an artificial sequence of integers in the final submission file. This will cause the platform to reject the submission or score it as 0 due to mismatched IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_pred), dtype=int)"
+  }
+ ],
+ "summary": "The agent developed an inverse-RMSE weighted ensemble of gradient-boosted trees with a proper train/validation split and preprocessing pipeline. However, it lacks feature engineering and relies on a single validation split for evaluation. Crucially, the agent introduces a critical execution failure by discarding the true test IDs and generating artificial integer IDs for the final submission file, which will result in an invalid or zero-scoring submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

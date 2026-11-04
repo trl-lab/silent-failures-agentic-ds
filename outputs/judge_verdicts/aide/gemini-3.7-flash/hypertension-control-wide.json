@@ -1,0 +1,134 @@
+{
+ "task": "hypertension-control-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([df_tr[col], df_te[col]], axis=0).astype(str)\n\n            # Frequency encoding\n            freq_map = combined.value_counts(normalize=True).to_dict()",
+   "reasoning": "The agent computes frequency encoding and categorical dictionary mappings by concatenating the training and test sets, which leaks test set distribution information into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly engineers a missing value count feature and correctly handles numeric coercion, relying on LightGBM's native missing value handling alongside this explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent extracts datetime features and splits the data randomly via StratifiedKFold, but it is unclear if the underlying dataset inherently requires chronological splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classifier (LightGBM) is correctly used for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a rigorous 5-fold Stratified Cross-Validation loop.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 distinct cross-validation folds, which inherently accounts for data variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_v, val_pred)",
+   "reasoning": "The agent relies exclusively on ROC-AUC for evaluation without checking class distributions or verifying if other metrics might be necessary.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a binary classification task as defined by the task metadata.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including nested target encoding, frequency encoding, missing counts, and datetime component extraction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict_proba(X_te)[:, 1] / n_splits",
+   "reasoning": "The agent combines the 5 fold models using a simple unweighted average without attempting any optimization (such as a weighted average based on fold scores).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a robust solution featuring an excellent nested target encoding implementation to prevent target leakage. However, there is a moderate data leakage issue (FM02) because frequency encoding and categorical mappings are computed using the combined train and test sets. Additionally, it relies on a simple unweighted average for its fold ensemble and uses only a single evaluation metric.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

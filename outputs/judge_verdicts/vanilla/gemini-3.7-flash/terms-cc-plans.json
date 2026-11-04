@@ -1,0 +1,149 @@
+{
+ "task": "terms-cc-plans",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking during EDA is observed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by dropping missing targets and filling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants (0 or 'missing'), which does not leak distribution statistics across splits.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a temporal component ('Agreement Date'), but the agent uses randomized K-Fold cross-validation, which ignores temporal order and can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are correctly used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation split is used to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 5 folds and their predictions are averaged, mitigating variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models implicitly optimize for RMSE (or L2), which matches the task requirements.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date components, parses area codes from phone numbers, and computes total fees.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent uses a naive equal-weight average to combine the LightGBM and CatBoost predictions without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing Validation Metric Computation",
+   "description": "The agent uses cross-validation but never computes or prints the validation metric (RMSE) across the folds, preventing an assessment of model performance before submission.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train_lgb, y_train)):"
+  },
+  {
+   "name": "Unused Early Stopping in LightGBM",
+   "description": "The agent passes an evaluation set to LightGBM but provides an empty callbacks list and no early stopping rounds, meaning the model will train for the full 1500 iterations regardless of validation performance, potentially leading to overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_train_lgb.iloc[val_idx], y_train[val_idx])],\n        callbacks=[]"
+  }
+ ],
+ "summary": "The agent builds a structured cross-validation pipeline combining LightGBM and CatBoost models with appropriate feature engineering. However, it fails to respect the temporal nature of the dataset by using randomized K-Fold splitting, and it utilizes a naive equal-weight ensemble. Additionally, it neglects to log any validation scores and omits early stopping for the LightGBM model, leaving it vulnerable to overfitting.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "device-pma",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is only used to determine the intersection of columns and for final predictions, not for EDA or fitting transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements robust handling of missing values (median imputation for numeric, proper categorical tracking) before model training.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting; the agent merely keeps features present in both train and test sets.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent defines `fit_preprocess` and correctly applies it strictly to the training folds inside the CV loop, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the device-pma dataset has a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classification model (LGBMClassifier) for the b-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent effectively uses StratifiedKFold for proper train/validation splitting.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic LightGBM model is evaluated 5 times via K-fold cross validation, naturally averaging out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = (roc_auc_score(y, oof, multi_class=\"ovr\", average=\"macro\") if is_multi else roc_auc_score(y, oof))",
+   "reasoning": "The agent relies entirely on a single metric (ROC AUC) without calculating complementary metrics like Log Loss or accuracy to verify overall model behaviour.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed and executed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def apply_preprocess(X, stats, cats): ... X[c] = pd.to_numeric(X[c], errors=\"coerce\").fillna(stats[c])",
+   "reasoning": "The agent applies basic imputation and categorical encoding but does not construct any derived features, domain-informed transforms, or feature interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs / ID Leakage",
+   "description": "The agent does not attempt to locate and drop ID columns before training, which can lead to overfitting if the dataset contains sequential IDs. Furthermore, it blindly hardcodes submission IDs as `np.arange(len(test))` instead of using the test set's actual identifier column, which will fail if the evaluation platform requires specific ID strings or non-zero-indexed integers.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test)), \"decision_code\": pred})"
+  }
+ ],
+ "summary": "The agent provides a fundamentally sound and robust baseline solution that properly prevents data leakage. It correctly fits imputation statistics inside the CV loops and utilizes cross-validation effectively. However, it lacks any feature engineering and potentially leaves identifier columns in the training data, while also blindly generating sequential IDs for the final submission rather than extracting them from the test file.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

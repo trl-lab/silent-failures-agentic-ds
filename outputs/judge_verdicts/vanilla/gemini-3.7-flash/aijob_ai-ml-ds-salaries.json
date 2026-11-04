@@ -1,0 +1,149 @@
+{
+ "task": "aijob_ai-ml-ds-salaries",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA (no EDA is performed).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by filling missing categorical values with 'Missing' and numerical values with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].fillna(X[col].median())",
+   "reasoning": "Imputation is performed on the entire training set (X) before K-Fold splitting, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a 'work_year' column indicating temporal structure, but the agent uses random shuffling for cross-validation instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor, LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, averaging predictions over 5 folds rather than relying on a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimises for the default regression loss (RMSE) which matches the task evaluation metric, though it doesn't explicitly report it.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as standard single-target regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = ['experience_level', 'employment_type', 'job_title', 'employee_residence', 'company_location', 'company_size']\nnum_cols = ['work_year', 'remote_ratio']",
+   "reasoning": "The agent uses raw columns directly without engineering any derived features, such as matching employee residence with company location.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * cb_preds + 0.5 * lgb_preds",
+   "reasoning": "The agent uses a naive unweighted average (50/50 blend) of CatBoost and LightGBM without tuning the blend ratio based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing early stopping for LightGBM",
+   "description": "The model is trained for a fixed, large number of iterations without early stopping, which often leads to severe overfitting on the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model = LGBMRegressor(n_estimators=1000, ...)\nlgb_model.fit(..., eval_set=[...], callbacks=[])"
+  },
+  {
+   "name": "Silent evaluation",
+   "description": "The agent performs cross-validation but never computes or logs any validation metrics. This makes it impossible to gauge model performance or detect issues without submitting the predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cb_preds += cb_model.predict(X_test) / kf.n_splits"
+  }
+ ],
+ "summary": "The agent implements a reasonable K-Fold cross-validation setup with CatBoost and LightGBM but introduces data leakage by imputing missing values before the CV split. Furthermore, it completely skips feature engineering, uses naive ensembling (a hardcoded 50/50 blend), fails to compute or print any validation metrics, and disables early stopping for LightGBM, risking overfitting.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

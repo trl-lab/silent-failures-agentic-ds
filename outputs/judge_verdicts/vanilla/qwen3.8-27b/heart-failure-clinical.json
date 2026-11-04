@@ -1,0 +1,110 @@
+{
+ "task": "heart-failure-clinical",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_model.fit(X_train, y_train, eval_set=(X_val, y_val), eval_metric=\"auc\", callbacks=[lgb.early_stopping(...)])",
+   "reasoning": "The agent creates a validation set purely for early stopping to find the optimal number of trees, but never computes or reports the validation score to estimate generalisation performance before retraining on the full dataset.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(..., subsample=0.9, colsample_bytree=0.9, random_state=RANDOM_STATE)\nmodel.fit(X, y)",
+   "reasoning": "The agent trains a stochastic model (LightGBM with row and column subsampling) with a single random seed and does not average predictions over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_metric=\"auc\"",
+   "reasoning": "The agent optimises the model using only ROC AUC during early stopping, without considering other metrics (like log-loss or Brier score) to evaluate probability calibration.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = train_df[TARGET].copy()\n...\nmodel.fit(X, y)",
+   "reasoning": "The agent treats the problem as plain binary classification on DEATH_EVENT, completely ignoring the time-to-event/survival analysis structure inherent to the dataset.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X, cat_cols = prepare_features(train_df.drop(columns=[TARGET]), TARGET)",
+   "reasoning": "The agent uses the raw features as-is and performs no feature engineering, missing out on clinically relevant derived features or interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The agent uses features that are determined at or after the target event, which acts as a proxy for the target and causes critical data leakage (e.g., using the follow-up 'time' column to predict mortality).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X, cat_cols = prepare_features(train_df.drop(columns=[TARGET]), TARGET)"
+  }
+ ],
+ "summary": "The agent implements a LightGBM model with early stopping, but fails to report validation metrics for generalisation. Critically, it treats a survival analysis problem as plain binary classification and fails to remove the 'time' column, leading to massive target leakage. Additionally, no feature engineering is performed and stochastic training is only run once.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

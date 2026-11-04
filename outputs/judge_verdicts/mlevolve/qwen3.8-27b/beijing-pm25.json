@@ -1,0 +1,153 @@
+{
+ "task": "beijing-pm25",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by replacing negatives with NaNs and imputing with medians.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation is strictly fit on the training split and then applied to validation and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly performs a chronological split to respect temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A temporal validation split is created and used for evaluation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated on the validation split, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_model = lgb.LGBMRegressor(**lgbm_params)\nlgbm_model.fit(...)",
+   "reasoning": "The agent trains LightGBM and XGBoost (which use stochastic subsampling) exactly once without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_val_rmse = np.sqrt(mean_squared_error(y_val_orig, lgbm_val_pred))",
+   "reasoning": "The agent evaluates the models using only RMSE and does not report any secondary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem on the provided target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers numerous features including cyclical time encodings, lag features, and meteorological interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_ensemble_log = 0.5 * lgbm_val_pred_log + 0.5 * xgb_val_pred_log",
+   "reasoning": "The agent uses a naive, unweighted 50-50 average to ensemble the predictions without attempting to optimize the blending weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid test set autoregressive features",
+   "description": "The agent creates lag and rolling features based on the target variable, but since the test set does not contain the target, these features evaluate to NaN and are blindly filled with the training set median. This destroys the temporal signal for test predictions and forces the model to rely on static imputed values for its most important features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[f\"pm25_lag_{lag}\"] = np.nan ... test_df[col] = test_df[col].fillna(train_medians[col])"
+  },
+  {
+   "name": "Validation leakage via teacher forcing",
+   "description": "The agent uses the true target values from the validation set to construct lag features for its validation predictions, effectively performing 1-step ahead forecasting (teacher forcing). Because multi-step forecasting is required for the test set, the validation score will be highly optimistic and fail to represent true generalization performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = np.concatenate([prefix, df[target_col].values])\nshifted = pd.Series(combined).shift(lag).values[lag:]"
+  }
+ ],
+ "summary": "The agent implements a solid chronological validation split and creates extensive temporal/meteorological features, but critically fails in its handling of autoregressive (lag) features. By using true target values for validation lags (teacher forcing) while filling test lags with static training medians, the validation score is completely disconnected from the actual test performance. Additionally, the agent uses naive ensembling and single evaluations of stochastic models.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

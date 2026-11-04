@@ -1,0 +1,105 @@
+{
+ "task": "prison-boundaries",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna(subset=[target_col]).reset_index(drop=True)",
+   "reasoning": "The agent makes no explicit effort to handle missing values in the numerical or categorical features, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(combined_text)\n\n    svd = TruncatedSVD(n_components=15, random_state=42)\n    svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent fits a TF-IDF vectorizer and TruncatedSVD on the combined train and test text data before splitting, leaking test information into the extracted features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "overall_rmse = np.sqrt(mean_squared_error(y, oof_preds))",
+   "reasoning": "The agent only computes and reports RMSE, without evaluating other metrics like MAE or R2 to get a comprehensive view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent uses a simple equal-weight average to combine predictions from the different cross-validation folds without any tuning or weighting.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature leakage through global aggregations",
+   "description": "The agent computes group-wise aggregations (like mean and standard deviation) on the concatenated train and test datasets. This leaks the test set feature distributions into the training data, potentially causing overfitting and overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grp = df_all.groupby(c)[num_c].agg([\"mean\", \"std\"]).reset_index()"
+  }
+ ],
+ "summary": "The solution properly sets up cross-validation and uses a solid gradient boosting model (LightGBM). However, it suffers from critical data leakage by applying TF-IDF, TruncatedSVD, and group-wise aggregations on the combined train and test datasets prior to splitting. Additionally, it relies entirely on the model to handle missing values and only evaluates a single metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

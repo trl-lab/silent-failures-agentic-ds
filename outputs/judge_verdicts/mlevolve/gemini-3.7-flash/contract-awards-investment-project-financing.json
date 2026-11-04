@@ -1,0 +1,149 @@
+{
+ "task": "contract-awards-investment-project-financing",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date features (which are parsed and engineered), yet the agent uses a randomized StratifiedKFold rather than a time-based split, introducing look-ahead bias by training on future contracts to predict past ones.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = root_mean_squared_error(y_raw, oof_preds_calibrated)\n    print(f\"Calibrated Ensemble Out-Of-Fold RMSE: {final_rmse:,.4f}\")",
+   "reasoning": "The agent evaluates and reports performance solely using RMSE, without computing secondary metrics (like MAE or R-squared) to provide a fuller picture of model performance or robustness to outliers.",
+   "applicable": true
+  },
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA code present that peeks at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by dropping missing or invalid target values and filling nulls in categorical/text columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is applied before the train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While unsupervised transformations (TF-IDF/SVD) are fit on the full train data, they do not leak information from the separate test set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global imputers are fitted before the split; missingness is handled via constants or valid out-of-fold mechanisms.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as regression and uses appropriate regressor models.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a robust 5-fold cross-validation setup.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages test predictions over 5 cross-validation folds, which inherently accounts for variance in model training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the contract amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is applied, including text embeddings, date parts, interactions, and out-of-fold target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements optimal linear blending via a Ridge meta-model rather than naive averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage via Pre-CV Transformations",
+   "description": "Fitting unsupervised transformers (like TF-IDF or SVD) on the entire training dataset before cross-validation leaks information from the validation folds into the training folds, making the validation scores slightly overly optimistic.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_tfidf = tfidf.fit_transform(train_text)\n... svd = TruncatedSVD(n_components=n_components, random_state=42)\ntrain_svd = svd.fit_transform(train_tfidf)"
+  },
+  {
+   "name": "Minor Target Leakage in Global Mean Smoothing",
+   "description": "When performing out-of-fold target encoding, the global target mean used for smoothing is calculated over the entire training set rather than just the training folds, leaking a very small amount of validation target information.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "global_target_mean = train_df[\"target_log1p\"].mean()\n...\nsmoothed_val = (fold_stats[\"count\"] * fold_stats[\"mean\"] + smooth_weight * global_target_mean)"
+  }
+ ],
+ "summary": "The agent delivers a highly sophisticated solution featuring advanced out-of-fold feature engineering, optimal model blending, and an analytical scale calibration to correct log-transformation bias. The primary flaw is ignoring the temporal nature of the contract data by employing a randomized CV split (FM05), which introduces look-ahead bias. Additionally, there are minor target/validation leakages resulting from computing global means and fitting TF-IDF/SVD on the entire training set prior to the CV loop.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

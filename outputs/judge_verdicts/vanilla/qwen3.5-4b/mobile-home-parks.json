@@ -1,0 +1,159 @@
+{
+ "task": "mobile-home-parks",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to impute missing values and encode categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is used.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "preprocessing.fit(X_train)",
+   "reasoning": "The final imputer used for the model is fit only on the training data, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "XGBClassifier is appropriate for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train)\n    \n    # Predict\n    y_pred_proba = model.predict_proba(X_test_processed)",
+   "reasoning": "The model is trained on the full training set without any internal validation or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = XGBClassifier(... random_state=42 ...)",
+   "reasoning": "The stochastic XGBoost model is trained exactly once with a fixed random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metric is computed since there is no validation step.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessing = Pipeline(steps=[\n        ('imputer', SimpleImputer(strategy='median')),\n        ('ohe', OneHotEncoder(categorical_features=None, sparse_output=False, handle_unknown='ignore'))\n    ])",
+   "reasoning": "The agent applies only basic imputation and one-hot encoding, with no domain-informed feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputer strategy crash on categorical columns",
+   "description": "Applying SimpleImputer with a 'median' strategy to a dataset containing string/categorical columns raises a ValueError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "('imputer', SimpleImputer(strategy='median'))"
+  },
+  {
+   "name": "Invalid OneHotEncoder argument",
+   "description": "Passing the 'categorical_features' argument to OneHotEncoder raises a TypeError in modern versions of scikit-learn.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "OneHotEncoder(categorical_features=None, sparse_output=False, handle_unknown='ignore')"
+  },
+  {
+   "name": "Missing target label encoding",
+   "description": "XGBoost requires multi-class targets to be integer-encoded (0 to num_classes-1). Passing raw string labels directly to fit() will raise an error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train)"
+  },
+  {
+   "name": "Missing inverse label encoding",
+   "description": "The agent predicts integer class indices directly instead of mapping them back to the original categorical class labels, which results in incorrect submission formatting for string targets.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_predictions = np.argmax(y_pred_proba, axis=1)\npred_series = pd.Series(final_predictions, name=target_col)"
+  }
+ ],
+ "summary": "The agent fails to implement any internal validation and trains the stochastic model exactly once. Furthermore, the preprocessing pipeline is fundamentally broken and will crash during execution due to applying a 'median' imputation strategy on categorical columns and using a deprecated argument in OneHotEncoder. Even if the pipeline succeeded, the XGBoost model would likely crash due to unencoded string target labels, and the final predictions are output as raw integers instead of the original class strings.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "churn",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no peeking at test data occurred.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Handles categorical features (encoded as strings) and missing values automatically",
+   "reasoning": "The agent does no explicit data cleaning and relies entirely on CatBoost to handle missing values automatically.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classification model (CatBoostClassifier) is correctly used for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n    # Predict on test set\n    predictions = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without any internal train/validation split to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(",
+   "reasoning": "The stochastic CatBoost model is trained and evaluated exactly once, without averaging over multiple runs or random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute or report any evaluation metrics internally, as it completely skips the validation step.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col])",
+   "reasoning": "The agent passes raw features directly to the model without applying any derived features, domain transformations, or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hard labels for probability metric",
+   "description": "The evaluation metric for the task requires continuous predicted probabilities (e.g., ROC AUC), but the agent outputs hard class labels (e.g., 0/1) instead. This severely limits the metric's ability to assess model ranking and certainty.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predictions = model.predict(X_test)\n\n    # Create output dataframe with 'id' (row index starting from 0) and 'class' (predicted label)\n    results_df = pd.DataFrame({\n        'id': range(len(predictions)),\n        'class': predictions.astype(int)\n    })"
+  },
+  {
+   "name": "Assuming test set contains target",
+   "description": "The agent attempts to extract the target column from the test dataset, causing a KeyError (execution failure) when the test set does not contain it.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = test_df[target_col]\n    X_test = test_df.drop(columns=[target_col])"
+  }
+ ],
+ "summary": "The agent implements a minimal CatBoost pipeline that critically fails execution because it assumes the target column exists in the test set. Furthermore, it outputs hard labels instead of probabilities for the ROC AUC metric, performs no internal validation, and completely skips data cleaning and feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 1,
+ "stage_count_max": 8,
+ "no_code": false
+}

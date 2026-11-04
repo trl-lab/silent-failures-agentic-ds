@@ -1,0 +1,145 @@
+{
+ "task": "summary-of-deposit_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes missingness and constant column statistics only on the training set (X) before applying the drops to both train and test.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "missing_cols = [col for col in X.columns if X[col].isnull().mean() > 0.9]",
+   "reasoning": "The agent makes a basic effort to clean the data by dropping constant columns and columns with >90% missing values, although it leaves remaining missing values for LightGBM to handle natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the combined train and test dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "It is unclear if the 'summary-of-deposit_wide' dataset contains temporal dependencies across rows that would require time-based splitting instead of random K-Fold.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "The agent appropriately uses a regression objective and model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X)):",
+   "reasoning": "The agent evaluates the stochastic model across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_val, preds))",
+   "reasoning": "The agent evaluates and tracks only RMSE, without verifying if it is robust to outliers or providing secondary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem on the DEPSUM target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = X.select_dtypes(include=[\"object\", \"category\"]).columns.tolist()",
+   "reasoning": "The agent uses the raw features as-is (merely dropping missing/constant columns and casting types) and fails to create any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unaligned_categorical_encoding",
+   "description": "Converting train and test categorical columns independently using `.astype('category')` without aligning the categories. This causes the underlying integer codes to differ between train and test for the same string values, completely corrupting categorical features during test-time prediction for models like LightGBM that rely on integer category codes.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype(\"category\")\n    test[col] = test[col].astype(\"category\")"
+  },
+  {
+   "name": "discarded_submission_ids",
+   "description": "The agent drops the identifier column from the test set without saving it, and then hallucinates IDs using a simple range for the final submission file. This will cause submission failures or entirely mismatched predictions if the original IDs were not a contiguous 0-indexed sequence.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if \"id\" in test.columns:\n    test = test.drop(columns=[\"id\"])\n...\nsubmission = pd.DataFrame({\"id\": range(len(test)), \"DEPSUM\": test_preds})"
+  }
+ ],
+ "summary": "The agent implements a functionally adequate LightGBM pipeline with proper K-Fold cross-validation and early stopping. However, the solution contains two critical flaws: it independently converts train and test data into categorical types (breaking LightGBM's integer-code expectations for unseen or offset categories), and it discards the original test IDs, replacing them with a simple range for the submission file. Furthermore, the agent skips feature engineering entirely and relies solely on RMSE for evaluation.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

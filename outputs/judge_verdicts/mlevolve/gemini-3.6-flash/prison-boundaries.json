@@ -1,0 +1,145 @@
+{
+ "task": "prison-boundaries",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "unique_vals = list(set(tr_str.unique()).union(set(te_str.unique())));\n    le.fit(unique_vals)",
+   "reasoning": "The agent fits the LabelEncoder on the combined unique values of both the training and test sets before the cross-validation loop, which leaks test set information into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values appropriately using both fillna during feature extraction and a median SimpleImputer before modeling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit feature selection performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Statistical imputation via SimpleImputer is correctly performed inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is spatial, not a time series, so using a randomized StratifiedKFold split is correct.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression, and the agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a continuous PyTorch network).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes regularisation via Dropout, LayerNorm, and AdamW weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A comprehensive 5-fold cross-validation scheme is used to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Evaluation is done via 5-fold cross-validation, which naturally averages results over multiple data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = float(np.sqrt(np.mean((train_y - final_oof_preds) ** 2)))",
+   "reasoning": "The agent only computes and reports RMSE (the default metric), missing an opportunity to compute metrics like MAE which might be more informative for a target like CAPACITY that can have massive outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as predicting a continuous target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive spatial, temporal, categorical, and text-based feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble weights are optimized using scipy.optimize.minimize on the out-of-fold predictions rather than using a naive unweighted average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Frequency encoding before cross-validation",
+   "description": "Category frequencies are calculated on the entire training set before the cross-validation loop. This causes a minor leakage where validation set distributions influence the frequency features used to train the model for that fold.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "freq = tr_str.value_counts(normalize=True).to_dict(); train_cat[f\"{col}_freq\"] = tr_str.map(freq).fillna(0)"
+  }
+ ],
+ "summary": "The agent provides an extremely robust and sophisticated solution, employing advanced feature engineering, properly nested cross-validation for target encoding, and an optimized ensemble. However, it exhibits minor data leakage by fitting the LabelEncoder on the combined train and test sets (FM02) and by calculating frequency encoding on the full training set prior to splitting. It also relies solely on RMSE for evaluation without considering other robust metrics (FM15).",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

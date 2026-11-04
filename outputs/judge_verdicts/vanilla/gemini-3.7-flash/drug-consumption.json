@@ -1,0 +1,138 @@
+{
+ "task": "drug-consumption",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if train_df[col].isnull().any() or test_df[col].isnull().any():",
+   "reasoning": "The agent explicitly inspects the test set for missing values to determine whether imputation is necessary, which constitutes peeking at test data to inform preprocessing logic.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values by imputing them with the training median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is fit exclusively on the training dataset, avoiding test set leakage (though it is fit before CV splits, causing validation leakage).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation values are derived solely from the training data, preventing test set leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly selects classification models for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X.iloc[val_idx], y_encoded[val_idx]",
+   "reasoning": "The agent creates validation folds during cross-validation but never actually uses them to compute or report a validation metric, leaving generalisation performance completely unknown.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluations, so it does not report a single evaluation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed at all.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses raw feature columns as-is without attempting any domain-informed feature engineering or transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_probs += lgb_model.predict_proba(X_test) / (n_splits * 4)",
+   "reasoning": "The agent uses a naive, unweighted average of predicted probabilities from four different models across five folds without attempting to tune the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Transformations (like scaling) are applied to the entire training dataset before splitting it into cross-validation folds. This causes statistics from the validation folds to leak into the training folds, which would artificially inflate validation scores if they were computed.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X, y_encoded)):"
+  }
+ ],
+ "summary": "The agent successfully sets up a multi-model ensemble for the classification task and avoids test set leakage during scaling and imputation. However, the solution fundamentally fails to estimate generalisation performance because it defines validation folds but never evaluates them. Furthermore, the pipeline suffers from cross-validation leakage, naive unweighted ensembling, and a complete lack of feature engineering.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

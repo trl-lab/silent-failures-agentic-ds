@@ -1,0 +1,142 @@
+{
+ "task": "drug-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=15000, ngram_range=(1, 2), sublinear_tf=True)\n    tfidf_mat = tfidf.fit_transform(filled_text)",
+   "reasoning": "The agent fits a TfidfVectorizer on the combined train and test data, leaking test set vocabulary and statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning, such as filling missing values and parsing dates dynamically.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization functions are applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_components, random_state=42)\n        svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (a form of PCA) is applied to the full combined dataset before splitting, leaking test information into the extracted components.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants rather than fitted statistics, avoiding imputation leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent extracts date features but uses random splits; however, it's unclear if the task is strictly a time-series or temporal forecasting problem.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models (LightGBM with a multiclass objective) for the multiclass task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 distinct folds rather than performing a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y, oof_pred_labels)",
+   "reasoning": "The agent only computes accuracy and does not calculate other metrics like F1-score to verify robustness against potential class imbalances.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately framed as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date components, text surface features, and SVD embeddings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements OOF stacking with Logistic Regression rather than relying on naive ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Leakage via Frequency Encoding",
+   "description": "Computing categorical frequencies on the combined train and test dataset leaks the test set distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].value_counts(normalize=True).to_dict()\n    combined_df[f\"{col}_freq\"] = combined_df[col].map(freq).fillna(0)"
+  }
+ ],
+ "summary": "The agent demonstrates good practices in cross-validation, feature engineering, and stacking, but introduces critical data leakage. Specifically, applying TfidfVectorizer, TruncatedSVD, and frequency encoding to the combined train and test dataset leaks test set statistics directly into the training data. Additionally, it relies solely on accuracy as an evaluation metric without checking for class imbalances.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

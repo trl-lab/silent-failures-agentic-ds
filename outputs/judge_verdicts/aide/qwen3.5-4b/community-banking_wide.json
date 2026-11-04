@@ -1,0 +1,152 @@
+{
+ "task": "community-banking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_features = train_features.fillna(train_features.mean())",
+   "reasoning": "The agent explicitly handles missing values by applying mean imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_scaled = scaler.fit_transform(train_features)\ntest_scaled = scaler.transform(test_features)",
+   "reasoning": "The scaler is correctly fit only on the training set and then applied to the test set, avoiding test data leakage (though it does leak across CV folds).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_features = train_features.fillna(train_features.mean())\ntest_features = test_features.fillna(train_features.mean())",
+   "reasoning": "Imputation values are derived strictly from the training set, avoiding test leakage (though it leaks across internal CV folds).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the community-banking_wide dataset has a temporal component that would require time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\",\n\"metric\": \"rmse\"",
+   "reasoning": "The agent correctly uses a regression model for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent splits the training data using 5-fold cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(train_scaled)):",
+   "reasoning": "The agent trains and evaluates multiple models via cross-validation rather than relying on a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = mean_squared_error(y_train[val_idx], val_pred)",
+   "reasoning": "The agent only calculates and reports RMSE, without checking secondary metrics (like MAE) that could provide robust insights into model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target = \"LOANTOASSET\"",
+   "reasoning": "The task is formulated correctly as a straightforward regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train[feature_cols]",
+   "reasoning": "The agent uses the raw features as-is and does not create any derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation leakage",
+   "description": "Global transformations (like scaling or mean imputation) are applied to the entire training set before the cross-validation split. This leaks information from the validation folds into the training folds, rendering the validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_scaled = scaler.fit_transform(train_features)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(train_scaled)):"
+  },
+  {
+   "name": "Selecting best CV fold model for test predictions",
+   "description": "Instead of ensembling the models from all cross-validation folds or retraining a new model on the full training set, the agent simply selects the single model that performed best on its specific validation fold. This leads to overfitting on that particular validation subset.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if val_rmse < best_score:\n    best_score = val_rmse\n    best_model = model\n...\ntest_predictions = best_model.predict(test_scaled)"
+  },
+  {
+   "name": "Meaningless final evaluation on training set",
+   "description": "The agent evaluates its final selected model on the entire training set (which the model was primarily trained on) and prints the score. This provides a highly biased, artificially low error metric that is misleading.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_predictions = best_model.predict(train_scaled)\nfinal_rmse = mean_squared_error(train[target], final_predictions)"
+  }
+ ],
+ "summary": "The agent implements a LightGBM regression pipeline with 5-fold cross-validation, but falls into several bad practices. While it correctly avoids leaking the external test set, it introduces data leakage during cross-validation by scaling and imputing before the internal fold splits. Furthermore, instead of ensembling or retraining, it wrongly selects the single 'best' fold model for its final test predictions, which risks overfitting to a specific validation subset.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

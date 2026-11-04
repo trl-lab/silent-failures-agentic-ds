@@ -1,0 +1,141 @@
+{
+ "task": "champs-scalar-coupling",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(...)\ntest_df = pd.read_parquet(...)\n\ny_train = train_df['scalar_coupling_constant'].values\n\n# Feature engineering on combined data",
+   "reasoning": "The agent makes no effort to check for or handle missing values, duplicates, or outliers before proceeding directly to feature engineering and modelling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on the data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Predict on test set\npredictions = model.predict(X_test)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without establishing any internal validation split to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally at all, so evaluating exactly once is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any internal evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as predicting the continuous scalar_coupling_constant using regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements domain-informed feature engineering, calculating atom index differences, parsing coupling types, and deriving molecule-level statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage via Feature Engineering before Splitting",
+   "description": "The agent computes aggregated grouped statistics (like molecule counts) and fits transformers (like LabelEncoder) on the concatenated training and test sets. This leaks information about the test set distribution into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all['mol_pair_count'] = df_all.groupby('molecule_name')['id'].transform('count')"
+  },
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent creates the output file using a hardcoded range of IDs starting from 0, instead of preserving the actual 'id' column from the test set. This will cause misaligned or invalid predictions if the test IDs do not start at 0 (which they typically do not, as they follow the train set).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(test_df))"
+  }
+ ],
+ "summary": "The agent correctly applies an LGBMRegressor with sensible, domain-informed feature engineering for the scalar coupling task. However, the solution suffers from a lack of internal validation (FM06) and basic data cleaning (FM03). Furthermore, there are two critical flaws: computing grouped features on the concatenated train/test data leads to target/distribution leakage, and hardcoding output IDs rather than using the provided test IDs will likely invalidate the submission format.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,134 @@
+{
+ "task": "dont-overfit-ii",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train[feature_cols].values\ny_train = train[\"target\"].values",
+   "reasoning": "The agent makes no effort to check for or handle missing values, duplicates, or outliers, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied beyond dropping the ID and target columns.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classification model (LightGBM with objective='binary') is appropriately used for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 cross-validation folds rather than evaluating the model exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Only ROC-AUC is used, which is the official task metric and generally appropriate for binary classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task is correctly framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col not in [\"id\", \"target\"]]\nX_train = train[feature_cols].values",
+   "reasoning": "The agent uses the raw features as-is without attempting any derived features or transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Selecting best fold model instead of ensembling",
+   "description": "The agent uses cross-validation but selects only the model from the single best-performing fold to generate test predictions, rather than averaging predictions from all fold models. This discards training data and overfits to the small validation set of that specific fold.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if val_auc > best_auc:\n        best_auc = val_auc\n        best_model = model\n\n# Generate predictions on test data\ntest_pred = best_model.predict(X_test)"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM pipeline with cross-validation but completely neglects data cleaning and feature engineering. Most critically, instead of ensembling the cross-validation models to generate robust test predictions (which is vital for a tiny dataset of 250 samples), it selects the single model from the fold with the highest validation score, leading to severe overfitting on that fold's validation subset.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

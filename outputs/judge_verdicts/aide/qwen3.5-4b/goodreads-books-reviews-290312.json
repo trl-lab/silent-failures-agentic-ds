@@ -1,0 +1,152 @@
+{
+ "task": "goodreads-books-reviews-290312",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs missing value imputation for n_comments, n_votes, and review_text.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df[\"n_comments\"] = train_df[\"n_comments\"].fillna(train_df[\"n_comments\"].median())",
+   "reasoning": "The agent calculates and fills missing values using the median of the entire training dataset before performing the train/validation split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_val, X_test_val, y_train_val, y_test_val = train_test_split(\n    X_train, y_train, test_size=0.2, random_state=42, stratify=y_train\n)",
+   "reasoning": "Despite having access to timestamps like date_added and read_at, the agent performs a random split rather than a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression objective in LightGBM for predicting a numerical rating.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data into a training and validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n...",
+   "reasoning": "The agent trains a single LightGBM model and evaluates it once on the validation set, without using cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_test_val, val_predictions))",
+   "reasoning": "The agent only uses RMSE to evaluate the model and does not check other regression metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates date features, encodes categorical variables, and uses TF-IDF for text features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing feature engineering on test data",
+   "description": "The agent applies data cleaning, date extraction, and label encoding strictly to the training dataset. It then attempts to subset the test dataset using the newly engineered feature names, which will crash with a KeyError because those columns do not exist in the test data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = test_df[feature_cols].copy()"
+  },
+  {
+   "name": "Text vectorization before splitting",
+   "description": "The agent fits a TF-IDF vectorizer on the full training data before performing the train/validation split, which leaks the validation set's vocabulary and IDF statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))\nX_train_text = vectorizer.fit_transform(X_train[\"review_text\"])"
+  },
+  {
+   "name": "Overwriting test ID column",
+   "description": "The agent indiscriminately replaces the test dataset's ID column with a numerical range sequence, which will likely produce an invalid submission file since the original identifiers are expected.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df[\"id\"] = range(len(test_df))"
+  }
+ ],
+ "summary": "The agent implements a LightGBM regression pipeline with TF-IDF text features and date extraction. However, the solution contains a critical execution flaw: all feature engineering is applied exclusively to the training set, meaning the code will crash when trying to access the missing engineered columns in the test set. Additionally, there are data leakage issues due to imputation and TF-IDF fitting prior to the train/validation split, as well as subject overlap from random splitting.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

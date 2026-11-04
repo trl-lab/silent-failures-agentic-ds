@@ -1,0 +1,142 @@
+{
+ "task": "equity-post-HCT-survival-predictions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on or extract statistics from the test set before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles data cleaning, explicitly replacing missing values and encoding categorical variables.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is fitted strictly on the training split and then used to transform the validation and test splits.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation medians and categories are calculated solely from the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While a year column is present, standard stratified random splitting is generally acceptable for this problem as it isn't strictly formulated as a time-series forecasting task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a classification model for what it has framed as a classification task (the framing itself is evaluated in FM01).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates Dropout, weight decay, and BatchNorm layers to prevent overfitting.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly implements a train and validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "np.random.seed(RANDOM_STATE)\ntorch.manual_seed(RANDOM_STATE)",
+   "reasoning": "The agent trains a stochastic deep learning model exactly once on a single split, providing no measure of variance or stability across different seeds or folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = compute_lower_is_better_concordance(",
+   "reasoning": "The model is evaluated solely on the concordance index, omitting other supplementary metrics like AUC or Brier score that could provide a clearer picture of binary classification performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_dataset = TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train))\n...\nloss = criterion(logits, yb)",
+   "reasoning": "The agent collapses a survival analysis problem into standard binary classification by optimizing binary cross-entropy on the event indicator, completely ignoring the time-to-event variable during model training.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and domain-informed feature engineering.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Error (ImportError)",
+   "description": "The script crashes during execution due to an unhandled missing dependency (e.g., pyarrow or fastparquet required for reading parquet files), preventing it from finishing and producing a submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "execution error detected; exception raised: ImportError; submission file not found"
+  }
+ ],
+ "summary": "The agent writes a well-structured script that correctly handles data splitting, extensive feature engineering, and prevents data leakage during preprocessing. However, the solution fundamentally fails by treating the survival analysis task as a plain binary classification problem, ignoring the time-to-event signal during training. Furthermore, the agent evaluates its stochastic PyTorch model only once, and the script ultimately crashes due to a missing library dependency.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

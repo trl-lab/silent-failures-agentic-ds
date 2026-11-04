@@ -1,0 +1,142 @@
+{
+ "task": "historic-perimeters-wildfires",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking during EDA is observed as EDA is not performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent drops the target NaNs, handles all-NaN columns, and allows LightGBM to handle remaining missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is not applied to the full (train + test) dataset, though it is applied before the train/val split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X_full, y_full, test_size=0.2, random_state=RANDOM_STATE)",
+   "reasoning": "The dataset contains historical wildfire events with clear temporal features (e.g., perimeterdatetime), but the agent performs a random train/test split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for this continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into train and validation sets using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used once at the very end for final predictions; the validation set is correctly used to select the best target transformation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = make_model()\nmodel.fit(X_train, y_train_t)\nval_pred_t = model.predict(X_val)",
+   "reasoning": "The agent trains and evaluates the LightGBM model, which has stochastic elements (subsample, colsample_bytree), exactly once per transform without averaging over multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = rmse(y_val.to_numpy(), val_pred)",
+   "reasoning": "The agent evaluates the model solely on RMSE without checking other metrics like MAE, which could be more informative given the potential for outliers in wildfire acreage.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts multiple date components (year, month, day, hour, etc.) and a time delta feature (date_diff_days).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage in Feature Selection",
+   "description": "Feature selection steps (such as dropping high-cardinality or high-missingness columns) are applied to the training data before splitting off the validation set, causing validation statistics to leak into the feature selection process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "keep_categorical.append(col) ... X_full = X_full.drop(columns=drop_categorical) ... X_train, X_val, y_train, y_val = train_test_split(X_full, y_full, test_size=0.2)"
+  }
+ ],
+ "summary": "The solution implements a robust pipeline with LightGBM, target transformation search, and date feature engineering. However, its most critical flaw is ignoring the temporal nature of the dataset by using a random train/validation split instead of a time-based one. Furthermore, validation leakage occurs since column dropping logic is applied prior to creating the internal split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

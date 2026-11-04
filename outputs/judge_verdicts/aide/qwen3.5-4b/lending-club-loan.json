@@ -1,0 +1,145 @@
+{
+ "task": "lending-club-loan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or preprocessing is performed on the test data prior to its intended use.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != target_col]",
+   "reasoning": "The agent passes raw data directly into the model without any explicit strategy for handling missing values or inconsistencies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Lending Club data contains temporal components (loan issue dates), but the agent uses randomized KFold cross-validation, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a binary objective is appropriate for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, which inherently accounts for variance across folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc.append(roc_auc_score(val_fold[target_col], val_pred))",
+   "reasoning": "The agent uses only ROC AUC for evaluation, omitting other metrics like PR AUC which are useful for imbalanced default datasets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task on loan_status.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != target_col]",
+   "reasoning": "The agent uses raw columns without any domain-informed transformations or derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "early_stopping_without_validation_set",
+   "description": "Using an early stopping callback during model training without providing a validation dataset causes an execution error, as the callback requires an evaluation metric to monitor.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(params, train_data, num_boost_round=1000, callbacks=[lgb.early_stopping(50, verbose=False), lgb.log_evaluation(-1)])"
+  },
+  {
+   "name": "unhandled_string_features",
+   "description": "Passing string/object columns directly to LightGBM without casting them to the 'category' dtype or encoding them numerically causes an execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(train_df[feature_cols], label=train_df[target_col])"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM model with 5-fold cross-validation but fails to execute any data cleaning, feature engineering, or categorical encoding, which will likely crash the model given the raw string features in the Lending Club dataset. Furthermore, attempting to use early stopping on the final model without providing a validation set will cause a fatal execution error.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

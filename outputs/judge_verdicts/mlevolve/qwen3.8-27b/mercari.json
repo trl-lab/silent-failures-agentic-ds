@@ -1,0 +1,141 @@
+{
+ "task": "mercari",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values by imputing numericals with the median and casting categoricals to string (which converts NaNs to a distinct 'nan' category).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalization to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform feature selection before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied after the train/validation split, using the training set median.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent clearly splits the data into training and validation sets (15% hold-out).",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(params, dtrain, num_boost_round=2000, valid_sets=[dval], callbacks=[lgb.early_stopping(50, verbose=False)])",
+   "reasoning": "The LightGBM model utilizes stochastic elements (bagging_fraction, feature_fraction) but is evaluated on a single validation split without cross-validation or multiple seed runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(y_val, val_pred)))",
+   "reasoning": "The agent reports only RMSE, ignoring other potentially informative regression metrics like MAE (which is often relevant in price prediction).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cat_cols = X_tr.select_dtypes(include=[\"object\", \"category\"]).columns.tolist()\n...\nle = LabelEncoder()\nle.fit(X_tr[col])",
+   "reasoning": "The agent applies simple label encoding to all string columns, failing to recognize that Mercari contains high-cardinality free-text fields (like 'item_description' and 'name') that require text-specific transformations like TF-IDF.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded and incorrect submission schema",
+   "description": "The agent drops the original test IDs during column alignment and generates arbitrary sequential IDs for the submission file using `range()`. It also uses 'id' instead of 'test_id', which will fail format validation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\n        \"id\": range(len(test_pred)),\n        \"price\": test_pred,\n    })"
+  },
+  {
+   "name": "Incorrect submission file path",
+   "description": "The agent saves the submission file to a specific subdirectory, which often leads to 'file not found' errors in automated evaluation environments expecting the file in the root directory.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "submission.to_csv(\"./submission/submission.csv\", index=False)"
+  }
+ ],
+ "summary": "The agent establishes a fundamentally sound pipeline with proper train-validation splitting and no data leakage during imputation or encoding. However, it completely fails at feature engineering by treating critical free-text fields as simple categorical variables, effectively discarding the most valuable signal in the dataset. Furthermore, bugs in handling the test IDs and the submission file path result in an invalid submission output.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

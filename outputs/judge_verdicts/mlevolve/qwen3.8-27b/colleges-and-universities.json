@@ -1,0 +1,142 @@
+{
+ "task": "colleges-and-universities",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used during EDA or fitted on.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled via median/mode imputation and inf values are replaced.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median and mode) are fit solely on train_data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not explicitly clear if the dataset has a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM with Huber objective) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains the LightGBM model with 3 different random seeds and averages the predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "val_rmse = root_mean_squared_error(y_val_original, val_pred)",
+   "reasoning": "Only RMSE is computed and reported, with no secondary metrics like MAE or R2 to provide a fuller picture of performance, though Huber loss is appropriately used during training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates interaction features (division, multiplication, differences), log transforms, and cardinality features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "val_pred_log = np.mean(val_preds, axis=0)",
+   "reasoning": "The agent uses a simple unweighted average to combine predictions from different seeds, though for seed averaging this is standard and often optimal.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Conditional feature engineering based on batch statistics",
+   "description": "Applying conditional logic for feature generation independently on train, val, and test sets based on each set's own statistics (e.g., skewness). This leaks test statistics and, critically, can cause fatal KeyErrors if a feature meets the generation condition (like skew > 1.0) in the training set but not in the test set, leading to missing columns during model inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skew = pd.Series(vals).skew()\nif abs(skew) > 1.0:\n    df[f\"{col}_log\"] = np.log1p(np.abs(vals)) * np.sign(vals)"
+  }
+ ],
+ "summary": "The agent implements a solid foundational pipeline with proper train/validation splitting, robust imputation fitted only on training data, and multi-seed LightGBM training using a Huber loss to handle outliers. However, there is a critical flaw in the feature engineering function where dynamic features (like log transforms) are created conditionally based on the local skewness of whichever dataset split is being processed. This can lead to differing column schemas between train and test sets, causing execution crashes during inference.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

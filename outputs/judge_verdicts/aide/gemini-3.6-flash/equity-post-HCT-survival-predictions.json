@@ -1,0 +1,104 @@
+{
+ "task": "equity-post-HCT-survival-predictions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(train_path)\n...\ntrain_df = feature_engineering(train_df)\n...\nX = train_df[feature_cols]",
+   "reasoning": "The agent does not perform any explicit missing value imputation or data cleaning, relying entirely on LightGBM's default handling of missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_cindex = compute_cindex(y_time, y_efs, oof_preds)\nprint(f\"OOF Concordance Index: {oof_cindex:.5f}\")",
+   "reasoning": "The agent only calculates the task's primary metric (concordance index) and does not evaluate the model on any other metrics to understand its performance holistically.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unsafe Categorical Encoding",
+   "description": "The agent converts categorical columns in the train and test sets independently using `astype('category')`. If the test set has different unique values or missing categories compared to the train set, the underlying integer codes will be misaligned, which can corrupt the features fed to the model or cause an execution error during prediction.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df[c] = train_df[c].astype(\"category\")\ntest_df[c] = test_df[c].astype(\"category\")"
+  },
+  {
+   "name": "Heuristic Survival Target",
+   "description": "The agent attempts to model a survival task using a standard regression objective on a heuristic proxy target (a combination of event indicator and log time). This ad-hoc approach does not properly model the censored nature of the data and can lead to suboptimal risk scores compared to a proper survival objective (e.g., CoxPH).",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_target = np.where(y_efs == 1, -np.log1p(y_time), -np.log1p(y_time) - 0.5)\n...\nlgb_params = {\n    \"objective\": \"regression\","
+  }
+ ],
+ "summary": "The agent builds a LightGBM regressor to predict a heuristic risk score for survival analysis, which is a suboptimal formulation but functionally evaluates. A critical failure is present in the categorical encoding, where train and test sets are cast to pandas categorical types independently, potentially causing feature misalignment and prediction corruption. Additionally, the agent lacks explicit data cleaning and relies on a single evaluation metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

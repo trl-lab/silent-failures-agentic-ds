@@ -1,0 +1,138 @@
+{
+ "task": "insurance-company-complaints",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans strings, handles invalid dates, and imputes missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection based on non-null values is performed using only the training split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Categorical categories and unknown mapping are computed strictly on the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs an 80/20 train-test split for internal validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_raw, X_val_raw, y_train, y_val = train_test_split(\n        X_all,\n        y_all,\n        test_size=0.2,\n        random_state=42\n    )",
+   "reasoning": "The agent evaluates its stochastic models (LGBM, XGBoost, CatBoost) exactly once using a single fixed train/validation split, without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scores = [safe_rmse(y_val, pred) for pred in val_preds]",
+   "reasoning": "The agent solely relies on RMSE for evaluating model performance and weighting the ensemble, without reporting secondary metrics like MAE or R\u00b2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem targeting Recovery.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts useful date components and a 'days_to_close' feature.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses inverse-RMSE score weighting rather than a completely naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper categorical encoding for XGBoost",
+   "description": "The agent converts pandas categorical columns into integer codes and passes them to XGBoost as standard numerical features. Because `enable_categorical=True` is not set and the dtype is integer, XGBoost treats these nominal categories as continuous/ordinal features, which can lead to suboptimal splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "out[col] = out[col].cat.codes.astype(int)\n...\nxgb_model = xgb.XGBRegressor(\n    ...\n    tree_method=\"hist\"\n)\nxgb_model.fit(X_train_xgb, y_train)"
+  }
+ ],
+ "summary": "The agent provides a robust regression pipeline with proper data cleaning, safe train/test splitting, and feature engineering. However, it fails to account for evaluation variance by relying on a single stochastic validation split, evaluates only via RMSE, and incorrectly encodes nominal categorical variables as ordinal integers for the XGBoost model.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

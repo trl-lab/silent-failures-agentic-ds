@@ -1,0 +1,53 @@
+{
+ "task": "food-enforcement",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Food enforcement datasets have a strong temporal component (e.g., recall dates), but the agent uses a random shuffled split instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_acc_lgb = accuracy_score(y_val_f, np.argmax(val_prob_lgb, axis=1))",
+   "reasoning": "The agent only calculates and optimizes for accuracy without verifying class balance, despite using StratifiedKFold which implies potential imbalance where metrics like F1-score would be more informative.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Data transformations such as TF-IDF, TruncatedSVD, and frequency encoding are fitted on the entire training dataset before it is split into cross-validation folds. This leaks information from the validation folds into the training folds, leading to overly optimistic out-of-fold performance estimates.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_word_train = tfidf_word.fit_transform(train_text_col) ... X_train_f, y_train_f = X_full[train_idx], y_full[train_idx]"
+  },
+  {
+   "name": "Unused model in ensemble",
+   "description": "The agent spends time and compute training a model (CatBoost) and generating out-of-fold and test predictions for it, but entirely omits it from the final ensemble blending and weight search.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "blended_oof = w_lgb * oof_lgb + w_xgb * oof_xgb + w_nn * oof_nn"
+  }
+ ],
+ "summary": "The agent implements a comprehensive feature engineering pipeline and trains multiple strong models, but introduces cross-validation data leakage by fitting TF-IDF and SVD on the entire training set prior to splitting. Additionally, it ignores the temporal nature of the food recall data by using a random cross-validation split, and accidentally leaves the trained CatBoost model completely out of the final ensemble.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,108 @@
+{
+ "task": "heart-failure-clinical",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\ntarget_col = [c for c in train_df.columns if c.lower() == \"death_event\"][0]\n\n# Feature Engineering",
+   "reasoning": "The agent proceeds directly from loading the data to feature engineering and modelling without any explicit checks or handling for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_blend)\nprint(f\"5-Fold Cross-Validation ROC AUC: {cv_auc:.5f}\")",
+   "reasoning": "The agent evaluates and optimizes the ensemble solely using the ROC AUC metric, ignoring other relevant metrics like precision-recall or calibration.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[\"time_age_ratio\"] = df[\"time\"] / (df[\"age\"] + 1e-5)",
+   "reasoning": "The agent treats the survival-analysis problem as a plain binary classification task and ignores the time-to-event nature, resulting in the follow-up 'time' being inappropriately used as a predictive feature.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage via time-to-event feature",
+   "description": "The agent uses the time-to-event or follow-up duration (the 'time' column) as a feature to predict the event itself. This causes severe target leakage since the follow-up time is not known at the moment of prediction and is inherently correlated with the occurrence of the event (those who die have shorter follow-up times).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[\"time_age_ratio\"] = df[\"time\"] / (df[\"age\"] + 1e-5)"
+  },
+  {
+   "name": "Batch dependence in test predictions",
+   "description": "The agent applies a rank transformation across the entire test set to compute final blended predictions. This creates batch dependence, meaning the prediction for an individual sample depends on the composition of the batch it is evaluated with, which is unacceptable for production systems.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_ranks[:, col] = rankdata(test_matrix[:, col]) / len(test_matrix)"
+  }
+ ],
+ "summary": "The agent successfully implements a cross-validated ensemble of multiple models with proper scaling and optimized blending weights. However, it completely ignores the survival-analysis context of the dataset, treating it as binary classification. This causes critical target leakage by retaining and engineering features from the follow-up 'time' column. Furthermore, the agent applies global rank transformations on test predictions, introducing problematic batch dependence.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

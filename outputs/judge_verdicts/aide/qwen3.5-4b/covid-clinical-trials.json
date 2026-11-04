@@ -1,0 +1,152 @@
+{
+ "task": "covid-clinical-trials",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.mean(numeric_only=True))",
+   "reasoning": "The agent explicitly handles missing values by filling them with the mean.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_train.mean(numeric_only=True))",
+   "reasoning": "The imputer uses the training set mean for both train and test, avoiding train/test leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear from the code alone whether the data has a strict temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):",
+   "reasoning": "The agent evaluates the model multiple times using 5-fold CV, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = mean_squared_error(train_df.iloc[val_idx][target_col], val_pred)",
+   "reasoning": "The agent evaluates performance using only one metric without verifying robustness to outliers or using secondary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"days_to_complete\"",
+   "reasoning": "The agent correctly formulates the task as predicting the continuous target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses raw features directly without any feature engineering, transformations, or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Selecting best CV fold model",
+   "description": "The agent selects the model from the single best-performing cross-validation fold to make test predictions and reports this minimum validation error as the final score. This introduces an optimistic bias, overestimates performance, and discards the ensemble benefits of cross-validation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if fold_rmse < best_rmse:\n        best_rmse = fold_rmse\n        best_model = model\n\ntest_pred = best_model.predict(X_test)"
+  },
+  {
+   "name": "CV Data Leakage",
+   "description": "The agent imputes missing values on the entire training set before splitting it into cross-validation folds. This causes data leakage from the validation folds into the training folds during CV, making the validation scores unreliable.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.mean(numeric_only=True))\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)"
+  },
+  {
+   "name": "Incorrect metric calculation",
+   "description": "The agent calculates Mean Squared Error (MSE) but incorrectly logs and interprets it as Root Mean Squared Error (RMSE).",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_rmse = mean_squared_error(train_df.iloc[val_idx][target_col], val_pred)\nprint(f\"Fold {fold+1}: RMSE = {fold_rmse:.4f}\")"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM model with 5-fold cross-validation. However, the solution contains critical flaws: it selects the 'best' fold model for final predictions (causing optimistic bias), leaks data across CV folds by imputing before the split, calculates MSE instead of RMSE, and lacks any feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

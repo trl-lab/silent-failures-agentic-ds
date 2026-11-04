@@ -1,0 +1,138 @@
+{
+ "task": "walmart-recruiting-store-sales-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling NaNs in aggregations with broader fallbacks and zero-filling missing MarkDown columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly derived strictly from the training split and then applied to validation and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a time-based split (holding out data from 2012-01-27 onwards).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regression is an appropriate model choice for this forecasting task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a temporal holdout validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params=lgb_params,\n    train_set=dtrain,\n...\nval_preds = model.predict(X_val, num_iteration=model.best_iteration)",
+   "reasoning": "The agent trains a stochastic model (LightGBM with subsampling and feature fraction) exactly once and evaluates a single run, rather than averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_wmae = calculate_wmae(\n    y_true=val_feat[\"Weekly_Sales\"].values,\n    y_pred=val_preds,\n    is_holiday=val_feat[\"IsHoliday\"].values,\n)\n...\nprint(f\"Final Validation Score: {val_wmae}\")",
+   "reasoning": "The agent evaluates the model using only the competition metric (WMAE) and does not report any secondary metrics like RMSE or MAE to provide a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task on sales data.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts extensive calendar, holiday, cyclical, and hierarchical aggregation features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage via In-Sample Target Encoding",
+   "description": "The agent computes target aggregations (e.g., mean/median of the target by group) on the full training set and merges them directly back into the training data. Without using out-of-fold (OOF) or expanding-window techniques, this causes in-sample target leakage (especially for small groups like specific Dept-Week interactions) and leads to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "dept_week_stats = (\n    tr_feat.groupby([\"Dept\", \"Week\"])[\"Weekly_Sales\"]\n    .agg(dept_week_sales_mean=\"mean\", dept_week_sales_median=\"median\")\n...\n    df = df.merge(dept_week_stats, on=[\"Dept\", \"Week\"], how=\"left\")"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with correct temporal validation and strong feature engineering. However, it introduces critical target leakage by joining in-sample target aggregations directly back onto the training set. Additionally, it evaluates a stochastic model on a single seed and reports only one metric.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

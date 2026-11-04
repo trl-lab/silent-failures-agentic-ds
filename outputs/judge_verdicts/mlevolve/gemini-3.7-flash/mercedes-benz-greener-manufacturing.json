@@ -1,0 +1,153 @@
+{
+ "task": "mercedes-benz-greener-manufacturing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "unique_vals = list(set(src_train.dropna().unique()).union(set(src_test.dropna().unique()))); le.fit(unique_vals)",
+   "reasoning": "The agent fits the LabelEncoder on the union of training and test set unique values, which technically uses test data for preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "constant_cols = [c for c in num_cols if train_df[c].nunique() <= 1]",
+   "reasoning": "The agent explicitly checks for and removes constant and duplicate columns, and handles missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler(); X_tr_scaled = scaler.fit_transform(X_tr); X_val_scaled = scaler.transform(X_val)",
+   "reasoning": "Feature scaling is correctly fit only on the training folds and applied to the validation folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_comp = decomp_model.fit_transform(X_bin_train); te_comp = decomp_model.transform(X_bin_test)",
+   "reasoning": "Feature extraction is fit on the training dataset and then transforms the test dataset, so it does not leak test information (though it does leak validation info within the CV loop).",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_all = np.nan_to_num(X_train_all, nan=0.0, posinf=0.0, neginf=0.0)",
+   "reasoning": "The agent uses static value replacement (0.0) for NaNs, which does not compute statistics and therefore doesn't leak missing-value statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.train({... 'objective': 'regression' ...})",
+   "reasoning": "The agent correctly uses regression models (Ridge, LGB, XGB, TabularResNet) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "self.dropout = nn.Dropout(dropout_rate); optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)",
+   "reasoning": "The deep learning model uses Dropout layers and the AdamW optimizer includes weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=10, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a 10-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is held out and only used for final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold in range(n_folds):",
+   "reasoning": "Models are evaluated across 10 cross-validation folds, which inherently averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def calculate_r2_metric(y_true: np.ndarray, y_pred: np.ndarray) -> float:",
+   "reasoning": "The agent correctly uses the required R2 metric for evaluation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "interaction_pairs = [('X0', 'X1'), ('X0', 'X2') ...]",
+   "reasoning": "The agent implements extensive feature engineering, including PCA/ICA, categorical interactions, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(loss_func, init_weights, method='SLSQP', bounds=bounds, constraints=constraints)",
+   "reasoning": "The agent uses a sophisticated constrained convex optimization (SLSQP) to find the optimal ensemble weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leak via global feature extraction",
+   "description": "Feature extraction methods (like PCA, ICA, TruncatedSVD) are fit on the entire training dataset before cross-validation splitting. This leaks validation fold information into the training folds, making out-of-fold predictions overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tr_comp = decomp_model.fit_transform(X_bin_train)"
+  },
+  {
+   "name": "Cross-validation data leak via global target statistics",
+   "description": "The out-of-fold target encoding uses the global mean and standard deviation of the entire training target as smoothing priors. This subtly leaks validation target information into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "smooth_mean_map = ((stats_mean[\"count\"] * stats_mean[\"mean\"] + smoothing_weight * global_mean) / (stats_mean[\"count\"] + smoothing_weight)).to_dict()"
+  }
+ ],
+ "summary": "The agent provides a strong, well-structured solution with deep learning, gradient boosting, and linear models combined via an optimized ensemble. However, it introduces cross-validation leaks by fitting PCA/ICA and calculating global target statistics on the entire training dataset before the cross-validation loop. It also technically uses test data to establish its LabelEncoder mapping.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

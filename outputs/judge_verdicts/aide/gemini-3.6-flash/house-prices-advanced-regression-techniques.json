@@ -1,0 +1,166 @@
+{
+ "task": "house-prices-advanced-regression-techniques",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis or peek at the test data interactively.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extensively handles missing values and removes extreme outliers from the training set.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The standard scaler used for linear models is correctly applied using a Pipeline fit only on the training data, avoiding traditional scaler leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"LotFrontage\"] = df[\"LotFrontage\"].fillna(df[\"LotFrontage\"].median())",
+   "reasoning": "The median for LotFrontage is calculated on the combined train and test dataset and used for imputation before splitting, leaking test missing-value statistics into the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task does not require strict temporal splitting; standard K-Fold is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models using 10-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is purely used for the final submission generation, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 10 cross-validation folds, which inherently averages over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSLE (via RMSE on log-transformed targets), which is the exact and appropriate metric for this competition.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem formulation as standard regression with a log-transformed target is perfectly correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive and highly detailed domain-specific feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses constrained SLSQP optimization to find blend weights, avoiding naive equal-weighting.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via aggregate features on combined data",
+   "description": "The agent calculates group-wise summary statistics (mean, median, std) and frequency encodings across the combined train and test datasets. This leaks information about the test set distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grp_mean = df.groupby(grp_col)[target_c].transform(\"mean\")  ... freq = df_engineered[col].value_counts()"
+  },
+  {
+   "name": "Validation leakage via early stopping",
+   "description": "The agent uses the validation fold to determine early stopping for LightGBM, and then generates out-of-fold predictions on that exact same validation fold. This makes the out-of-fold predictions artificially optimistic and biases the downstream ensemble weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], callbacks=[lgb.early_stopping(50, verbose=False)])  ... val_pred = model.predict(X_va)"
+  },
+  {
+   "name": "Using ID as a feature",
+   "description": "The agent does not drop the 'Id' column from the dataset, meaning it is automatically selected as a numerical feature and used for model training, which can cause spurious correlations.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = train_df.drop(columns=[\"SalePrice\"], errors=\"ignore\")"
+  },
+  {
+   "name": "Invalid submission format",
+   "description": "The agent generates the submission file using a zero-based sequence for the 'id' column instead of preserving the original 'Id' values from the test set, which will cause the submission to fail evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(final_test_preds)), \"SalePrice\": final_test_preds})"
+  }
+ ],
+ "summary": "The solution implements a robust cross-validated ensemble with extensive feature engineering, but suffers from severe data leakage because imputation, group statistics, and frequency encodings are computed on the combined train and test data. Additionally, the 'Id' column is erroneously used as a feature and incorrectly formatted in the final submission, and LightGBM's out-of-fold predictions are biased due to early stopping on the validation fold.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

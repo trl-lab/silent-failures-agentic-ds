@@ -1,0 +1,156 @@
+{
+ "task": "covid-clinical-trials",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling numerical features with 0 and text features with empty strings before processing.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent applies log1p transformations, which are stateless and do not leak information across the train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(combined_text)\nsvd = TruncatedSVD(n_components=20, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent fits the TF-IDF vectorizer and TruncatedSVD on the combined train and test text data, leaking the test set's text distribution into the feature space.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only uses stateless imputation (fillna) and does not fit any stateful imputers on the combined data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains several temporal date columns, but the agent uses a random, shuffled K-Fold split which can introduce look-ahead bias by training on future trials to predict past ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with an internal train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic models across 5 folds and averages their predictions, properly accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_va, y_va)],\ncallbacks=[lgb.early_stopping(50, verbose=False)]",
+   "reasoning": "The agent relies solely on the default loss metrics of LightGBM/CatBoost for early stopping and never explicitly verifies, calculates, or reports the required RMSE metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is standard regression and the agent frames it correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, text statistics, frequency encoding, and TF-IDF/SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent combines the predictions of the two models using a hardcoded, naive equal-weight average without any attempt to optimize the blend weights based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature distribution leakage via combined frequency encoding",
+   "description": "The agent performs frequency encoding on the concatenated train and test datasets. This leaks information about the frequency of specific categories in the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = col_str.value_counts()\nfeatures[f'{col}_freq'] = col_str.map(freq).astype(float)"
+  },
+  {
+   "name": "Categorical features passed as numerical",
+   "description": "The agent extracts categorical codes using `.cat.codes` but fails to specify these columns as categorical features in LightGBM and CatBoost, causing the tree models to treat nominal categories as continuous numerical values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features[f'{col}_cat'] = combined_df[col].astype('category').cat.codes"
+  },
+  {
+   "name": "Potential target leakage via future dates",
+   "description": "The agent uses 'Primary Completion Date' to compute features like 'diff_primary_first_posted'. Since the target is 'days_to_complete', using the completion date directly leaks the target if the actual completion date is not supposed to be known at prediction time.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "diff_days = (parsed_dates['Primary Completion Date'] - parsed_dates['First Posted']).dt.total_seconds() / 86400.0\nfeatures['diff_primary_first_posted'] = diff_days"
+  }
+ ],
+ "summary": "The agent constructs a reasonable pipeline with good feature engineering and cross-validation, but commits several critical data leakage errors. TF-IDF/SVD and frequency encoding are applied to the combined train and test sets, leaking test distributions into the training data. Additionally, the agent naively ensembles models with equal weights and risks severe target leakage by directly computing features from the 'Primary Completion Date'.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

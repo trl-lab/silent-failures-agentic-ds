@@ -1,0 +1,149 @@
+{
+ "task": "qsar-biodegradation",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test data during exploratory data analysis or before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by using a SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly fits the StandardScaler only on the training folds and transforms the validation and test sets within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any feature selection before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent follows the safe pattern by fitting the imputer on X_train and transforming X_test separately, avoiding test-to-train leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly selects classifier models for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs a 5-fold StratifiedKFold validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final predictions and not for evaluating or selecting models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates its stochastic models across multiple cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = roc_auc_score(y, oof_preds[m])\n        print(f\"{m.upper()}: {score:.5f}\")",
+   "reasoning": "The agent relies entirely on ROC-AUC for evaluation and optimization, without reporting other metrics (e.g., accuracy, precision, recall) to provide a fuller picture of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != target_col]\n    X_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses raw columns directly without creating any derived features, interaction terms, or applying domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use a naive ensemble; instead, it optimizes the model blend weights using the SLSQP algorithm.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputation leakage during cross-validation",
+   "description": "The imputer is fitted on the entire training set before it is split into cross-validation folds. This causes missing-value statistics from the validation folds to leak into the training folds, making the validation scores artificially optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "imputer = SimpleImputer(strategy=\"median\")\n    X_train_imp = pd.DataFrame(imputer.fit_transform(X_train), columns=feature_cols)\n...\n    for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_imp, y)):"
+  },
+  {
+   "name": "Overoptimistic ensemble CV score",
+   "description": "The ensemble weights are optimized on the out-of-fold prediction matrix, and the final CV score is calculated on these same predictions. Without an independent dataset or nested cross-validation to evaluate the ensemble weights, the reported final score will be overoptimistic.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "res = minimize(\n        loss_func,\n...\n    final_oof = pred_matrix @ best_weights\n    final_cv_auc = roc_auc_score(y, final_oof)\n    print(f\"\\nFinal Ensemble Out-of-Fold ROC-AUC: {final_cv_auc:.5f}\")"
+  }
+ ],
+ "summary": "The agent presents a solid modeling pipeline using multiple classifiers, proper test-set isolation, and an optimized ensemble. The main flaws are the complete lack of feature engineering and minor data leakage during cross-validation, as missing values are imputed on the full training set before splitting it into folds.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

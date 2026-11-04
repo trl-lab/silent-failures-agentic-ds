@@ -1,0 +1,149 @@
+{
+ "task": "schools",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in categorical columns by filling them with 'missing', even though it leaves numerical NaNs for the models to handle natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Constant value imputation is used (e.g., fillna('missing')), which does not leak statistics from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Although a 'Validation Date' is present, this is cross-sectional school data where random splitting via KFold is standard and does not strictly violate temporal causality.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation to evaluate generalization (though it fails to print the scores).",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently evaluates the stochastic models across multiple distinct folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent implicitly optimizes for the default RMSE in CatBoost early stopping, which matches the task metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date parts from the 'Validation Date' and computes frequency encodings, showing feature engineering effort.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent blends predictions using an unweighted, hardcoded 50/50 split without any attempt to optimize the ensembling weights based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Global Frequency Encoding",
+   "description": "The agent computes frequency encodings using value counts on the combined train and test dataset before splitting. This leaks information about the test set's categorical distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df[col].value_counts()\n        df[f'{col}_freq'] = df[col].map(freq)"
+  },
+  {
+   "name": "No Validation Metric Computed or Logged",
+   "description": "The agent sets up a cross-validation loop to train models but completely fails to calculate, aggregate, or print the validation score, making it impossible to evaluate the model's expected performance without submitting to an external leaderboard.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_preds += cb_model.predict(X_test_cb) / kf.n_splits\n\n# Ensemble predictions\nfinal_preds = 0.5 * lgb_preds + 0.5 * cat_preds"
+  }
+ ],
+ "summary": "The agent successfully implements a standard ML pipeline with LightGBM and CatBoost and extracts useful features. However, it introduces data leakage by computing frequency encodings globally on the combined train and test datasets. Furthermore, it uses a naive equal-weight ensemble without tuning and fails to calculate or report any validation metrics during the K-fold loop.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

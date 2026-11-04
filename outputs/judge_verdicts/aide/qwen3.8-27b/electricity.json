@@ -1,0 +1,138 @@
+{
+ "task": "electricity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly drops target NaNs and coerces feature errors to NaNs, which are natively and appropriately handled by LightGBM.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scalers are applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent sorts by Date and Period before splitting, preserving temporal order to avoid look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classification objective for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A temporal validation split is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n        params,\n        dtrain,\n        num_boost_round=3000,\n        valid_sets=[dval],",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated only once without multiple runs to estimate variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y_val_enc, pred)",
+   "reasoning": "The agent evaluates and tunes the probability threshold using only accuracy, without checking if the dataset is imbalanced or verifying with other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Derived features like sine/cosine transforms and interaction terms are created.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dataset-dependent feature scaling",
+   "description": "The feature engineering logic conditionally applies scaling based on the maximum value within the current dataframe (e.g., `df['Period'].max()`). If the test set has a different maximum than the training set, a mismatched transformation will be applied, corrupting the feature distribution at inference time.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if period.max() <= 1.0:\n            period_frac = period\n        else:\n            period_frac = (period - 1) / 48.0"
+  }
+ ],
+ "summary": "The agent provides a generally solid solution with time-aware validation, model retraining on the full dataset, and domain-informed feature engineering. However, it evaluates the stochastic model only once and relies solely on accuracy. A notable flaw is conditionally applying feature scaling based on the dataframe's maximum value, which can cause inconsistent transformations between train and test sets if they have different bounds.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

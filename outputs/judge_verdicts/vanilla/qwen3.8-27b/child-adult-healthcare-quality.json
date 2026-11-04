@@ -1,0 +1,146 @@
+{
+ "task": "child-adult-healthcare-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col], X_test[col]], axis=0).astype(str)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on the combined train and test sets, exposing the test set's categorical distributions to the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled using median imputation for numeric columns and a placeholder for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed on the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df[col] = train_df[col].fillna(train_df[col].median())\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The agent computes the median for imputation on the entire training data before splitting it into training and validation sets, leaking validation statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no indication that this is a time-series or temporal dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation split is created using train_test_split and used to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions after retraining on the full training set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The models are evaluated on a single random train-validation split instead of using cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(np.mean((y_val - val_pred) ** 2))",
+   "reasoning": "The agent only evaluates the models using RMSE and does not compute any secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop('State Rate', axis=1)",
+   "reasoning": "The agent uses raw columns as-is without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ensemble_val = np.mean(val_predictions, axis=0)",
+   "reasoning": "The agent uses a naive unweighted average for ensembling instead of tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring native categorical support",
+   "description": "Tree models like LightGBM and CatBoost have native support for categorical features, which often performs better than simple label encoding, but the agent failed to specify them and passed the encoded features as generic numeric columns.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train[col] = le.transform(X_train[col].astype(str))"
+  }
+ ],
+ "summary": "The agent correctly implements a standard modelling pipeline with a train/validation split and ensembling. However, the solution contains data leakage by fitting the LabelEncoder on the combined train and test sets, and by imputing missing values before creating the validation split. Furthermore, the agent misses opportunities for feature engineering, uses a naive unweighted ensemble, and only evaluates the model using a single metric on a single random split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

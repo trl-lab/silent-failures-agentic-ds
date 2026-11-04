@@ -1,0 +1,138 @@
+{
+ "task": "forest-cover-type-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test data to inform preprocessing or EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(train_path)\n...\nX = train_df.drop(columns=drop_cols, errors='ignore')",
+   "reasoning": "The data is loaded and immediately used for feature engineering and training without any checks or handling for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models (ExtraTrees, RandomForest, LightGBM) are used for the multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "et.fit(X, y_encoded)\nrf.fit(X, y_encoded)\nlgb.fit(X, y_encoded)\n\n# Predict probabilities and ensemble\nprob_et = et.predict_proba(X_test)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without any internal validation split to evaluate model generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation score is computed or reported, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation is performed, so no metrics are used.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates several derived features based on hydrology, distances, and elevations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_probs = 0.45 * prob_et + 0.30 * prob_rf + 0.25 * prob_lgb",
+   "reasoning": "The agent combines predictions using arbitrary, hardcoded weights without any tuning or optimisation of the combination itself.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent creates the submission file using a generated sequence of IDs rather than preserving the original IDs from the test set, which will misalign predictions and cause submission failures if the expected IDs do not start at 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(predictions))"
+  }
+ ],
+ "summary": "The agent successfully engineers domain-specific features and trains appropriate classification models, before ensembling them with arbitrary weights. However, it fails to implement any data cleaning or internal validation, making it impossible to estimate generalisation performance or tune hyperparameters. Furthermore, the submission file generation incorrectly overwrites the original test IDs with a generic sequence starting from 0, which will break downstream evaluation.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

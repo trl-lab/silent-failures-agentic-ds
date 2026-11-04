@@ -1,0 +1,134 @@
+{
+ "task": "bike-sharing-demand",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\n\n# 2. Feature Engineering",
+   "reasoning": "The agent proceeds directly from loading the data to feature engineering without any checks or handling for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series (hourly bike rentals), but the agent uses a randomized K-Fold split, which introduces look-ahead bias and ignores the temporal structure.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor, LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 folds, effectively averaging out variance from a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "cv_rmsle = np.sqrt(\n    mean_squared_error(np.log1p(y_true_count), np.log1p(oof_total_counts))\n)\nprint(f\"5-Fold CV RMSLE: {cv_rmsle:.5f}\")",
+   "reasoning": "The agent only reports RMSLE and does not evaluate performance with any secondary metrics like MAE or R2 to get a broader view of model behaviour.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately frames the task by predicting 'casual' and 'registered' separately and summing them for the final count, which is a strong formulation for this specific dataset.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and thoughtful feature engineering, including cyclical encoding, composite behavioural features, and meteorological interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_casual[val_idx] = 0.5 * cb_val_cas + 0.5 * lgb_val_cas\n    test_casual_preds += (0.5 * cb_test_cas + 0.5 * lgb_test_cas) / kf.n_splits",
+   "reasoning": "The agent uses a naive, hardcoded 50/50 blend for its ensemble without attempting to optimize the blend weights or use a meta-model (stacking).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent delivers a solution with excellent feature engineering and a smart task formulation (predicting 'casual' and 'registered' users separately). However, it critically fails by using a randomized K-Fold split on time-series data, introducing look-ahead bias. Additionally, it applies an unoptimised 50/50 ensemble and skips basic data cleaning checks.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

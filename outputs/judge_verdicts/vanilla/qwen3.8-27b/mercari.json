@@ -1,0 +1,142 @@
+{
+ "task": "mercari",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and drops rows with missing targets.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is used.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants, so no dataset statistics leak during imputation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are used for the regression task, which is appropriate.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a train/validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates multiple models on the validation split, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmses[name] = rmse(y_val, val_pred)",
+   "reasoning": "The agent evaluates the stochastic models (LightGBM, XGBoost, CatBoost) on a single train-validation split without multiple runs or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmse(y_true, y_pred):\n    return float(np.sqrt(mean_squared_error(y_true, y_pred)))",
+   "reasoning": "The agent only computes and reports RMSE, lacking additional metrics to better understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task predicting price.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts many derived features such as text lengths, keyword counts, and TF-IDF+SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses inverse-RMSE weighting for its ensemble, which is more sophisticated than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring dataset ID column",
+   "description": "The agent generates a synthetic sequence for the ID column in the submission file using np.arange() instead of extracting the actual ID column from the test dataset. If the test IDs are not contiguous or do not start at 0, this will misalign predictions and potentially fail evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pd.DataFrame({\"id\": np.arange(len(test_df), dtype=int), \"price\": final_preds}).to_csv(\n        \"predictions.csv\",\n        index=False,\n    )"
+  }
+ ],
+ "summary": "The agent provides a robust data science solution with solid feature engineering (TF-IDF, SVD, frequency encoding, keyword counts), appropriate leakage prevention (fitting transformers after splitting), and an inverse-error weighted ensemble. However, it fails to account for variance by evaluating its stochastic models only once and relies entirely on RMSE for evaluation. More critically, it generates synthetic IDs for the final submission instead of using the provided test set IDs, which could cause grading failures.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

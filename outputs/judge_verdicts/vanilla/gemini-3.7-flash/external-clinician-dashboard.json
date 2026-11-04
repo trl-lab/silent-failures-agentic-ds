@@ -1,0 +1,142 @@
+{
+ "task": "external-clinician-dashboard",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "X[col] = X[col].astype(str).fillna('missing')",
+   "reasoning": "The agent explicitly handles categorical missing values, rather than making no effort or relying entirely on the model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is fitted on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset contains a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "LGBMRegressor(...) \n CatBoostRegressor(...)",
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses K-Fold cross-validation to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The agent averages predictions over 5 folds, which serves as multiple evaluations of the stochastic models.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_metric='rmse'",
+   "reasoning": "The agent only uses RMSE for evaluation and optimization, without verifying its robustness or looking at other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_lgb[col] = X_lgb[col].astype('category')",
+   "reasoning": "The agent uses raw columns as-is with only basic categorical encoding and no derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_test_preds + 0.5 * cat_test_preds",
+   "reasoning": "The agent uses a naive unweighted average for ensembling without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing early stopping for LightGBM",
+   "description": "The agent provides an evaluation set to the LightGBM model but fails to set `early_stopping_rounds`, causing the model to train for the full number of estimators regardless of validation performance, which can lead to overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(X_train_lgb, y_train, eval_set=[(X_val_lgb, y_val)], eval_metric='rmse')"
+  }
+ ],
+ "summary": "The agent implements a solid cross-validated pipeline using LightGBM and CatBoost, but falls short on feature engineering and ensemble tuning. It uses an unweighted average for predictions and misses the opportunity to derive new features. Additionally, it fails to implement early stopping for the LightGBM model, potentially leading to overfitting.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

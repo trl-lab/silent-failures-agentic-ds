@@ -1,0 +1,98 @@
+{
+ "task": "spambase",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for epoch in range(200):\n    perm = torch.randperm(X_train_norm.shape[0])",
+   "reasoning": "The agent trains stochastic models (a CNN with random initialization/shuffling and LightGBM with subsampling) exactly once, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc_cnn = roc_auc_score(y_val, val_probs)",
+   "reasoning": "The agent only calculates and reports a single metric (ROC AUC) without evaluating other perspectives like precision, recall, or accuracy to provide a holistic view.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unassigned np.sort result",
+   "description": "The agent calls `np.sort()` on a NumPy array but does not assign the result or use an in-place sort method (`array.sort()`). Because `np.sort` returns a copy and leaves the original array unchanged, subsequent logic intended to extract top-k values instead extracts arbitrary static columns, creating garbage features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "np.sort(word_vals, axis=1)\nX[\"word_freq_top1\"] = word_vals[:, -1]"
+  }
+ ],
+ "summary": "The agent implements a generally sound pipeline with proper data splitting, extensive feature engineering, and model comparison between LightGBM and a CNN. However, there is a silent bug in the feature engineering step where `np.sort()` is called without assigning its output, leading to incorrect top-k feature extraction. Furthermore, the agent fails to account for variance by only evaluating stochastic models once and relies entirely on a single evaluation metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

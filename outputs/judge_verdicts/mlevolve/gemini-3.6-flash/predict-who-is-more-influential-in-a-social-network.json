@@ -1,0 +1,103 @@
+{
+ "task": "predict-who-is-more-influential-in-a-social-network",
+ "failure_modes": {
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "features = features.replace([np.inf, -np.inf], np.nan).fillna(0.0)",
+   "reasoning": "The agent explicitly handles non-finite values and NaNs by replacing them with a constant.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "entity_scaler = StandardScaler()\n... entity_scaler.fit(train_entity_combined)",
+   "reasoning": "Standard scaling is correctly applied inside the cross-validation loop, fitted only on the training folds.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = features.replace([np.inf, -np.inf], np.nan).fillna(0.0)",
+   "reasoning": "Although imputation happens before splitting, it uses a constant (0.0), meaning no dataset statistics are leaked.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout)",
+   "reasoning": "The neural network includes dropout layers and the AdamW optimizer uses weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold stratified cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "class SiameseInfluenceNet(nn.Module):",
+   "reasoning": "The agent correctly formulates the pairwise comparison task using an anti-symmetric Siamese network.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def extract_pairwise_features(df: pd.DataFrame) -> pd.DataFrame:",
+   "reasoning": "The agent engineers extensive domain-specific features, including log transformations, differences, and ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds_accum += np.array(fold_test_preds) / 5.0",
+   "reasoning": "The agent averages predictions across CV folds, which is standard practice for bagging, not naive ensembling of distinct models.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent ignores the ID column in the test dataset and instead creates submission IDs using `np.arange(len(test_binary))`. If the test set IDs are not a simple zero-based sequence or use a different column name, this will result in a misaligned or invalid submission file.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame({'id': np.arange(len(test_binary)), 'Choice': test_binary})"
+  },
+  {
+   "name": "Mean-centering difference features before anti-symmetric augmentation",
+   "description": "The agent applies StandardScaler (which centers by mean) to the difference features before augmenting the data with swapped pairs. Since the empirical mean of the differences is not exactly zero, `-xDiff_tr` is not equivalent to scaling the negated difference `-(x_A - x_B)`. This breaks the strict mathematical anti-symmetry of the Siamese network. The scaler should either be fitted without mean centering (`with_mean=False`), or fitted on the augmented symmetric dataset.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "diff_scaler = StandardScaler()\ndiff_scaler.fit(X_tr[cols_diff].values)\n... xDiff_tr_aug = np.vstack([xDiff_tr, -xDiff_tr])"
+  }
+ ],
+ "summary": "The agent provides an exceptionally strong and well-formulated solution, utilizing a custom anti-symmetric Siamese network, strong feature engineering, and robust cross-validation. However, it introduces a critical data engineering flaw by hardcoding the submission IDs instead of preserving the test set's original IDs, which will likely fail evaluation. Additionally, there is a subtle mathematical bug where mean-centering the difference features before mirror augmentation slightly breaks the model's intended anti-symmetry.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 7,
+ "no_code": false
+}

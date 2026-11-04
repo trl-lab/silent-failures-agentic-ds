@@ -1,0 +1,142 @@
+{
+ "task": "discretionary-grant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or print test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in text, categorical, and date columns, and relies on CatBoost's native handling for numerics, which is a valid strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scaler or normalizer is used on the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_components, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (a form of PCA) is fit on the combined train and test dataset before splitting, leaking test set information into the feature representations.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputers are fit on the full dataset (the agent uses simple fillna with constants).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset contains date columns, but it is unclear if the specific task's test set is split chronologically or randomly.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostRegressor is an appropriate model for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently averages over multiple dataset folds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"5-Fold CV Out-Of-Fold RMSE: {cv_rmse:.5f}\")",
+   "reasoning": "The agent reports only RMSE and does not verify performance with other metrics like MAE to assess robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date extraction, TF-IDF, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensembling is standard K-fold out-of-fold averaging, which is appropriate and not naive.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via feature engineering on full dataset",
+   "description": "Computing feature statistics (such as value counts for frequency encoding and group means/stds) across the concatenated train and test datasets leaks the test distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = val_series.value_counts(normalize=True)\n...\ngrouped = all_num_and_date.groupby(c_series)[n_col]\ngroup_mean = c_series.map(grouped.mean()).astype(float)"
+  }
+ ],
+ "summary": "The agent implements a CatBoost regression model with 5-fold cross-validation and extensive feature engineering. However, it critically leaks test set information into the training data by fitting TF-IDF, TruncatedSVD, frequency encoding, and grouped aggregations on the combined train and test dataset prior to splitting. Additionally, it relies solely on RMSE for evaluation without assessing model robustness via other metrics.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

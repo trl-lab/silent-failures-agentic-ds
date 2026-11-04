@@ -1,0 +1,145 @@
+{
+ "task": "china-overseas-finance-inventory",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(\n    f\"Missing in train: {X.isnull().sum().sum()}, in test: {test.isnull().sum().sum()}\"\n)",
+   "reasoning": "The agent explicitly computes and prints the count of missing values in the test set, peeking at test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = _coerce(X)\ntest = _coerce(test)",
+   "reasoning": "The agent makes no explicit effort to clean the data or handle missing values, relying entirely on LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset requires a time-based split, as explicit temporal context is not provided.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split and uses it for early stopping and evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    ds_tr,\n    num_boost_round=10000,\n    valid_sets=[ds_tr, ds_va],\n...",
+   "reasoning": "The agent evaluates the stochastic LightGBM model exactly once, without using cross-validation or multiple random seeds to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(y_va, val_pred)))",
+   "reasoning": "The agent only computes and reports RMSE, without using auxiliary metrics like MAE or R\u00b2 for a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correctly treated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# \u2500\u2500 Unify dtypes: non-numeric \u2192 category, bool \u2192 int \u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+   "reasoning": "The agent uses raw features directly with basic type coercion, entirely skipping any domain-aware feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overwriting original IDs",
+   "description": "The agent drops the original identifier column from the test set and replaces it with a new sequential ID (e.g. `np.arange`) for the submission file. This breaks the alignment between the submission and the true ground-truth labels, which will result in evaluation failure.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame(\n    {\n        \"id\": np.arange(len(test_pred), dtype=int),\n        \"installed_capacity\": test_pred,\n    }\n)"
+  },
+  {
+   "name": "Mismatch between intent and implementation (Stratification)",
+   "description": "The code comments claim to perform a stratified validation split based on target quantile bins, but the actual implementation simply does a random permutation and split, failing to apply any stratification.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "# \u2500\u2500 Validation split (stratified by target quantile bins) \u2500\u2500\u2500\nVAL_FRAC = 0.15\nrng = np.random.RandomState(42)\nidx = rng.permutation(len(X))"
+  }
+ ],
+ "summary": "The agent successfully establishes a baseline LightGBM model but falls short in data preparation and evaluation rigor. Critical flaws include replacing the original test set IDs with a new sequence (which breaks evaluation alignment) and bypassing both feature engineering and explicit missing value handling. Additionally, the evaluation is superficial, relying on a single validation run and a single metric without any cross-validation.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

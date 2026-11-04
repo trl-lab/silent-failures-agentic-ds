@@ -1,0 +1,152 @@
+{
+ "task": "bnp-paribas-cardif-claims-management",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or preprocessing design; it is only used jointly with train data to build a complete categorical vocabulary, which is standard practice.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by extracting a 'nan_count' feature and using LightGBM's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting (missing categories are filled independently and numeric NaNs are handled natively).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMClassifier is appropriate for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is trained and evaluated multiple times across the 5 CV folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Logloss is the required target metric for this task, so optimising for it is appropriate.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements derived features such as 'nan_count', which is known to be a strong signal for this specific dataset.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / n_splits",
+   "reasoning": "The agent uses a naive, unweighted average of the fold predictions without any tuning of the combination.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing early stopping",
+   "description": "The agent intends to use early stopping but fails to configure it in the LightGBM fit method (passing an empty callbacks list and no early_stopping_rounds), causing the model to blindly train for the maximum number of iterations which could lead to severe overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Fit with early stopping\n    model.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_val)],\n        callbacks=[]\n    )"
+  },
+  {
+   "name": "Incorrect submission IDs",
+   "description": "The agent generates the submission file using a generic sequence (np.arange) for the 'id' column instead of preserving the actual 'ID' column from the test set, which will result in an invalid submission format.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_preds_clipped))"
+  },
+  {
+   "name": "Missing evaluation metric calculation",
+   "description": "The agent imports the log_loss metric and stores out-of-fold predictions, but fails to actually calculate or print the cross-validation score, making it impossible to assess model performance offline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import log_loss\n... \n# log_loss is never called on oof_preds"
+  }
+ ],
+ "summary": "The agent implements a generally sound modeling pipeline with appropriate cross-validation and dataset-specific feature engineering (NaN counts). However, the execution contains critical bugs: it fails to implement the intended early stopping mechanism, completely forgets to calculate the CV score, and generates a structurally invalid submission file by discarding test IDs.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

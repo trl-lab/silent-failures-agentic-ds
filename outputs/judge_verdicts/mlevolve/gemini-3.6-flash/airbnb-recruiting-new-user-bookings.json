@@ -1,0 +1,159 @@
+{
+ "task": "airbnb-recruiting-new-user-bookings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for exploration or to fit any transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans age anomalies and handles missing values appropriately.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation values (like median age) and frequency encodings are strictly fitted on the training subset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly recognizes the temporal component and uses a chronological split for the holdout validation set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for this multi-class prediction task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A chronological holdout validation set is used for evaluation and early stopping.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the validation set for tuning, but does not reuse the actual test set for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "gbm_model1 = lgb.train(..., random_state=42...)",
+   "reasoning": "The agent trains and evaluates multiple stochastic tree-based models exactly once with fixed random seeds, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses NDCG@5, which is the exact official metric for this competition, making it appropriate.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as multi-class classification and optimizes probabilities appropriately.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and thoughtful domain-specific feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble weights via a grid search and calibrates class probabilities using Nelder-Mead.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid submission IDs",
+   "description": "The agent creates the submission file using a generated integer sequence instead of extracting the actual alphanumeric user IDs from the test dataset. This will result in a submission file that the scoring platform cannot evaluate.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(X_test))"
+  },
+  {
+   "name": "Suboptimal submission format for top-K metric",
+   "description": "The competition metric is NDCG@5 and allows up to 5 predictions per user. While the agent evaluates NDCG@5 correctly internally, it only outputs the single most probable class (top 1) in the final submission file, discarding the opportunity to gain partial credit from 2nd to 5th guesses.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pred_class_indices = np.argmax(final_test_probs, axis=1)"
+  },
+  {
+   "name": "Temporal leakage in target encoding",
+   "description": "The agent correctly splits the train and validation sets chronologically, but uses a randomized, shuffled K-Fold for out-of-fold target encoding on the training set. This allows future information within the training set to leak into the encoded features of past training samples.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)"
+  }
+ ],
+ "summary": "The agent builds a strong, well-structured solution with solid feature engineering, chronological validation, and an optimized ensemble. However, it fails execution-wise by not including the actual test user IDs in the submission file, and limits its score by only submitting top-1 predictions for an NDCG@5 metric. Additionally, randomized folds are used for target encoding on chronologically sorted data, introducing minor temporal leakage within the training set.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "colleges-and-universities",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df[col] = pd.to_numeric(train_df[col], errors=\"coerce\")",
+   "reasoning": "The agent makes no effort to handle missing values or outliers, relying entirely on LightGBM's default handling of NaNs after coercing errors.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputer is fit on the data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no temporal order or time-series component identified in the task setup.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, meaning the model is evaluated multiple times across different data splits rather than just once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_val_fold, val_pred)",
+   "reasoning": "The agent evaluates the model using only RMSE and does not verify its robustness or consider secondary metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard tabular regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including frequency encoding, group aggregations, and pairwise ratios/differences.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (\n        model.predict(X_test, num_iteration=model.best_iteration) / kf.n_splits\n    )",
+   "reasoning": "The agent ensembles the cross-validation fold models using a naive, unweighted average without attempting to optimize the blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering data leakage",
+   "description": "The agent computes aggregate statistics (such as group means, stds, mins, maxes) and frequency encodings on a concatenated dataset of both train and test data before splitting. This leaks the test set feature distributions into the training features, leading to overly optimistic validation scores and potential overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped = combined.groupby(g_col)[num_col].agg([\"mean\", \"std\", \"min\", \"max\"])"
+  }
+ ],
+ "summary": "The agent builds a LightGBM regressor with 5-fold cross-validation but suffers from a critical data leakage flaw. By computing group aggregations and frequency encodings on the combined train and test sets, information about the test distribution leaks into the training features. Additionally, the agent makes no explicit effort to clean the data or handle missing values, relying entirely on the model's default behaviors.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

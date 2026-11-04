@@ -1,0 +1,167 @@
+{
+ "task": "breast-cancer-wisconsin",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed that relies on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled via median imputation in the feature engineering function.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fitted only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied prior to data splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is imputed separately from train data, meaning test statistics are not leaked into the training set (though validation statistics are leaked into train folds).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models (e.g., LGBMClassifier, SVC, TabularResNet) and loss functions are used for this binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model applies proper regularisation, including dropout, layer normalization, and AdamW weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold StratifiedKFold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The held-out test set is only used for generating the final predictions, not for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are trained and evaluated across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "ROC AUC is the appropriate metric for this binary classification task and is used as the target metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive domain-informed feature engineering, calculating ratios, invariants, and structural proxies.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses scipy's SLSQP optimization to find the optimal blending weights rather than relying on a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputation before cross-validation splitting",
+   "description": "Applying median imputation on the entire training dataset before splitting into cross-validation folds leaks missing-value statistics from the validation folds into the training folds, causing overly optimistic CV scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_feat = engineer_features(train_df)\n...\nmedian_val = df_out[col].median()\ndf_out[col] = df_out[col].fillna(median_val)"
+  },
+  {
+   "name": "Identifier column used as feature",
+   "description": "The agent attempts to drop the 'ID' column using an exact case match. If the dataset uses a different casing (e.g., 'id'), the identifier will be retained and used as a numerical feature, which can cause overfitting and data leakage.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if \"ID\" in train_feat.columns:\n    train_feat = train_feat.drop(columns=[\"ID\"])"
+  },
+  {
+   "name": "Synthetic IDs in submission",
+   "description": "The submission file is generated using sequentially generated synthetic IDs rather than preserving the actual identifiers from the test set, which will result in a misaligned or invalid submission file.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_blend), dtype=int)"
+  },
+  {
+   "name": "Runtime Execution Error",
+   "description": "The code contains a runtime error (reported as a NameError in the logs) that causes the script to crash, preventing successful execution and the generation of the submission file.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "Execution error detected; exception raised: NameError; submission file not found"
+  }
+ ],
+ "summary": "The agent implements a sophisticated cross-validated ensemble featuring extensive domain-informed feature engineering and optimized blending. However, there are significant flaws in the data pipeline: median imputation is performed before CV splitting (leaking validation statistics), the identifier column is dropped using a case-sensitive match which likely fails and leaves 'id' as a feature, and synthetic IDs are generated for the submission file instead of using the test set's true IDs. Additionally, the code crashes at runtime due to an unhandled NameError.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

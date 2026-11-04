@@ -1,0 +1,141 @@
+{
+ "task": "national-average-drug-acquisition-cost",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during exploratory data analysis.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent applies a basic coercion to numeric and fills missing values with 0, which constitutes an explicit cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scalers or normalisers are used before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(text_data)\n...\nsvd = TruncatedSVD(n_components=n_comp, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD are fitted on the concatenated train and test dataframe, leaking test set vocabulary and variance into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputers that leak statistics (like mean/median) are fitted before splitting; missing values are simply filled with a constant 0.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains dates indicating a temporal component (drug prices over time), but the cross-validation uses random shuffling rather than a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The evaluation averages predictions and scores over 5 CV folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "overall_rmse = np.sqrt(mean_squared_error(y_train, oof_preds_raw))\nprint(f\"Validation RMSE: {overall_rmse:.5f}\")",
+   "reasoning": "The agent evaluates the model using only RMSE, without checking other metrics like MAE which might be more robust to outliers in cost data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including date extraction, text decomposition, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a weighted average (0.4, 0.35, 0.25) rather than a naive unweighted average, indicating some form of deliberate combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature extraction leakage via aggregations before splitting",
+   "description": "Calculating group-level statistics (like mean, median, std) or frequency encodings on the combined train and test dataset before splitting leaks the distribution of test set features into the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "grp = df.groupby(c_col)[n_col].agg([\"mean\", \"std\", \"median\"]).reset_index()\n...\nfreq = df[col].value_counts()\ndf[f\"{col}_freq\"] = df[col].map(freq)"
+  }
+ ],
+ "summary": "The agent implements a solid modeling pipeline with log-transformed targets, a multi-model ensemble, and proper out-of-fold target encoding. However, it suffers from significant data leakage by applying TF-IDF, SVD, frequency encoding, and group aggregations on the combined train and test sets prior to splitting. Furthermore, it ignores the temporal nature of the drug pricing data by using a randomized K-Fold split, which introduces look-ahead bias.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "sf-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles spatial outliers by replacing invalid coordinates with district medians.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation of spatial outliers is done correctly using train-derived district medians.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a temporal component ('Dates' column), but the agent uses randomized StratifiedKFold rather than a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a LightGBM classifier with 'multiclass' objective, which is appropriate for this task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model 5 times via cross-validation folds, averaging the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_loss = log_loss(y_val, val_pred)\n    print(f\"Fold {fold + 1} Log Loss: {fold_loss:.4f}\")",
+   "reasoning": "The agent only uses log_loss for evaluation and does not report any other contextual metrics like accuracy or F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, cyclical time features, and spatial transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test, num_iteration=model.best_iteration) / n_splits",
+   "reasoning": "The agent uses a naive unweighted average to combine the predictions from the 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hard predictions for log-loss metric",
+   "description": "The task is evaluated on log_loss, which requires submitted files to contain predicted probabilities for each class. The agent generates a submission with hard class labels (using argmax) mapped to a single column, which does not match the required submission format for a probabilistic metric and will either fail to score or result in a terrible score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predicted_class_indices = np.argmax(test_preds, axis=1)\npredicted_categories = le_target.inverse_transform(predicted_class_indices)\n\nsubmission = pd.DataFrame(\n    {\"id\": np.arange(len(test_df)), \"Category\": predicted_categories}\n)"
+  }
+ ],
+ "summary": "The agent implements a solid LightGBM pipeline with good feature engineering and proper cross-validation logic. However, it fails critically in the submission step by outputting hard class labels instead of the class probabilities required by the log_loss evaluation metric. It also ignores the temporal nature of the dataset by using a randomized cross-validation split.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

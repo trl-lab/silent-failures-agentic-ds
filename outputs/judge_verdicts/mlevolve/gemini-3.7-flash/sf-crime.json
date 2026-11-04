@@ -1,0 +1,138 @@
+{
+ "task": "sf-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by handling invalid spatial coordinates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "sss = StratifiedShuffleSplit(n_splits=1, test_size=0.15, random_state=RANDOM_SEED)",
+   "reasoning": "The dataset contains a 'Dates' column indicating a temporal sequence of crimes, but the agent uses a random stratified split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A multiclass LightGBM classifier is perfectly appropriate for a multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation split is explicitly created and evaluated.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_model = lgb.LGBMClassifier(... subsample=0.8, colsample_bytree=0.8, ...)",
+   "reasoning": "The agent trains a stochastic LightGBM model exactly once on a single split, providing no measure of variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = float(\n    log_loss(y_val, val_preds_prob, labels=list(range(num_classes)))\n)",
+   "reasoning": "The agent only computes the log loss metric and ignores other interpretable metrics like accuracy or macro F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive spatiotemporal feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hard predictions for probabilistic metric",
+   "description": "The task metric is log loss, which requires the model to output predicted probabilities for each class. The agent instead outputs hard categorical predictions using argmax, which would result in a completely invalid submission or an extremely poor score if evaluated against the test set labels.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_pred_indices = np.argmax(test_preds_prob, axis=1)\ntest_pred_categories = target_encoder.inverse_transform(test_pred_indices)\nsubmission_df = pd.DataFrame({\"id\": test_id, \"Category\": test_pred_categories})"
+  }
+ ],
+ "summary": "The agent implements a highly detailed spatiotemporal feature engineering pipeline and successfully trains an appropriate LightGBM model. However, it critically fails during inference by outputting hard class labels instead of the class probabilities required by the log loss metric. Furthermore, it ignores the temporal nature of the dataset by using a random train/validation split rather than a time-based split.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

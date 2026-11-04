@@ -1,0 +1,141 @@
+{
+ "task": "prepaid-financial-product",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and formats date columns before modeling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(text_data)\n    svd = TruncatedSVD(n_components=10, random_state=42)\n    svd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD (which is mathematically similar to PCA) are fitted on the combined train and test dataset, leaking test set vocabulary and variance into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No stateful imputer is fitted on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "While datetime features exist, it is unclear if the specific task requires temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models (LightGBM, CatBoost) for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses StratifiedKFold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which inherently averages results over multiple folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_auc = roc_auc_score(y, oof_preds)\nprint(f\"Validation ROC AUC: {final_auc:.5f}\")",
+   "reasoning": "The agent only calculates and reports the ROC AUC score, without looking at other metrics like log loss or precision-recall to fully understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (date extraction, TF-IDF, aggregations, target encoding).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble weights using scipy.optimize.minimize rather than using a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "data_leakage_via_aggregations",
+   "description": "Statistical aggregations (like group-by means/stds or frequency encodings) are computed on the combined train and test dataset before splitting. This leaks the distribution of the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped = features_all.groupby(c_col)[n_col]\n        features_all[f\"{c_col}_{n_col}_mean\"] = features_all[c_col].map(\n            grouped.transform(\"mean\")\n        )"
+  }
+ ],
+ "summary": "The agent builds a robust pipeline with LightGBM and CatBoost, proper cross-validation, and well-structured target encoding. However, it critically fails by computing TF-IDF, TruncatedSVD, frequency encodings, and group-by aggregations on the combined train and test dataset, causing severe data leakage.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

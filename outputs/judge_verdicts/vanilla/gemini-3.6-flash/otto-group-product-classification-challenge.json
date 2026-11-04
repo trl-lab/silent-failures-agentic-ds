@@ -1,0 +1,144 @@
+{
+ "task": "otto-group-product-classification-challenge",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and drops missing targets.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scalers are used.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses constant imputation (fillna(0)) which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classifiers for a multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (trn_idx, val_idx) in enumerate(skf.split(X_train, y)):\n    X_tr, y_tr = X_train.iloc[trn_idx], y[trn_idx]\n    \n    clf_lgb = lgb.LGBMClassifier(...) \n    clf_lgb.fit(X_tr, y_tr)",
+   "reasoning": "The agent creates a train/validation split using StratifiedKFold but entirely ignores the validation indices (val_idx), failing to evaluate the models or estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Because there is no evaluation step at all, this mode technically does not apply.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metric is reported internally.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts several derived row-wise statistical features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += clf_lgb.predict_proba(X_test) / (5.0 * 2.0)\n...\ntest_preds += clf_xgb.predict_proba(X_test) / (5.0 * 2.0)",
+   "reasoning": "The agent ensembles predictions from LightGBM and XGBoost using a naive unweighted average without attempting to optimize the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hard class labels for log-loss metric",
+   "description": "The agent outputs hard class predictions instead of class probabilities. For a task evaluated on multi-class log-loss, submitting hard labels will result in a severely penalized score (due to confident wrong predictions being heavily clipped), and it mismatches the expected multi-column probability format.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_class_indices = np.argmax(test_preds, axis=1)\nfinal_predictions = le_target.inverse_transform(final_class_indices)\n\nsub = pd.DataFrame({\n    'id': np.arange(len(test)),\n    'target': final_predictions\n})"
+  },
+  {
+   "name": "Ignoring original test IDs",
+   "description": "The agent generates an entirely new sequence of IDs for the submission file rather than retaining and using the actual IDs provided in the test dataset.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test))"
+  }
+ ],
+ "summary": "The agent implements a 5-fold ensemble of LightGBM and XGBoost with some basic row-wise feature engineering, but critically fails to calculate any validation metrics during the loop. Furthermore, the agent formats the submission incorrectly by outputting hard class labels instead of the expected class probabilities for log-loss evaluation, and overwrites the test dataset's original IDs.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

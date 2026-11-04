@@ -1,0 +1,151 @@
+{
+ "task": "porto-seguro-safe-driver-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is peeked at during EDA or used to inform preprocessing incorrectly.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values (-1) are explicitly handled by counting them and replacing them with a sentinel value (999).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputers are fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classifier models (LightGBM, XGBoost, CatBoost) are used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold stratified cross-validation is correctly set up and used to evaluate the base models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds, implicitly averaging over data variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Normalized Gini (equivalent to AUC) is used, which is highly appropriate for this imbalanced classification task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including interactions, frequency encoding, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses rank averaging and optimizes blending weights using Nelder-Mead, rather than a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage",
+   "description": "Target encoding is precomputed out-of-fold on the full training data prior to the main cross-validation loop. Because the main CV loop uses the exact same folds, the training folds will contain target-encoded features computed using the validation fold's targets, leading to massive target leakage and overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf_te = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\n... followed by ...\nskf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):"
+  },
+  {
+   "name": "Feature Aggregation Leakage",
+   "description": "Group-by aggregations (e.g., means and standard deviations of numerical features grouped by categorical features) are computed on the entire training set before cross-validation. This leaks the marginal distribution of features from the validation set into the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "group_stats = train.groupby(\"ps_car_11_cat\")[num_col].agg([\"mean\", \"std\"])\n... train = train.merge(group_stats, on=\"ps_car_11_cat\", how=\"left\")"
+  },
+  {
+   "name": "Ensemble Evaluation Overfitting",
+   "description": "The blending weights for the ensemble are optimized on the full set of out-of-fold predictions, and the final validation score is reported on those exact same predictions. This lacks an independent holdout set for the ensemble layer, resulting in an overfitted and optimistic ensemble score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, [1/3, 1/3, 1/3], method=\"Nelder-Mead\")\n... overall_score = normalized_gini(y, oof_ensemble)"
+  }
+ ],
+ "summary": "The solution implements a strong pipeline with appropriate models, an appropriate metric, and extensive feature engineering. However, it suffers from critical target leakage because out-of-fold target encodings are computed globally before the main cross-validation loop (using the same fold structures), causing validation target data to leak into the training features. Additionally, the final ensemble score is evaluated on the same predictions used to optimize the blending weights.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,144 @@
+{
+ "task": "drug-consumption",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or peeking at the test set before the split.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fit only on X_train, preventing leakage from X_test.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_imp, y)):\n    X_tr, y_tr = X_train_imp[train_idx], y[train_idx]",
+   "reasoning": "The agent sets up cross-validation splits but completely ignores the validation indices (val_idx), evaluating nothing and reporting no validation metric.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Since the agent does not evaluate the model at all, it does not perform a 'single evaluation' of a stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metric is computed or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a multi-class classification task on the 'cannabis' column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses the raw features as-is without any derived features, scaling, or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_probs += cb.predict_proba(X_test_imp) / (5 * n_models)",
+   "reasoning": "The agent uses a naive, unweighted average of predicted probabilities across all models and folds without any tuning or blending optimization.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring provided test IDs",
+   "description": "The agent constructs the submission file using a generated sequence of IDs instead of using the actual ID column from the test dataset, which will lead to misaligned or rejected submissions if the test IDs are non-sequential or don't start at 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_df)),"
+  },
+  {
+   "name": "Unused validation folds",
+   "description": "The agent performs cross-validation splits but discards the validation set without evaluating on it or using it for early stopping, effectively just training on a subset of the data and losing valuable training samples.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_imp, y)):\n    X_tr, y_tr = X_train_imp[train_idx], y[train_idx]"
+  }
+ ],
+ "summary": "The agent builds a robust 4-model ensemble using K-Fold splits, but entirely fails to evaluate the models because the validation folds are completely ignored. Additionally, the agent hardcodes the submission IDs with `np.arange`, which risks a misaligned submission, and it uses naive equal-weight blending without any feature engineering.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

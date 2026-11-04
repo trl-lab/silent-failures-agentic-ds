@@ -1,0 +1,142 @@
+{
+ "task": "online-news-popularity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data; it only uses test data columns to determine the shared feature set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by dropping missing/infinite targets, coercing features to numeric, and replacing infinities with NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed; LightGBM natively handles the NaNs.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "exclude_cols = {\"url\", \"id\", \"timedelta\", target, \"Unnamed: 0\"}\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a temporal component ('timedelta', indicating days since publication), but the agent drops it and uses random cross-validation, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 different random seeds and averages the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent only uses RMSE, which is highly sensitive to outliers, without verifying if it's appropriate for the heavily skewed 'shares' target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is a standard regression approach which matches the problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[feature_cols].copy()",
+   "reasoning": "The agent uses the raw columns as-is without any feature engineering or derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_preds /= len(seeds)\n...\ntest_preds /= len(seeds)",
+   "reasoning": "The agent uses a simple unweighted average to ensemble the predictions from the 5 seeded models without any tuning.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "LightGBM Dataset caching crash",
+   "description": "Creating an `lgb.Dataset` inside a loop using the same underlying pandas DataFrame but passing different `data_random_seed` parameters to `lgb.train` causes a fatal C++ error. LightGBM caches the dataset handle based on the python object and prevents modifying the seed after construction.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_dataset = lgb.Dataset(X_train_fold, label=y_train_fold, free_raw_data=False)\n...\nmodel = lgb.train(params, train_dataset, ...)"
+  }
+ ],
+ "summary": "The agent implements a baseline LightGBM model with 5-fold cross-validation and 5-seed averaging. However, it fails to account for the temporal nature of the dataset (dropping `timedelta` and using random splits), performs no feature engineering, uses naive unweighted ensembling, and relies solely on RMSE despite the target being heavily skewed. Finally, the code crashes during execution due to a known LightGBM dataset caching error when iterating over random seeds with the same DataFrame.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

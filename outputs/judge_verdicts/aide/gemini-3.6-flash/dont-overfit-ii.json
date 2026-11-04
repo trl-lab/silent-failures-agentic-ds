@@ -1,0 +1,137 @@
+{
+ "task": "dont-overfit-ii",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_raw = train[feature_cols].values",
+   "reasoning": "The agent extracts raw features directly for modeling without making any effort to inspect or clean missing values, outliers, or duplicates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied after the outer train/validation split, preventing leakage into the outer validation set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the dataset prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LogisticRegressionCV is an appropriate model type for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent sets up an out-of-fold cross-validation scheme to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 10 random seeds and averages the predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)\nprint(f\"10-Seed 5-Fold CV ROC AUC Score: {cv_auc:.5f}\")",
+   "reasoning": "The agent reports only the ROC AUC score without verifying the model's performance on other metrics like accuracy, precision, recall, or log loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers useful row-wise aggregate statistics as derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test_scaled)[:, 1] / (n_seeds * n_splits)",
+   "reasoning": "The agent uses a naive unweighted average to combine predictions across all seeds and folds without attempting any weighted blending or stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Scaling before inner cross-validation",
+   "description": "Applying a scaler to the training data before passing it to an estimator with built-in cross-validation causes information from the inner validation folds to leak into the inner training folds during hyperparameter tuning. A pipeline should be used inside the CV to prevent this.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n...\nmodel = LogisticRegressionCV(\n    Cs=c_grid,\n    cv=5,\n    ...\n)\nmodel.fit(X_train_scaled, y_train)"
+  }
+ ],
+ "summary": "The agent provides a generally solid nested cross-validation setup with an appropriate model and valid feature engineering. However, it fails to perform any preliminary data cleaning, uses only a single evaluation metric, and relies on a naive unweighted average for ensembling. Furthermore, scaling the data before passing it to LogisticRegressionCV introduces minor data leakage during the inner hyperparameter tuning loop.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

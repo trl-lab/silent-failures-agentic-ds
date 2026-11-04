@@ -1,0 +1,145 @@
+{
+ "task": "workforce-demographics-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform explicit EDA or peek at the test data interactively, though it does leak test data during preprocessing (captured in FM04 and other_failure_modes).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and categorical missing value filling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med = df_full[col].median()\n    df_full[col] = df_full[col].fillna(med if pd.notnull(med) else 0)",
+   "reasoning": "The agent calculates the median for numerical imputation on the combined train and test dataset, leaking test set distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no indication that this is a time-series dataset requiring temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (XGBRegressor, LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set as a validation set to select models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, effectively evaluating the models multiple times across different splits to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y, oof_preds))\nprint(f\"Validation Metric (RMSE): {oof_rmse:.5f}\")",
+   "reasoning": "The agent evaluates and reports performance solely using RMSE, without checking other metrics like MAE to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as predicting a continuous percentage target via regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements several feature engineering techniques, including frequency encoding, pairwise interactions, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a weighted average (0.4, 0.35, 0.25) rather than a naive unweighted or equal-weight average, though the weights appear hardcoded.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering before splitting",
+   "description": "The agent applies feature engineering techniques (such as frequency encoding and group aggregations) on the combined training and test dataset before splitting. This leaks the distribution and statistics of the test set into the training features, leading to overly optimistic cross-validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grp = df_full.groupby(c_col)[n_col]\n        df_full[f\"{c_col}_{n_col}_mean\"] = grp.transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent demonstrates a robust machine learning pipeline with cross-validation, diverse models, target encoding, and post-processing. However, a critical flaw exists in the preprocessing phase: imputation, frequency encoding, and group-based feature engineering are all performed on the combined train and test dataset, causing severe data leakage. Additionally, the agent only evaluates the model using a single metric (RMSE).",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

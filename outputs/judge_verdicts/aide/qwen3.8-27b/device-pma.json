@@ -1,0 +1,145 @@
+{
+ "task": "device-pma",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses only the training data to compute frequency encoding mappings and categories, preventing test data leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements data cleaning steps, including handling missing values, standardising types, and dropping constant or entirely null columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalisation is performed before cross-validation splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent drops constant columns before splitting, but this is a variance threshold of 0 which does not leak meaningful information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting; missing values are handled via LightGBM's native support or filled with constants.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset may contain dates related to device approvals, but it's unclear if a strict temporal train/test split is required for this specific task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification objective for the task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 cross-validation folds, averaging the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_valid_fold, valid_pred)",
+   "reasoning": "The agent only calculates and reports ROC AUC, without checking other relevant metrics like precision, recall, or log loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent applies some feature engineering, such as converting datetimes to continuous numeric days, though it misses more granular date-part extraction.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent datetime scaling across train and test",
+   "description": "When converting datetime columns to numeric values (days since minimum date), the minimum date is calculated independently for the training and test sets. Since the minimum date in the test set will likely differ from the training set, the resulting numeric features will be misaligned, severely degrading the model's test predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "min_date = series.min()\nreturn ((series - min_date).dt.total_seconds() / 86400.0).astype(float)\n\nX_all[col] = datetime_to_days(s_train)\nX_test[col] = datetime_to_days(X_test[col])"
+  },
+  {
+   "name": "Frequency encoding before cross-validation",
+   "description": "The agent computes frequency encoding on the entire training dataset before splitting it into cross-validation folds. While frequency encoding does not use the target variable, computing it over the entire training set can still cause subtle data leakage into the validation folds, making the CV scores overly optimistic.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "freq = train_str.value_counts()\nX_all[col] = train_str.map(freq).astype(float)"
+  }
+ ],
+ "summary": "The agent builds a well-structured LightGBM pipeline with cross-validation and frequency encoding. However, it makes a critical error in its feature engineering by scaling datetime features independently for the train and test sets, which will misalign test features and ruin predictions. It also evaluates using only a single metric.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

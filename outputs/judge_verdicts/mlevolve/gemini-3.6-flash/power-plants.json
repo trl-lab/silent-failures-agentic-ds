@@ -1,0 +1,152 @@
+{
+ "task": "power-plants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed that peeks at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including imputing missing values and encoding categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling for the neural network is correctly applied inside the cross-validation loop after splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping single-value columns) is correctly performed only on the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[lat_name] = df_all[lat_name].fillna(df_all[lat_name].median())\n    df_all[lon_name] = df_all[lon_name].fillna(df_all[lon_name].median())",
+   "reasoning": "The agent computes the median of latitude and longitude on the combined dataset (df_all), leaking test set statistics into the training data before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal component requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a regression problem and uses regressors.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network includes Dropout layers and the optimizer uses weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to properly validate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Cross-validation inherently trains and evaluates multiple times, accounting for data split variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is exactly the metric required by the task description.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression formulation is entirely appropriate for predicting power plant capacity.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (KMeans geo-clusters, nearest neighbors, target encoding, etc.).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensembling is not naive; the agent uses SLSQP optimization to find the best blending weights.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Frequency encoding on combined dataset",
+   "description": "Computing frequency encoding on the combined train and test dataset leaks information about the test set's categorical distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts()\n    df_all[f\"{col}_freq\"] = df_all[col].map(freq)"
+  },
+  {
+   "name": "Mismatched Nearest Neighbors feature for Train/Test",
+   "description": "When computing nearest neighbor distances against the training set, the 0-th neighbor for training samples is the sample itself (distance 0), while for test samples it is the actual nearest neighbor. Selecting `distances[:, 1]` extracts the 1st nearest neighbor for train but the 2nd nearest neighbor for test, causing a train/test feature distribution mismatch.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "distances, _ = nn.kneighbors(geo_coords_all)\n    df_all[\"dist_nn_1\"] = distances[:, 1]"
+  }
+ ],
+ "summary": "The agent provides a strong solution overall, utilizing diverse models and proper cross-validation with an SLSQP-optimized blend. However, it introduces data leakage by imputing spatial coordinates and calculating frequency encodings on the combined train and test datasets. Additionally, there is a subtle but impactful bug in the nearest neighbors feature generation that misaligns the neighbor indices between the train and test sets, causing a feature distribution shift.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

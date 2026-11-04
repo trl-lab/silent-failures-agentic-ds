@@ -1,0 +1,145 @@
+{
+ "task": "abalone",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data or leak test distribution statistics into the preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col]).copy()\nX_test = test_df.copy()",
+   "reasoning": "The agent makes no effort to check for or handle missing values, duplicates, or outliers before passing the data to the feature engineering and modeling steps.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly localized within the cross-validation loop using a pipeline (`make_pipeline(StandardScaler(), Ridge(alpha=10.0))`).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, Ridge) for the continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is evaluated across 5 different folds in cross-validation, satisfying the need for multiple evaluations.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_va, 0.85 * val_pred_lgb + 0.15 * val_pred_ridge)",
+   "reasoning": "The agent evaluates and optimizes the model using only a single metric (RMSE) without considering others like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive domain-informed feature engineering (volumes, densities, weight ratios).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "oof_preds = 0.85 * oof_preds_lgb + 0.15 * oof_preds_ridge",
+   "reasoning": "The agent uses arbitrary, hardcoded weights for combining models without performing any blend-ratio optimization or search.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent hardcodes the IDs in the submission file as a sequence starting from 0, completely ignoring the actual 'id' column from the test dataset. This will likely result in a misaligned or invalid submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test_preds)), \"Class_number_of_rings\": test_preds})"
+  },
+  {
+   "name": "ID Column Used as Feature",
+   "description": "The agent fails to drop the identifier column ('id') from the training and test sets, allowing the model to mistakenly learn patterns from arbitrary row IDs.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col]).copy()"
+  }
+ ],
+ "summary": "The agent successfully implements a robust cross-validation scheme and creates useful domain-specific features for the models. However, it fails to perform basic data cleaning, uses hardcoded arbitrary weights for ensembling, and neglects to drop the 'id' column from the feature set. Finally, it hardcodes the test IDs in the submission file, which will likely invalidate the submission.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

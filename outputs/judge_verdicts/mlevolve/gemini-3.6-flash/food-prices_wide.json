@@ -1,0 +1,159 @@
+{
+ "task": "food-prices_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent imputes missing values using the median for numerical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit on the training folds and applied to the validation and test folds inside the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Imputation uses statistics from the training set only, so it does not leak test set statistics (although computing it before the CV loop does cause a minor leak across training folds).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a PyTorch NN with MSELoss) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes Dropout layers and uses weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is completely held out until the final prediction generation; ensemble weights are optimized on Out-Of-Fold (OOF) predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, which inherently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task instructions explicitly mandate RMSE as the evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task predicting 'usdprice'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date parts, creates interaction keys, and applies frequency and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal weighted blend of OOF predictions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in Target Encoding",
+   "description": "The agent precomputes Out-of-Fold (OOF) target encodings before the cross-validation loop and uses them as static features. This leaks validation fold targets into the training fold features, because the OOF encoding for a training row was calculated using the target values of the validation rows. Target encoding must be computed dynamically inside the CV loop using only the current fold's training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_proc.loc[va_mask, target_mean_col] = train_proc.loc[va_mask, g_col].map(mean_map).values\n...\nX_train = train_proc[features]"
+  },
+  {
+   "name": "Full-batch inference causing Out-of-Memory (OOM)",
+   "description": "The agent passes the entire validation and test sets into the PyTorch neural network at once without using a DataLoader for batching. For large datasets, this will immediately cause a CUDA Out-Of-Memory RuntimeError, crashing the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "va_tensor = torch.tensor(X_va_sc, dtype=torch.float32).to(device)\noof_nn[va_idx] = model_nn(va_tensor).cpu().numpy()"
+  },
+  {
+   "name": "Categorical features treated as continuous in Neural Network",
+   "description": "The agent label-encodes categorical variables into arbitrary integers and applies StandardScaler, treating them as continuous numerical features in the PyTorch TabularResNet. Neural networks cannot meaningfully process arbitrary integer labels as continuous floats without embedding layers, severely degrading performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "mapping = {val: idx for idx, val in enumerate(train_proc[c].unique())}\ntrain_proc[c] = train_proc[c].map(mapping).fillna(-1).astype(np.int32)\n...\nX_tr_sc = scaler.fit_transform(X_train.iloc[tr_idx].values)"
+  }
+ ],
+ "summary": "The agent implements a sophisticated ensemble of tree models and a TabularResNet but introduces severe data leakage. Random KFold splitting on panel data leaks future information, and precomputing OOF target encodings before the CV loop leaks validation targets into training features. Additionally, full-batch inference in PyTorch likely causes a CUDA OOM crash, and categorical variables are inappropriately treated as continuous floats in the neural network.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

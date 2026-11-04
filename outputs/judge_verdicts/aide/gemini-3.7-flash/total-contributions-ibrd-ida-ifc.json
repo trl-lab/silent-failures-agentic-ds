@@ -1,0 +1,142 @@
+{
+ "task": "total-contributions-ibrd-ida-ifc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on the test data or fit transformers before the train/test splits are established (the files are pre-split).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col]).copy()",
+   "reasoning": "The agent handles categoricals and dates but makes no effort to clean numeric features, relying entirely on XGBoost's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection techniques are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard imputer (e.g., SimpleImputer) is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The code explicitly extracts temporal features from date columns but uses a random shuffled KFold for cross-validation, ignoring temporal order and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "XGBRegressor is a suitable model choice for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains and evaluates the model across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent evaluates and reports only a single metric (RMSE) without verifying robustness via secondary metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively engineers date components and applies frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test) / n_splits",
+   "reasoning": "The agent combines predictions from the multiple CV folds using a simple unweighted average without attempting any weighted optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Data Leakage during Encoding",
+   "description": "The agent concatenates the training and test sets to compute frequency encoding mappings and label encoding categories. This leaks information about the test set's distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = pd.concat([X_train[col], X_test[col]]).value_counts(dropna=False).to_dict()"
+  }
+ ],
+ "summary": "The agent creates a functional XGBoost pipeline with cross-validation and date feature extraction. However, there are critical flaws: it introduces severe test data leakage by computing frequency encodings on the combined train/test sets, and it ignores temporal dependencies by using random KFold splitting on time-based data. Additionally, numeric columns are not explicitly cleaned, relying entirely on the model's default handling.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

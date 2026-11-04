@@ -1,0 +1,141 @@
+{
+ "task": "sf-building-permits",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes efforts to handle missing values during text and categorical processing.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=10, random_state=42)\n    svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD are fit on the combined train and test data, leaking test set text distribution into the extracted features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global imputation model is fit on the combined data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains building permits which are inherently temporally ordered, but the agent uses a random K-Fold split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An XGBRegressor is appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 CV folds, effectively running it multiple times rather than just once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"5-Fold CV RMSE: {cv_rmse:.5f}\")",
+   "reasoning": "The agent only computes and reports RMSE without evaluating any other metrics to check robustness (e.g., MAE).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates numerous derived features, including date parts, text SVD, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across CV folds, which is a standard practice rather than a naive multi-model ensemble.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Full-Dataset Aggregations",
+   "description": "Computing group-based aggregations (e.g., mean, std) or frequency encodings on the combined train and test dataset leaks test set distribution statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "grp = df_all.groupby(cat)[num].agg([\"mean\", \"std\"]).reset_index()"
+  }
+ ],
+ "summary": "The agent provides a comprehensive pipeline with good feature engineering and carefully implemented out-of-fold target encoding. However, it suffers from data leakage by fitting TF-IDF/SVD and computing group aggregations on the combined train/test dataset. Additionally, it ignores the temporal nature of the building permits data by using a random K-Fold split instead of a time-based validation strategy.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

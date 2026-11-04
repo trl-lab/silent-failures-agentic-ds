@@ -1,0 +1,164 @@
+{
+ "task": "tax-incentives",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design; all dynamic feature engineering uses statistics derived solely from the training set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df[f\"raw_num_{col}\"] = train_df[col].fillna(median_val).astype(np.float32)",
+   "reasoning": "The agent explicitly handles missing values by creating missing indicator flags and imputing numerical columns with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler_geo = StandardScaler()\nnum_scaled_tr = scaler_geo.fit_transform(train_df[numeric_cols].fillna(0))\nnum_scaled_ts = scaler_geo.transform(test_df[numeric_cols].fillna(0))",
+   "reasoning": "Scalers are correctly fitted exclusively on the training dataset and then used to transform the test dataset, avoiding holdout test set leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pca = PCA(n_components=n_pca, random_state=seed)\ntr_pca = pca.fit_transform(num_scaled_tr)\nts_pca = pca.transform(num_scaled_ts)",
+   "reasoning": "Feature selection and dimensionality reduction (PCA) are fitted only on the training data, correctly avoiding test set leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = train_df[col].median()\ntrain_df[f\"raw_num_{col}\"] = train_df[col].fillna(median_val)",
+   "reasoning": "Imputation statistics (like the median) are calculated strictly on the training set and applied to the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit indication that the tax-incentives dataset is a time series requiring chronological splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_params = {\"objective\": \"regression\", ...}\nxgb_model = xgb.XGBRegressor(...)",
+   "reasoning": "The task is regression, and the agent correctly employs regressor models (LGBMRegressor, XGBRegressor, etc.).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout)\noptimizer = torch.optim.AdamW(nn_model.parameters(), lr=1e-3, weight_decay=1e-4)",
+   "reasoning": "The deep learning model utilizes dropout, weight decay, and early stopping for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)",
+   "reasoning": "The agent robustly evaluates models using a 10-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_pred_lgb = lgb_model.predict(X_val, num_iteration=lgb_model.best_iteration)",
+   "reasoning": "Model selection and early stopping are performed on the validation folds, not the held-out test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold in range(n_folds):",
+   "reasoning": "The stochastic models are trained and evaluated across 10 folds, effectively averaging performance over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_rmse = root_mean_squared_error(y_val, np.clip(current_val_preds, 0, None))",
+   "reasoning": "The agent evaluates using RMSE, which matches the required competition metric and is appropriate for the regression task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"credit_amount\"",
+   "reasoning": "The problem is correctly framed as a regression task predicting the credit_amount target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def create_numeric_interaction_features(df: pd.DataFrame, numeric_cols: list) -> pd.DataFrame:",
+   "reasoning": "The agent implements extensive feature engineering, including numeric interactions, target encoding, frequency encoding, PCA, and KMeans distance features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(blend_objective, initial_weights, method=\"SLSQP\", bounds=bounds, constraints=constraints)",
+   "reasoning": "The agent uses an advanced out-of-fold optimization technique via SLSQP to find the optimal blending weights, rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unaligned_datetime_normalization",
+   "description": "When computing time-elapsed features, the minimum date is calculated independently for the training and test sets. If the datasets cover different time periods, the resulting features will be on completely different scales, invalidating the feature for the test set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "min_date = dt_series.min()\nif pd.notnull(min_date):\n    df_out[f\"{prefix}_days_elapsed\"] = ((dt_series - min_date).dt.total_seconds() / 86400.0)"
+  },
+  {
+   "name": "cross_validation_leakage",
+   "description": "Global statistics (such as median for imputation, PCA transformations, and KMeans clustering) are fitted on the entire training dataset before cross-validation splitting. This leaks information from the validation folds into the training folds, making out-of-fold predictions overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scaler_geo = StandardScaler()\nnum_scaled_tr = scaler_geo.fit_transform(train_df[numeric_cols].fillna(0))\n... followed by ... \nfor fold in range(n_folds):"
+  },
+  {
+   "name": "batch_inference_oom_risk",
+   "description": "During neural network inference, the entire test set is converted to a tensor and passed through the model in a single batch. For moderately large tabular test sets, this will easily cause a GPU Out-Of-Memory (OOM) error.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "t_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)\nnn_test_pred = nn_model(t_tensor).cpu().numpy()"
+  }
+ ],
+ "summary": "The solution is a highly sophisticated, Kaggle-style pipeline employing out-of-fold blending, deep learning with proper regularisation, and robust target encoding. However, it suffers from a few subtle flaws: time-elapsed features are unaligned between train and test sets, global statistics leak across cross-validation folds, and the neural network inference lacks batching, risking OOM errors on large test sets.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

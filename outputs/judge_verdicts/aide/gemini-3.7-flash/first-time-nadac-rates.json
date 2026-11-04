@@ -1,0 +1,142 @@
+{
+ "task": "first-time-nadac-rates",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes no explicit effort to clean the data, relying entirely on LightGBM's internal handling for missing values without any inspection or strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent extracts date features, indicating a temporal component, but uses a randomized KFold split which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regressor (LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "By using 5-fold cross-validation, the agent averages out some variance rather than relying on a single train-validation split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent evaluates and reports only RMSE, without checking other metrics like MAE which might be more robust to outliers in rates.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts several derived features from datetime columns (year, month, day, dayofweek).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / n_splits",
+   "reasoning": "The agent uses a naive unweighted average of the 5 cross-validation fold models without any tuning.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Independent categorical encoding for train and test",
+   "description": "When converting string or object columns to pandas 'category' types, doing this independently for train and test sets assigns underlying integer codes based on the unique values present in each set. If the sets contain different unique categories, the integer codes will misalign, causing the model to misinterpret the test features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df[col] = train_df[col].astype(\"category\")\ntest_df[col] = test_df[col].astype(\"category\")"
+  }
+ ],
+ "summary": "The agent implements a standard LightGBM regression pipeline with 5-fold cross-validation, but commits several critical errors. It fails to respect temporal order by using a randomized split, ignores data cleaning, and uses a naive averaging ensemble. Most severely, it encodes categorical variables independently on the train and test sets, which will cause underlying integer codes to misalign and silently corrupt the test predictions.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

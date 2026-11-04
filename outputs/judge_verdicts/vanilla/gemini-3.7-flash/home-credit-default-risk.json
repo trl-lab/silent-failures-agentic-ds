@@ -1,0 +1,149 @@
+{
+ "task": "home-credit-default-risk",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent peeking at the test data for EDA or using it to fit preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df['DAYS_EMPLOYED'] = df['DAYS_EMPLOYED'].replace(365243, np.nan)",
+   "reasoning": "Although the agent handles a known outlier by converting it to NaN, it relies entirely on LightGBM's native handling for all missing values in the dataset without any explicit missing-value strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is not a time-series problem.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses StratifiedKFold to create internal train/validation splits.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is evaluated over 5 different folds and random states, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly choose an inappropriate metric to optimize; it simply relies on the model's default loss (logloss), which is appropriate for generating probabilities for ROC AUC.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent constructs several domain-specific derived features (e.g., CREDIT_INCOME_PERCENT, PAYMENT_RATE).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / n_splits",
+   "reasoning": "The agent combines predictions from the 5 cross-validation folds using a naive unweighted average without attempting any optimization of the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing early stopping",
+   "description": "The agent passes a validation set to the gradient boosting model but does not configure early stopping, causing the model to train for the maximum number of iterations which can easily lead to overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_va)],\n        callbacks=[]\n    )"
+  },
+  {
+   "name": "No validation score reported",
+   "description": "The agent performs internal cross-validation but completely fails to calculate or print the target metric on the validation folds, making it impossible to assess generalization performance offline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train)):\n..."
+  }
+ ],
+ "summary": "The agent sets up a reasonable baseline using 5-fold cross-validation, LightGBM, and appropriate domain-specific feature engineering. However, it fails to track the required task metric (ROC AUC) on the validation sets and omits early stopping callbacks, risking severe overfitting across the 1000 estimators. Additionally, it relies entirely on the model to handle missing values and combines fold predictions using a naive unweighted average.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

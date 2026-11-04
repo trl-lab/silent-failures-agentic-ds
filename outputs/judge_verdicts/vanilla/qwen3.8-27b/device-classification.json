@@ -1,0 +1,149 @@
+{
+ "task": "device-classification",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].fillna('MISSING').astype(str)",
+   "reasoning": "The agent explicitly handles missing values by filling them with a constant string.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].fillna('MISSING').astype(str)",
+   "reasoning": "The agent fills missing values with a constant string before splitting, which does not compute or leak any distribution statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "LGBMClassifier(...)\nCatBoostClassifier(...)",
+   "reasoning": "The agent correctly uses multi-class classifiers for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(...)",
+   "reasoning": "The agent creates a validation set and uses it to evaluate model performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for selecting models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n    X_train, y_train_encoded, test_size=0.2, random_state=42, stratify=y_train_encoded\n)",
+   "reasoning": "The agent performs a single train/validation split and evaluates the stochastic models only once without cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score_lgbm = accuracy_score(y_val, val_pred_lgbm)",
+   "reasoning": "The agent uses only accuracy to evaluate performance without checking other metrics (like log loss or F1-score) to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in X_train.columns:\n    X_train[col] = X_train[col].fillna('MISSING').astype(str)",
+   "reasoning": "The agent applies no domain-informed feature engineering or transformations, relying solely on basic categorical encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "avg_proba = (proba_lgbm + proba_cat) / 2.0",
+   "reasoning": "The agent combines the models using a naive, unweighted simple average of their predicted probabilities without any tuning.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Blanket Categorical Conversion",
+   "description": "The agent forcefully converts all features to strings and then to pandas 'category' types. If the dataset contains numerical features, this practice destroys their continuous/ordinal properties and treats them as nominal categories, which can severely degrade model performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in X_train.columns:\n    X_train[col] = X_train[col].fillna('MISSING').astype(str)\n... \nfor col in cat_cols:\n    X_train[col] = X_train[col].astype('category')"
+  },
+  {
+   "name": "Unaligned Categorical Encoding",
+   "description": "Converting string columns to pandas 'category' dtype separately on the train and test sets can result in mismatched categorical codes if the test set contains unseen categories or lacks categories present in the training set, potentially leading to incorrect predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].astype('category')\nX_test[col] = X_test[col].astype('category')"
+  }
+ ],
+ "summary": "The agent correctly frames the classification task and implements a validation loop alongside ensembling, but relies on a severely flawed preprocessing step that casts all columns indiscriminately to categorical types. Furthermore, the solution lacks feature engineering, uses naive unweighted averaging for the ensemble, and performs only a single evaluation of the stochastic models on one metric.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

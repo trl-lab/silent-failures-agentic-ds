@@ -1,0 +1,155 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_df = pd.concat([train_df, test_df], ignore_index=True)\n...\nplayer_stats = (\n    full_df.groupby(\"nickname\")\n    .agg(\n        player_game_count=(\"game_id\", \"count\"),",
+   "reasoning": "The agent concatenates train and test sets to compute grouped statistics and frequency encodings, leaking test set feature distributions into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling numerical features with medians and categorical ones with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is fit only on the training folds and then applied to validation and test folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection algorithm is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Global imputation is performed using the train set median, which leaks validation data but not test data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "gkf = GroupKFold(n_splits=5)\n...\nfor fold, (tr_idx, val_idx) in enumerate(\n    gkf.split(train_df, y_train, groups=groups)\n):",
+   "reasoning": "Scrabble ratings evolve over time, so using a random K-fold split introduces look-ahead bias by predicting past ratings using future game information.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for the regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates regularisation techniques like Dropout, BatchNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for Mean Absolute Error, which is the correct metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as predicting the player's rating.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including pairwise game features and historical aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses SLSQP optimization to find the optimal blending weights rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "target_encoding_self_leakage",
+   "description": "When computing target encodings within cross-validation folds, the agent maps the fold's aggregated target statistics back to the training indices without using leave-one-out or out-of-fold techniques. This causes the training features to contain the target value of the row itself, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "stats = tr_df_fold.groupby(\"nickname\")[target_col].agg(...)\n...\np_bm_tr = train_df[\"nickname\"].map(d_mean).fillna(g_mean).values\n...\ntarget_feats_tr = np.column_stack([... p_bm_tr ...])"
+  },
+  {
+   "name": "validation_leakage_imputation",
+   "description": "Imputation statistics (e.g., median) are calculated on the entire training set before cross-validation splitting. This leaks information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med_val = train_df[c].median()\ntrain_df[c] = train_df[c].fillna(med_val)"
+  }
+ ],
+ "summary": "The agent develops a complex solution with extensive feature engineering, target encoding, and an ensemble of GBDTs and a PyTorch MLP. However, the solution suffers from critical data leakage: test data is leaked into training through global feature aggregations, and target encodings within the CV loop suffer from self-leakage because they map aggregate statistics directly back to the training rows without a leave-one-out strategy. Furthermore, random K-fold splitting is used on a temporal dataset, introducing look-ahead bias.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 7,
+ "no_code": false
+}

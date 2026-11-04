@@ -1,0 +1,119 @@
+{
+ "task": "walmart-recruiting-store-sales-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def main():\n    _set_seed()\n...\n    for epoch in range(1, MAX_EPOCHS + 1):\n        train_loss = _train_one_epoch...",
+   "reasoning": "The stochastic PyTorch MLP model is trained and evaluated exactly once, without multiple runs to account for random initialization variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def _wmae(y_true: np.ndarray, y_pred: np.ndarray) -> float:\n...\n    return float(np.sum(np.abs(y_true - y_pred)) / denom)",
+   "reasoning": "The agent only uses its custom WMAE metric and does not report any other standard regression metrics (like RMSE or MAE) to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect metric implementation",
+   "description": "The implemented WMAE metric does not incorporate the sample weights for holidays (which should be 5 for holiday weeks and 1 for normal weeks in this task), computing an unweighted normalized MAE instead.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "def _wmae(y_true: np.ndarray, y_pred: np.ndarray) -> float:\n    ...\n    return float(np.sum(np.abs(y_true - y_pred)) / denom)"
+  },
+  {
+   "name": "Invalid submission ID format",
+   "description": "The agent incorrectly creates the submission ID as a 0-based integer row index, whereas the task requires a specific string format combining Store, Dept, and Date (e.g., '1_1_2012-11-02').",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "# The required submission id is the 0-based integer row index of test.\n    test_raw[ID_COL] = np.arange(len(test_raw), dtype=int)"
+  },
+  {
+   "name": "In-sample target encoding",
+   "description": "Target encoding (e.g., mean of target by Store and Dept) is calculated on the entire training set and applied directly to the training set without out-of-fold computations, leading to target leakage and potential overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "g = (\n            train.groupby(key, observed=True)[TARGET]\n            .agg(\n                **{\n                    f\"{prefix}_mean\": \"mean\","
+  },
+  {
+   "name": "Batch loss scaling mismatch",
+   "description": "The training loss divides the sum of absolute errors for a single batch by the sum of absolute targets for the entire training dataset. This results in artificially tiny gradients that can interact poorly with the optimizer's epsilon and weight decay.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_abs_sum = float(y_train.abs().sum().item())\ncriterion = WMaeLoss(denominator=train_abs_sum).to(device)"
+  }
+ ],
+ "summary": "The agent correctly splits the data over time and performs sensible feature engineering. However, it fails to account for variance by only running the model once, and incorrectly implements the task's primary metric (WMAE) by ignoring the crucial holiday weights. Furthermore, the agent generates an invalid submission file by using integer row indices instead of the required 'Store_Dept_Date' format, and introduces target leakage via in-sample target encoding without out-of-fold splitting.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

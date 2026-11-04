@@ -1,0 +1,156 @@
+{
+ "task": "airbnb-recruiting-new-user-bookings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling with constants (0 for numericals, '-unknown-' for categoricals).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Numerical feature scaling is properly computed only on the training split and then applied to validation and test splits.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation is done using constants, which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train_split, y_val_split = train_test_split(train_feat, y_all, test_size=0.2, random_state=42, stratify=y_all)",
+   "reasoning": "The test set in this competition is strictly in the future relative to the train set, but the agent uses a random split, ignoring the temporal nature of the data and failing to simulate the future distribution shift.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as multi-class classification and uses an appropriate neural network architecture.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates regularisation techniques such as Dropout and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into training and validation sets to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for epoch in range(1, max_epochs + 1):\n    train_epoch(epoch)\n    scheduler.step()\n    val_ndcg, val_probs, val_labels = evaluate()",
+   "reasoning": "The agent trains a stochastic neural network exactly once and reports a single validation score without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimises for and evaluates NDCG, which is the official and appropriate metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly treated as a multi-class problem outputting top-3 predictions per user.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple temporal, interaction, and encoded features.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The agent uses a date column (`date_first_booking`) that is inherently tied to the target to engineer features. Since users who do not book (target `NDF`) have missing booking dates, this feature perfectly leaks the target in the training set. Furthermore, by forcing this feature to 0 in the test set, it creates a massive distribution shift that will cause the model to predict `NDF` for almost all test users.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if is_train:\n    df[\"has_first_booking\"] = (~df[\"date_first_booking\"].isna()).astype(int)\n...\nelse:\n    df[\"has_first_booking\"] = 0"
+  },
+  {
+   "name": "Invalid submission IDs",
+   "description": "The script assigns integer loop indices to the `id` column of the submission file instead of the actual alphanumeric test user IDs. This will result in an invalid submission file that cannot be scored by the leaderboard.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "rows.append({\"id\": i, \"country_destination\": c})\n...\nsubmission[\"id\"] = submission[\"id\"].astype(int)"
+  },
+  {
+   "name": "Invalid multi-class target encoding",
+   "description": "The agent computes a scalar target encoding for a multi-class target by taking the maximum smoothed probability across all classes. This discards critical information about which specific class is most probable, mapping entirely different class distributions to the same scalar value.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "te_dict[cat] = float(np.max(smoothed))"
+  }
+ ],
+ "summary": "The agent successfully sets up a deep learning pipeline for multi-class classification but introduces a fatal target leakage bug by using the `date_first_booking` feature, which trivially predicts the `NDF` class in train and breaks test predictions. Additionally, the agent incorrectly constructs the submission file using integer indices instead of actual alphanumeric test IDs, which will cause evaluation to fail entirely. There are also notable flaws in the multi-class target encoding implementation and the use of a random train/test split that ignores the temporal nature of the data.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

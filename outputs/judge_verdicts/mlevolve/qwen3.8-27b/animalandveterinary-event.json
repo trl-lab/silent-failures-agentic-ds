@@ -1,0 +1,108 @@
+{
+ "task": "animalandveterinary-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_1 = CatBoostClassifier(..., random_seed=42, ...)",
+   "reasoning": "The agent trains each stochastic CatBoost model configuration exactly once without averaging predictions over multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Interaction Encoding",
+   "description": "The agent calculates target encodings for interaction features using the entire training set's target values and maps them directly back to the training set. This lacks out-of-fold splitting (e.g., K-fold) and introduces severe target leakage, guaranteeing overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "new_train[f\"{interaction}_target_enc\"] = new_train[interaction].map(smoothed).fillna(global_mean_inter)"
+  },
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent ignores the original IDs from the test dataset and creates fake sequential IDs for the submission file using np.arange(), which will result in the submission being rejected or scored incorrectly.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_ids = np.arange(len(test_pred_final))\nsubmission = pd.DataFrame({\"id\": test_ids, \"serious_ae\": test_pred_final})"
+  },
+  {
+   "name": "Incomplete Missing Value Imputation",
+   "description": "The agent conditionally applies missing value imputation only to columns that have missing values in the training set. If a column has missing values in the validation or test set but is fully populated in the training set, those values will remain unhandled and can cause model failures.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if new_train[c].dtype == \"category\" and new_train[c].isna().any():"
+  }
+ ],
+ "summary": "The agent implements a comprehensive pipeline with extensive feature engineering, a valid holdout split, and ensembling. However, it introduces critical target leakage by calculating target encodings for interaction features on the full training set without out-of-fold splitting. Additionally, it drops the original test IDs in favor of a hardcoded sequence, invalidating the submission file, and conditionally skips imputation for columns that lack NaNs in the training data.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

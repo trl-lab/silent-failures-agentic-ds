@@ -1,0 +1,152 @@
+{
+ "task": "store-sales-time-series-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "Pipeline(steps=[('imputer', SimpleImputer(strategy='median'))])",
+   "reasoning": "Imputation is correctly contained within a Pipeline, preventing leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any validation split, so it does not make a random split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor(objective='regression')",
+   "reasoning": "The agent uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_raw, y_train)\n        \n        # Predict\n        preds = model.predict(X_test_raw)",
+   "reasoning": "The agent trains on the full training set without creating a validation set or evaluating the model internally.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation score, so it doesn't evaluate exactly once either.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model, so it doesn't use a single evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses raw columns as-is without extracting date parts or creating time series features like lags or rolling statistics.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Syntax Error",
+   "description": "The script contains a syntax error (an extra `else:` block without a corresponding `if`) which prevents the code from executing entirely.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "else:\n        pred_df = pd.DataFrame({\n            'id': list(range(len(X_test))),"
+  },
+  {
+   "name": "Loss of Test IDs",
+   "description": "The agent drops the 'id' column from the test dataset and replaces it with a simple range (0 to N) when generating predictions. This destroys the mapping to the original test instances and will result in an invalid submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df = df.drop(columns=['id'])\n...\n'id': list(range(len(preds))),"
+  },
+  {
+   "name": "No target transformation for RMSLE",
+   "description": "The evaluation metric is RMSLE and the target is bounded at zero (sales), but the agent trains a standard regression model on the raw target. This can lead to negative predictions, which will cause errors or NaNs when computing RMSLE, and results in suboptimal optimization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor(objective='regression', ..."
+  }
+ ],
+ "summary": "The solution contains a fatal syntax error preventing execution and drops the required test IDs, invalidating the predictions. Furthermore, it completely skips validation and feature engineering for a time series task, and misses target transformation necessary for the RMSLE metric.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

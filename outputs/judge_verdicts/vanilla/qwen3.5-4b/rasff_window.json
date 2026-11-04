@@ -1,0 +1,159 @@
+{
+ "task": "rasff_window",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# CatBoost handles NaNs and categoricals automatically without preprocessing",
+   "reasoning": "The agent explicitly skips all data cleaning, relying entirely on the model to handle missing values and inconsistencies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No dataset splitting is performed, so temporal order is not violated in a split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostClassifier is an appropriate model type for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, eval_set=(X_test, {'logloss': lambda y_true, y_pred: -np.log(y_pred)} if y_pred.size > 0 else None))",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without creating a validation split to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(\n        verbose=0,\n        iterations=500,\n        depth=5,\n        loss_function='Logloss',\n        random_state=42,",
+   "reasoning": "The stochastic model is trained exactly once to generate predictions, without ensembling or averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed at all, so the agent does not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col and col != 'id']",
+   "reasoning": "The agent uses the raw columns as features without any derived features, encodings, or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "hallucinated_api_argument",
+   "description": "The agent provides an invalid keyword argument to a third-party library constructor (e.g., `enable_categorical=True` for CatBoostClassifier), causing a fatal TypeError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "enable_categorical=True # Required for handling string categories if converted or object dtype"
+  },
+  {
+   "name": "invalid_eval_set_format",
+   "description": "The agent passes an incorrectly formatted argument to the model's `eval_set` parameter (e.g., providing test features without labels alongside a lambda function instead of an (X_val, y_val) tuple), which will cause a crash during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "eval_set=(X_test, {'logloss': lambda y_true, y_pred: -np.log(y_pred)} if y_pred.size > 0 else None)"
+  },
+  {
+   "name": "unspecified_categorical_features",
+   "description": "The agent assumes the model will automatically handle categorical data but fails to pass the required list of categorical feature indices/names (e.g., `cat_features` in CatBoost), which leads to a crash when the model encounters string types.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "# CatBoost handles NaNs and categoricals automatically without preprocessing"
+  },
+  {
+   "name": "wrong_loss_function_for_multiclass",
+   "description": "The agent configures a classifier with a binary classification loss function (e.g., 'Logloss') while the underlying task is multi-class classification.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "loss_function='Logloss',"
+  }
+ ],
+ "summary": "The agent completely skips data cleaning, feature engineering, and internal validation, relying entirely on CatBoost's automated handling. However, the code contains multiple fatal execution errors, including a hallucinated `enable_categorical` parameter, an improperly formatted `eval_set` that attempts to use the unlabelled test data, and missing `cat_features` definitions. Additionally, the agent incorrectly specifies a binary classification loss function for a multi-class task.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 1,
+ "stage_count_max": 8,
+ "no_code": false
+}

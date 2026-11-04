@@ -1,0 +1,148 @@
+{
+ "task": "food-prices_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling numeric columns with medians and categorical columns with placeholders.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any global scaling before splitting the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (top columns by variance) is performed exclusively on the training split, not the full dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (such as medians) are computed strictly on the training split and then applied to the validation and test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses XGBRegressor for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is created and utilised.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = xgb.XGBRegressor(... random_state=42, ...)",
+   "reasoning": "The stochastic XGBoost model is trained and evaluated only once, without any cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_val = np.sqrt(mean_squared_error(y_val_orig, val_pred_orig))",
+   "reasoning": "The agent evaluates the model solely on RMSE and does not compute or report any other metrics to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a straightforward regression task predicting 'usdprice'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent applies extensive feature engineering, including log transforms, variable interactions, target encoding, and group statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage via naive target encoding",
+   "description": "Target encoding is applied to the training set using the target values of the same training set without out-of-fold cross-validation or leave-one-out techniques. Despite a smoothing factor, this directly leaks target information for the row being encoded, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "temp = pd.DataFrame({'cat': train_df[col].values, 'target': y_train_ref.values})\ncat_means = temp.groupby('cat')['target'].mean()\nenc = df[col].map(cat_means).fillna(global_mean)"
+  },
+  {
+   "name": "Destruction of categorical features via numeric coercion",
+   "description": "Categorical string columns are forced to numeric using `pd.to_numeric` with `errors='coerce'`. This converts all valid string categories to NaN, which are subsequently filled with 0, completely destroying the original categorical values and rendering those columns useless.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_processed[col] = pd.to_numeric(train_processed[col], errors=\"coerce\").fillna(0)"
+  },
+  {
+   "name": "Inconsistent feature generation across splits",
+   "description": "The condition for creating log-transformed features depends on the minimum value of the current DataFrame split being processed (`df[col].min() >= 0`) rather than the training set. This can lead to missing columns and runtime errors if test/validation splits contain negative values while the training set does not.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if df[col].min() >= 0:\n    df[f\"{col}_log\"] = np.log1p(df[col])"
+  }
+ ],
+ "summary": "The agent implements a generally sound pipeline with appropriate data splitting, model selection, and target variable transformations. However, it introduces critical target leakage by performing naive target encoding on the training set without out-of-fold validation. Furthermore, aggressive numeric coercion destroys the original categorical features, and conditional feature generation risks creating asymmetric features across different data splits.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

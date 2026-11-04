@@ -1,0 +1,113 @@
+{
+ "task": "pol-terminal",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[col] = pd.to_numeric(X[col], errors='coerce')",
+   "reasoning": "The agent coerces numeric columns and leaves missing values as NaNs, relying entirely on the models' native handling without exploring explicit imputation strategies or handling outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "We cannot determine if the data has an underlying temporal order that is being ignored by random splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_lgb = X.copy()",
+   "reasoning": "The agent uses the raw columns directly after basic type conversion without engineering any derived features or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_test_preds + 0.5 * cb_test_preds",
+   "reasoning": "The agent combines predictions from LightGBM and CatBoost using a naive equal-weight average rather than tuning the combination using validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unaligned_categorical_encoding",
+   "description": "Converting string columns to pandas categorical types independently for train and test sets assigns different underlying integer codes to the same categories. Models that rely on these integer codes (like LightGBM) will receive corrupted or misaligned data during prediction if the train and test sets have different unique values.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test_lgb[col] = X_test_lgb[col].astype('category')"
+  },
+  {
+   "name": "no_validation_metric_computed",
+   "description": "The agent sets up cross-validation and imports an evaluation metric, but fails to actually compute or report the validation score for any fold or the overall model, making it impossible to objectively assess model quality.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import mean_squared_error"
+  }
+ ],
+ "summary": "The agent implements a regression solution using 5-fold cross-validation with LightGBM and CatBoost, but completely fails to compute any validation metrics. Key failures include naive equal-weight ensembling, a lack of feature engineering, and a critical bug where categorical features are encoded independently for train and test sets, leading to mismatched category codes for LightGBM.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

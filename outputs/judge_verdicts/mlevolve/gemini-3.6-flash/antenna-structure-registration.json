@@ -1,0 +1,155 @@
+{
+ "task": "antenna-structure-registration",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data was used during exploratory data analysis.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values and cleans the data before training.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scalers or normalizers are applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_svd_comp, random_state=42)\n            svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (a form of PCA) is fit on the combined train and test text data, leaking test information into the dimensionality reduction.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lat_vals = combined[lat_col].fillna(combined[lat_col].median()).values",
+   "reasoning": "Missing values are imputed using the median of the combined train and test sets, causing test statistics to leak into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (CatBoost, LightGBM, XGBoost) are correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalization.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent relies on out-of-fold validation scores rather than the test set to evaluate and combine models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated using 5-fold cross-validation, which inherently averages over multiple data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def compute_rmse(y_true, y_pred):",
+   "reasoning": "The agent only computes and evaluates RMSE without verifying other regression metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as predicting a continuous target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including spatial grids, ECEF coordinates, and text vectorization.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated SLSQP optimization to compute optimal blending weights rather than a simple average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via global grouped statistics",
+   "description": "Computing grouped statistics (e.g., mean, min, max) on a combined dataset of train and test leaks test set information into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "g_mean = elev_series.groupby(grid_group).transform(\"mean\")"
+  },
+  {
+   "name": "Data leakage via text vectorization on full dataset",
+   "description": "Fitting text vectorizers (e.g. TF-IDF) on the combined train and test sets leaks test vocabulary and document frequencies into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(combined_text)"
+  },
+  {
+   "name": "Data leakage via frequency encoding on full dataset",
+   "description": "Computing category frequencies on the combined train and test sets leaks the test set distribution into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[c].value_counts(normalize=True).to_dict()"
+  }
+ ],
+ "summary": "The agent implements a strong pipeline with extensive domain-specific feature engineering, rigorous cross-validation, and sophisticated ensembling. However, the solution suffers from critical data leakage because almost all feature transformations (imputation, SVD, TF-IDF, frequency encoding, and grouped statistics) are computed globally on a concatenated train and test dataset before splitting.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

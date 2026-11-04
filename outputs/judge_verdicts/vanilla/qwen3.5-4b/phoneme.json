@@ -1,0 +1,134 @@
+{
+ "task": "phoneme",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(0)\nX_test = X_test.fillna(0)",
+   "reasoning": "The agent explicitly handles missing values by filling them with zeros.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant rather than an imputed statistic, so no leakage occurs.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(iterations=100, depth=6, learning_rate=0.1, loss_function=\"Logloss\")",
+   "reasoning": "The agent correctly uses a classifier for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, cat_features=None)\n\n# Make predictions\npredictions = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without any internal validation split or cross-validation to assess performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(iterations=100, depth=6, learning_rate=0.1, loss_function=\"Logloss\")\n\n# Fit the model\nmodel.fit(X_train, y_train, cat_features=None)",
+   "reasoning": "The agent trains a stochastic model (CatBoost) exactly once without setting a random seed or averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any metrics, so this failure mode is not strictly applicable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_columns = [col for col in train_df.columns if col != 'class']\n\n# Prepare training data\nX_train = train_df[feature_columns].copy()",
+   "reasoning": "The agent uses the raw feature columns as-is without attempting any feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution crash due to categorical target type",
+   "description": "The agent fails to convert a pandas Categorical target column into a format accepted by the machine learning model (e.g., numpy array of integers or strings), resulting in a runtime crash during model fitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = train_df['class'].values\n... model.fit(X_train, y_train, cat_features=None) \n... CatBoostError: Invalid label type=<class 'pandas.core.arrays.categorical.Categorical'>: must be array like."
+  }
+ ],
+ "summary": "The agent provides a minimal script that attempts to train a CatBoost model on raw features, lacking any feature engineering or validation strategy. Most critically, the code fails to execute because the target column is extracted as a pandas Categorical array, which CatBoost rejects, causing a fatal runtime error.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "cat-in-the-dat-ii",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categorical_transformer = OneHotEncoder(handle_unknown=\"ignore\", sparse_output=False)",
+   "reasoning": "The agent makes no explicit effort to handle missing values in the features, relying entirely on the OneHotEncoder and LightGBM defaults.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task does not have a temporal component requiring time-based splits.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LightGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages ROC AUC scores across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "roc_auc_scores.append(roc_auc_score(y_val_fold, y_pred))",
+   "reasoning": "The agent evaluates the model using only ROC AUC without supplementing it with other metrics like log loss or accuracy.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categorical_transformer = OneHotEncoder(handle_unknown=\"ignore\", sparse_output=False)",
+   "reasoning": "The agent only applies basic one-hot encoding without exploring any derived features, frequency encoding, target encoding, or interaction terms which are standard for this dataset.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "AttributeError on toarray()",
+   "description": "Calling `.toarray()` on a dense NumPy array returned by a transformer configured with `sparse_output=False` will raise an AttributeError, causing execution to fail.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_encoded = X_train_encoded.toarray()"
+  },
+  {
+   "name": "Feature names length mismatch",
+   "description": "Passing the original list of feature names to a model dataset when the data has been expanded (e.g., via one-hot encoding) causes a ValueError due to length mismatch.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(\n        X_train_fold, label=y_train_fold, feature_name=categorical_cols\n    )"
+  },
+  {
+   "name": "KeyError on missing test column",
+   "description": "Attempting to drop or operate on the target column in the test set will result in a KeyError, as Kaggle test sets generally do not contain the target.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = test_df.dropna(subset=[\"target\"])\n...\nX_test = test_df.drop(columns=[\"id\", \"target\"])"
+  }
+ ],
+ "summary": "The agent successfully sets up a 5-fold cross-validation pipeline for a LightGBM classifier but commits several critical execution errors that prevent the code from running. These include calling `.toarray()` on a dense array, dimension mismatches when naming features after one-hot encoding, and attempting to drop the non-existent target column from the test set. Furthermore, it lacks explicit handling of missing values and any meaningful feature engineering beyond standard one-hot encoding.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

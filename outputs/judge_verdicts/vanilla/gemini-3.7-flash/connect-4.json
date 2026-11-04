@@ -1,0 +1,134 @@
+{
+ "task": "connect-4",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()\ny_train = train_df[target_col].copy()",
+   "reasoning": "The agent makes no effort to clean the data, such as checking for missing values, duplicates, or inconsistencies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMClassifier is an appropriate model type for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train_encoded)\n\n# Predict on test set\ny_pred_encoded = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without any internal validation split to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "model = LGBMClassifier(\n    n_estimators=500,\n    learning_rate=0.05,\n    num_leaves=63,\n    random_state=42,\n    n_jobs=-1\n)\nmodel.fit(X_train, y_train_encoded)",
+   "reasoning": "The agent trains a stochastic LightGBM model exactly once without ensembling over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model, so it does not rely on a single evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as multi-class classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].cat.codes",
+   "reasoning": "The agent simply encodes the raw categorical columns without engineering any derived features, missing out on domain-specific features related to the board game (e.g., lines, piece counts).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Suboptimal categorical encoding for LightGBM",
+   "description": "The agent converts categorical features to integer codes using `.cat.codes` and passes them to LightGBM without retaining the `category` dtype or specifying them as categorical. This causes LightGBM to treat categorical features as ordered numerical values, which degrades performance for unordered categories.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].cat.codes\n...\nmodel.fit(X_train, y_train_encoded)"
+  }
+ ],
+ "summary": "The agent provides a basic solution that successfully trains a LightGBM classifier but misses several important data science practices. Notably, there is no internal validation split (FM06) to estimate generalisation, no data cleaning (FM03), and no feature engineering (FM07). Furthermore, categorical features are converted to integer codes, causing LightGBM to suboptimally treat them as numerical rather than leveraging its native categorical feature handling.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 1,
+ "stage_count_max": 8,
+ "no_code": false
+}

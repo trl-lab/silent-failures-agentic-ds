@@ -1,0 +1,149 @@
+{
+ "task": "child-mind-institute-problematic-internet-use",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())",
+   "reasoning": "Missing values are explicitly handled using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not performed on the combined dataset before splitting; it is done separately for train and test.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so random k-fold splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"binary\"",
+   "reasoning": "The agent uses a binary classification objective for a multi-class ordinal target (sii has 4 classes), which will cause incorrect gradient calculations.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cohen_kappa_score(y_val_fold, val_pred_binary)",
+   "reasoning": "The agent optimises for unweighted Cohen's Kappa, whereas the task evaluates on Quadratic Weighted Kappa (QWK).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_pred_binary = (val_pred > 0.5).astype(int)",
+   "reasoning": "The agent treats the 4-class ordinal target as a simple binary classification problem, discarding the multi-class structure.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[\"sii\", \"id\"])",
+   "reasoning": "The agent uses the raw features as-is without engineering any derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predictions[test_pred > 0.5] = 1",
+   "reasoning": "The agent performs extremely naive ensembling by simply applying a logical OR across folds to overwrite test predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Broken fold ensembling logic",
+   "description": "The agent aggregates fold predictions by overwriting the predictions array (e.g., using a logical OR for positive predictions) instead of averaging the predicted probabilities across folds. This systematically biases the final predictions towards the positive class and discards continuous probability estimates.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predictions = np.zeros((len(X_test),)) ... predictions[test_pred > 0.5] = 1"
+  },
+  {
+   "name": "Data leakage via test set statistics",
+   "description": "The agent imputes missing values in the test set using statistics (e.g., median) calculated from the test set itself, which is a form of data leakage (transductive learning) and not generalisable to single-sample inference.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median())"
+  }
+ ],
+ "summary": "The agent critically fails by treating a multi-class ordinal classification task as a binary classification problem, using a binary objective for LightGBM and thresholding predictions at 0.5. Additionally, the ensembling across cross-validation folds is implemented as a highly flawed logical OR, and test set statistics are leaked during imputation.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

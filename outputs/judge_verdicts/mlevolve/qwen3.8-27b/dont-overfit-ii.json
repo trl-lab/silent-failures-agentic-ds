@@ -1,0 +1,152 @@
+{
+ "task": "dont-overfit-ii",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only prints the shape of the test set and does not use it for EDA or to inform preprocessing decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(\"./input/train.parquet\")\n...\ny = train[\"target\"].values\nX_all = train.drop(columns=[\"target\", \"id\"])",
+   "reasoning": "The agent makes no explicit effort to check for or handle missing values, duplicate rows, or outliers before passing the data to algorithms (like LogisticRegression) that expect clean data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "l1_model.fit(X_train_active, y_train)\npca.fit(X_train_active)",
+   "reasoning": "Feature selection and PCA are fit exclusively on the training split, completely avoiding leakage from the holdout/test sets.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\"objective\": \"binary\", \"metric\": \"auc\"}",
+   "reasoning": "The agent correctly uses binary classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_state)",
+   "reasoning": "The agent performs 5-fold cross-validation to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_configs = [{\"seed\": 42...}, {\"seed\": 123...}, ...]",
+   "reasoning": "The agent trains multiple models using different random seeds and averages their predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_train, ensemble_oof)",
+   "reasoning": "The agent only computes and relies on ROC AUC, without checking other diagnostic metrics like log loss, precision, or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = train[\"target\"].values",
+   "reasoning": "The binary classification task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pca = PCA(n_components=10, random_state=42)",
+   "reasoning": "The agent derives new features using PCA and uses L1-regularized feature selection.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds = np.mean(test_preds_list, axis=0)",
+   "reasoning": "The agent uses a naive unweighted average to combine the predictions of the ensemble models.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing feature scaling for scale-sensitive algorithms",
+   "description": "The agent applies scale-sensitive algorithms (PCA and L1-regularized Logistic Regression) without standardizing the features first, despite importing StandardScaler. This leads to biased feature selection and principal components dominated by features with naturally larger variances.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "l1_model = LogisticRegression(penalty=\"l1\", solver=\"liblinear\", ...)\npca = PCA(n_components=10, ...)\n# No standard scaling is applied beforehand"
+  },
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Feature selection and PCA are fit on the entire training set before cross-validation is performed. This leaks information from the CV validation folds into the feature representations, rendering the out-of-fold CV scores overly optimistic.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pca.fit(X_train_active)\nX_train_final = np.hstack([X_train_l1, pca_train])\n... train_lgbm_cv(X_train_final, y_train, ...)"
+  },
+  {
+   "name": "Unused validation split",
+   "description": "The agent creates a holdout validation split and rigorously transforms it alongside the training data, but then completely forgets to evaluate any model on it.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_val_final = np.hstack([X_val_l1, pca_val])\n# X_val_final is never used again in the script"
+  }
+ ],
+ "summary": "The agent correctly avoids global data leakage by splitting the data before applying feature selection and PCA, and properly sets up an ensembling framework. However, it makes critical errors by failing to apply feature scaling before using scale-sensitive algorithms and by performing feature extraction on the entire training set prior to cross-validation, which introduces fold-level data leakage.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

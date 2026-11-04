@@ -1,0 +1,145 @@
+{
+ "task": "rasnf_notification_list",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis or peeking at test data is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent relies entirely on LightGBM's native handling of missing values and performs no explicit data cleaning.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear from the context if the dataset has a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n    n_estimators=1000, learning_rate=0.05, num_leaves=31, random_state=42, verbose=-1\n)",
+   "reasoning": "The agent uses a regression model (LGBMRegressor) for a task explicitly defined as binary classification.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, which averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(roc_auc_score(y_val_fold, y_pred))",
+   "reasoning": "The agent evaluates the model using only ROC-AUC and does not report any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Without seeing the data, it's unclear if the target column 'num_countries_affected' is already binarized or if the agent failed to transform a count into a binary target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col and col != \"id\"]",
+   "reasoning": "The agent simply uses all available raw columns as features without creating any derived features or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Loss of column metadata and categorical handling",
+   "description": "By converting the pandas DataFrame to a NumPy array (`.values`) before passing it to LightGBM, the agent drops column names and prevents LightGBM from utilizing its native categorical feature handling.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values"
+  },
+  {
+   "name": "Inconsistent early stopping on final model",
+   "description": "The model is evaluated using cross-validation with early stopping to find optimal performance, but the final model is trained on the full dataset using the maximum number of iterations without early stopping, which likely causes overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, verbose=-1)"
+  }
+ ],
+ "summary": "The agent sets up a basic 5-fold cross-validation pipeline but fundamentally misspecifies the model by using a regressor for a binary classification task. It entirely skips data cleaning and feature engineering, and drops column metadata by converting DataFrames to NumPy arrays, which breaks LightGBM's native categorical handling. Furthermore, the final model is trained without the early stopping used during cross-validation, risking severe overfitting.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

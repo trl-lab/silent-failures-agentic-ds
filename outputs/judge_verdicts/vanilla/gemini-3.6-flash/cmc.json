@@ -1,0 +1,144 @@
+{
+ "task": "cmc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or inspect the test data during preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_fe = X_train_fe.fillna(-999)",
+   "reasoning": "The agent explicitly handles missing values by filling them with a constant (-999).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_fe = X_train_fe.fillna(-999)\nX_test_fe = X_test_fe.fillna(-999)",
+   "reasoning": "Imputation is done using a constant (-999) and is applied after splitting back into train and test sets, avoiding leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for this multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_fe, y_train)):\n    X_tr, y_tr = X_train_fe.iloc[train_idx], y_train[train_idx]",
+   "reasoning": "The agent creates cross-validation splits and extracts 'val_idx', but entirely ignores the validation set and computes no validation score whatsoever.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent runs models across 10 folds with different random seeds, so it does not rely on a single run of a stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Since the agent evaluates no metrics at all, it does not rely on an inappropriate single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a multi-class classification problem using predict_proba and argmax.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[\"ch_per_age\"] = df[col_ch] / (df[col_age] + 1e-5)",
+   "reasoning": "The agent includes a dedicated function to extract and engineer domain-relevant ratio and interaction features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_test_probs += m.predict_proba(X_test_fe) / len(models)",
+   "reasoning": "The agent combines six different models using a naive, unweighted average of their predicted probabilities.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Categorical encoding before splitting",
+   "description": "Categorical variables are encoded on the combined train and test dataset before splitting. This can leak information about the test set's categories into the training process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[col] = combined[col].astype(\"category\").cat.codes"
+  },
+  {
+   "name": "Discarding test set IDs",
+   "description": "The agent drops the 'id' column from the test set without saving it, and generates a new sequential 'id' array for the submission file. If the original test IDs are non-sequential or do not start at 0, the predictions will be misaligned.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predictions_df = pd.DataFrame({\"id\": np.arange(len(final_predictions)), target_col: final_predictions})"
+  }
+ ],
+ "summary": "The agent successfully engineers novel features and uses cross-validation to train a diverse set of classifiers. However, it completely fails to compute a validation score (ignoring the validation splits entirely) and relies on naive equal-weight ensembling. Furthermore, it improperly drops the test 'id' column, which threatens the validity of the final submission file.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

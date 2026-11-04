@@ -1,0 +1,153 @@
+{
+ "task": "industry-payments-project",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set during EDA or exploration.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing the mode for categoricals and median for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Transformations like z-score standardisation are computed using only training data statistics.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied after the train/validation split using training statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "There is no clear indication of temporal components in the task or columns.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (with a single output unit and Huber loss) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates dropout, batch normalisation, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated and ensembled over 3 different random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The target metric is RMSE, and the agent correctly optimizes for a robust loss (Huber) while evaluating on RMSE, which is appropriate.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent frames the problem correctly as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including interactions, frequency encoding, and mathematical transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ensemble_val_pred = np.mean(ensemble_val_preds, axis=0)",
+   "reasoning": "The agent combines the multi-seed models using a simple unweighted average without attempting to tune the blend or use a meta-model.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in target encoding",
+   "description": "Target encoding is applied directly to the training set without out-of-fold (K-fold) predictions or noise injection. This causes the target variable to leak directly into the training features, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr[f\"{col}_target_enc\"] = X_tr[col].map(smooth_mean)"
+  },
+  {
+   "name": "Flawed out-of-sample ranking",
+   "description": "The agent computes rank features on continuous variables by creating an exact dictionary mapping from the training set. Any unseen continuous values in the validation/test sets will fail the dictionary lookup and be assigned a default value (0.5), destroying the rank ordering for new data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_rank_map = dict(zip(X_tr[col].values, train_rank.values)); X_va[f\"{col}_rank\"] = X_va[col].map(val_rank_map).fillna(0.5)"
+  }
+ ],
+ "summary": "The agent implements a sophisticated Mixture of Experts deep learning architecture with comprehensive data splitting, multi-seed ensembling, and substantial feature engineering. However, the solution suffers from a critical data leakage flaw due to naive target encoding on the training set without cross-validation. Additionally, the approach to computing rank features for out-of-sample data is logically flawed and will break on continuous unseen values.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

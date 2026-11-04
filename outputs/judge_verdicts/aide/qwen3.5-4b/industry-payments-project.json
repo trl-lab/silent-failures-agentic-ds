@@ -1,0 +1,145 @@
+{
+ "task": "industry-payments-project",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test set during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning by handling missing values and coercing types.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes the imputation median on X_train and applies it to X_test, avoiding leakage of test data into the training process (though it does leak validation data into training folds during CV, which is a separate issue).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is not clear if the dataset has a strict temporal order requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM regressor is correctly chosen for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which trains and evaluates over multiple folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Fold {fold + 1} RMSE: {mean_squared_error(y_val_fold, val_pred) ** 0.5:.4f}\")",
+   "reasoning": "The agent evaluates the model solely on RMSE without verifying its robustness or considering secondary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"projectPayment\", axis=1).copy()",
+   "reasoning": "The agent uses the raw columns as-is, performing no domain-informed feature engineering or interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Destructive categorical encoding",
+   "description": "The agent uses `pd.to_numeric(..., errors='coerce')` on object columns. This blindly replaces any non-numeric string categories with NaN, effectively destroying all categorical information rather than properly encoding it (e.g., via LabelEncoding, One-Hot Encoding, or native categorical types).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[col] = pd.to_numeric(X_train[col], errors=\"coerce\")"
+  },
+  {
+   "name": "Data leakage in cross-validation",
+   "description": "Imputation statistics (like the median) are computed on the entire training set before performing the cross-validation split. This leaks information from the validation folds into the training folds during the CV loop.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train[col].median()\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):"
+  }
+ ],
+ "summary": "The agent sets up a baseline LightGBM model with 5-fold cross-validation but severely damages the dataset by coercing all object columns to numeric, effectively wiping out string categorical features. Furthermore, the solution lacks any feature engineering, evaluates using only a single metric, and introduces data leakage in the cross-validation loop by calculating imputation medians prior to the fold splits.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

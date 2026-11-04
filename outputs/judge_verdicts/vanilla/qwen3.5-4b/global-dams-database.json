@@ -1,0 +1,145 @@
+{
+ "task": "global-dams-database",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or peek at the test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to handle missing values using imputation, so it does not completely ignore data cleaning.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is fit only on the training set and then used to transform the test set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fit only on the training set and then applied to the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is a database of dams, which is cross-sectional and does not have a strict temporal order to split by.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_scaled.values, y_train_target, eval_set=(X_train_scaled.values, y_train_target), verbose=False)",
+   "reasoning": "The agent trains on the full training set without creating a holdout validation set, evaluating the model's 'eval_set' on the training data itself.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(...)\nmodel.fit(...)",
+   "reasoning": "The stochastic LightGBM model is trained exactly once to generate predictions, without using cross-validation or averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE as expected, which is explicitly specified as the target metric in the task context.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a single-target regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_raw = train_df[FEATURE_COLUMNS].copy()",
+   "reasoning": "The agent uses the raw features with only basic imputation and encoding, entirely skipping the creation of derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fatal runtime error in categorical imputation",
+   "description": "Attempting to calculate the median of a categorical (string) column raises a TypeError, causing the script to crash before any model training occurs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = X_train_raw[col].median()"
+  },
+  {
+   "name": "Improper handling of categorical features in tree model",
+   "description": "Categorical features are label-encoded and treated as continuous numeric features by LightGBM, which forces the tree to make splits based on arbitrary alphabetical orderings instead of treating them as true categorical variables.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_raw[col] = le.fit_transform(X_train_raw[col].astype(str))"
+  }
+ ],
+ "summary": "The agent correctly sets up a regression pipeline with a proper train/test separation for imputation and scaling. However, the solution suffers from a fatal execution error due to calculating the median on string columns. Additionally, it lacks a proper validation split, performs no feature engineering, and incorrectly treats label-encoded categorical variables as continuous features in LightGBM.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

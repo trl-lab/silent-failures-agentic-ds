@@ -1,0 +1,142 @@
+{
+ "task": "online-news-popularity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent separates the test data and does not use it during EDA or for fitting imputers/scalers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by filling missing values and clipping outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Standardization is correctly applied after the train/validation split, using only the training set's statistics.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes imputation statistics on the provided training set, keeping the test set completely separate.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "train_sub_df, val_df, ... = train_test_split(train_df, y_train, strat_bins, test_size=0.15, random_state=42, stratify=strat_bins)",
+   "reasoning": "The dataset contains a temporal component (implied by the 'timedelta' feature and publication dates in the URL), but the agent drops these and uses a random split, ignoring chronological order and risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (MLP with linear output and Huber loss) for the continuous target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes Dropout, LayerNorm, and weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a validation set and evaluates the model on it to control early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = NewsPopularityNet(...)\n...\nfor epoch in range(max_epochs):",
+   "reasoning": "The agent trains a stochastic deep learning model exactly once, without using cross-validation or averaging over multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))",
+   "reasoning": "The agent evaluates the model solely using RMSE on the original scale. Because 'shares' is heavily skewed with extreme outliers, RMSE alone provides a highly noisy signal; the agent fails to compute robust metrics like MAE or RMSLE to verify model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly formulated as a regression problem on the 'shares' target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive and highly detailed domain-informed feature engineering.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage during Preprocessing",
+   "description": "Statistics for imputation and outlier clipping are computed on the entire training dataframe before splitting it into training and validation sets. This leaks distributional information from the validation set into the training process, potentially making validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_medians = train_df.median(numeric_only=True)\ntrain_df = train_df.fillna(train_medians)\n... \ntrain_df = train_df.clip(lower=lower_bound, upper=upper_bound, axis=1)\n... \ntrain_sub_df, val_df, ... = train_test_split(train_df, ...)"
+  }
+ ],
+ "summary": "The agent implements a highly detailed deep learning solution with extensive feature engineering and a sensible log-transformation of the highly skewed target. However, it introduces a validation leak by calculating imputation and clipping statistics before the train/validation split, ignores the temporal nature of the dataset when splitting, and evaluates the model relying solely on the outlier-sensitive RMSE metric on the original scale.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

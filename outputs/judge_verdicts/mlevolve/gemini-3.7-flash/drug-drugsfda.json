@@ -1,0 +1,153 @@
+{
+ "task": "drug-drugsfda",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute or print statistics from the test set during data exploration.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via fillna, imputation medians, and explicit missing-value categories.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler for the PyTorch model is correctly fit only on X_train and then applied to X_val and X_test.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection and dimensionality reduction (SVD) are not fit on the full dataset (they exclude the test set), though they do leak validation data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fit on the training data, not the full dataset, so test statistics do not leak into training (though validation statistics do).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models and objective functions for this binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The TabularResNet model includes dropout layers, layer normalization, and weight decay in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a validation holdout split using Fold 0 from a StratifiedKFold.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate multiple models on the test set; it only predicts on the test set once for the final submission.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_clf = get_lgbm_model(random_state=42)\nlgb_clf.fit(...)",
+   "reasoning": "The agent trains stochastic models (LightGBM, XGBoost, CatBoost, and a PyTorch NN) exactly once with a fixed random seed, without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "auc_lgb = roc_auc_score(y_val, val_preds_lgb)\nprint(f\"LightGBM Validation ROC-AUC: {auc_lgb:.5f}\")",
+   "reasoning": "The agent evaluates and optimizes the models exclusively using ROC-AUC without verifying performance against any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including text property extraction, dosage parsing, target encoding, and TF-IDF + SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses scipy.optimize.minimize to find the optimal blending weights rather than using a naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overfitting Ensemble Weights to Validation Set",
+   "description": "The agent optimizes the ensemble blending weights using predictions on the validation set, and then reports the ensemble's final performance score on that exact same validation set. This evaluates the ensemble on its own training data, resulting in an artificially inflated and misleading final validation score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(loss_func, init_weights, ...)\n...\nval_ensemble_preds = np.dot(val_matrix, optimal_weights)\nfinal_score = roc_auc_score(y_val, val_ensemble_preds)"
+  },
+  {
+   "name": "Validation Leakage during Feature Engineering",
+   "description": "The agent fits feature transformers (like TF-IDF, SVD, imputation medians, and frequency encoding) on the entire training set before splitting off the validation fold. This leaks the validation set's distribution into the training data, leading to overly optimistic validation estimates during model training.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf.fit(text_train_series)\n...\nmed = train_feats[col].median()\n...\nval_mask = train_feats['fold'] == 0"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution with robust feature engineering, deep learning, and an optimized ensemble. However, it suffers from severe data leakage within its validation scheme: transformers and imputers are fit on the full training set before splitting out the validation fold, and the ensemble weights are optimized on the validation set and then evaluated on that exact same set, completely invalidating the reported final score.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

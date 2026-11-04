@@ -1,0 +1,148 @@
+{
+ "task": "dry-bean-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during preprocessing or EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed: the agent drops all-NA columns, replaces infinite values with NaN, and uses SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly placed inside a scikit-learn Pipeline, avoiding data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classifier (LGBMClassifier) is correctly used for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a train/validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "validation_pipeline.fit(X_tr, y_tr)\nval_pred = validation_pipeline.predict(X_val)\n_ = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent evaluates a stochastic model (LGBMClassifier) exactly once on a single holdout set instead of using cross-validation or multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "_ = accuracy_score(y_val, val_pred)",
+   "reasoning": "Only accuracy is calculated, with no consideration for other metrics like F1-score which provide more insight into per-class performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multiclass classification task is framed correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[TARGET], errors=\"ignore\")",
+   "reasoning": "The agent uses raw features as-is without engineering any derived features, such as geometric ratios, which are highly relevant for the Dry Bean dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignored validation score",
+   "description": "The agent computes a validation score but discards it by assigning it to `_`. It is not logged, printed, or used for model selection, rendering the validation step useless.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "_ = accuracy_score(y_val, val_pred)"
+  },
+  {
+   "name": "Hardcoded sequential IDs in output",
+   "description": "The agent ignores any potential ID column in the test set and generates a simple 0-indexed sequence for the submission file. This will break evaluation if the test set IDs are non-sequential or specific identifiers.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "\"id\": np.arange(len(pred_labels), dtype=int),"
+  },
+  {
+   "name": "Latent execution failure on single-class edge case",
+   "description": "If the training dataset happens to contain only one class, the code `int(y.iloc[0])` will throw an AttributeError because `y` is a numpy array (from `LabelEncoder.fit_transform`), not a pandas Series.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "y = label_encoder.fit_transform(y_raw)\n\n    if len(np.unique(y)) == 1:\n        pred_enc = np.full(len(X_test), int(y.iloc[0]), dtype=int)"
+  }
+ ],
+ "summary": "The agent provides a functionally complete pipeline using LightGBM, handling basic imputation and encoding correctly without data leakage. However, it lacks feature engineering, computes but completely ignores its validation score, and hardcodes a sequential ID column in the output predictions which could lead to an evaluation failure.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

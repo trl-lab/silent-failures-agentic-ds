@@ -1,0 +1,133 @@
+{
+ "task": "cosmetic-event",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([train_df[feature_cols], test_df[[c for c in feature_cols if c in test_df.columns]]], axis=0).reset_index(drop=True)\n...\nfreq_map = s_str.value_counts(normalize=True).to_dict()\n...\ntfidf_mat = tfidf.fit_transform(s_str)",
+   "reasoning": "The agent concatenates train and test data before calculating frequency encodings and fitting the TF-IDF vectorizer, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in text and datetime columns and relies on LightGBM's native and robust missing value handling for numerical columns, which is a valid strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling (like StandardScaler or MinMaxScaler) is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (a PCA equivalent for sparse data) is fitted on the combined train and test set, leaking test set variance information into the feature components.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputer is fitted on the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "While datetime features are extracted, it is unknown whether the task involves a strict time series that requires a time-based validation split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classifier (LightGBM) is correctly used for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold Stratified K-Fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs cross-validation, which evaluates the model across multiple folds rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Accuracy is explicitly requested by the task and the agent correctly reports it.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation correctly addresses the multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively extracts date components, calculates frequency encodings, and applies TF-IDF/SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Averaging predictions across CV folds is standard bagging and not considered naive ensembling of disparate models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a solid LightGBM pipeline with robust cross-validation and feature engineering. However, there is a critical data leakage issue: the agent concatenates the training and test sets before calculating frequency encodings and fitting TF-IDF and TruncatedSVD transformers, which allows test set information to directly influence the training features.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

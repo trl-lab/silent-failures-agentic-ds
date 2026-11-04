@@ -1,0 +1,130 @@
+{
+ "task": "diabetes",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent applies preprocessing steps to train and test independently without computing statistics on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data, replacing invalid 0 values with NaN for relevant biological measurements and imputing them later.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fit only on the training fold inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "SimpleImputer is fit only on the training fold inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An SVC with probability=True is an appropriate model for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, accounting for data splitting variance, rather than a single train/test run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_val_fold, oof_predictions[val_idx])\n        print(f\"Fold {fold} ROC AUC: {fold_auc:.5f}\")",
+   "reasoning": "The agent only calculates and reports the primary ROC AUC metric, without checking supplementary metrics like accuracy, precision, or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a straightforward binary classification problem, which the agent correctly formulates.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_clean[feature_cols].astype(float)",
+   "reasoning": "The agent uses the raw features (after imputation and scaling) without deriving any new features (e.g., BMI categories, ratios of biological markers) that could improve model performance.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_predictions += model.predict_proba(X_test_scaled)[:, 1]\n\n        fold_auc = roc_auc_score(y_val_fold, oof_predictions[val_idx])\n        print(f\"Fold {fold} ROC AUC: {fold_auc:.5f}\")\n\n    test_predictions /= 5.0",
+   "reasoning": "The agent combines the predictions from the 5 cross-validation folds using an unweighted simple average, rather than optimizing the combination weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a solid, leak-free pipeline using StratifiedKFold, with proper handling of invalid '0' biological measurements in the diabetes dataset. However, it misses the opportunity to create derived features (FM07) and relies solely on simple averaging for its fold ensemble (FM12) and a single metric for evaluation (FM15).",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

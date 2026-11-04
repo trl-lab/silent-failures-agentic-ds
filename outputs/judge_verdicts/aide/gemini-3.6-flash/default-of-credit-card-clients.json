@@ -1,0 +1,152 @@
+{
+ "task": "default-of-credit-card-clients",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans categorical variables and handles missing/infinite values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (fillna) is done using a constant (0) on a row-by-row basis, which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, making a random split appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Stratified 5-Fold Cross Validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model tuning or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which provides a robust estimate of performance across different splits and averages out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for ROC AUC, which is the specified and appropriate metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive and domain-relevant feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to optimize ensemble weights rather than relying on a naive average, even though the optimization method itself is flawed.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Gradient-based optimization of a non-differentiable metric",
+   "description": "The agent uses SLSQP, a gradient-based optimizer, to tune ensemble weights for ROC AUC. Since ROC AUC is a step function based on prediction ranks, its gradient with respect to weights is zero almost everywhere. The optimizer will fail to compute meaningful numerical gradients and terminate immediately, effectively leaving the weights at their initial unoptimized values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, [1 / 3, 1 / 3, 1 / 3], method=\"SLSQP\", ...)"
+  },
+  {
+   "name": "Feature engineering test data leakage",
+   "description": "The agent concatenates train and test features into a single dataframe and calculates group-level statistics (e.g., mean credit limit by education level) on this combined dataset. Passing this global reference dataframe to the feature engineering function leaks information about the test set distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_features = pd.concat([train_df.drop(columns=[target_col], errors=\"ignore\"), test_df], axis=0, ignore_index=True)\n... edu_limit_map = reference_df.groupby(edu_col)[limit_col].mean().to_dict()"
+  }
+ ],
+ "summary": "The agent provides a structurally strong solution with extensive feature engineering, rigorous cross-validation, and an attempt at ensemble optimization. However, it introduces test distribution leakage by computing group-by statistics on the combined train and test sets. Additionally, the ensemble weight optimization uses a gradient-based solver (SLSQP) on a non-differentiable metric (ROC AUC), which will silently fail to optimize the weights.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

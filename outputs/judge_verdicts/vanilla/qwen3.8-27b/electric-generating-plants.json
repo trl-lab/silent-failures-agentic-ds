@@ -1,0 +1,146 @@
+{
+ "task": "electric-generating-plants",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col].astype(str), X_test[col].astype(str)], axis=0)\n        le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder transformer on the combined train and test features, leaking knowledge of the test set categories into the training pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by explicitly dropping irrelevant columns and filling NaNs with a constant.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (-999), which does not fit statistics on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There are date columns (SOURCEDATE, VAL_DATE), but it's unclear if the dataset is a time-series forecasting problem or if these are merely cross-sectional metadata dates.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for predicting the continuous NET_GEN target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final predictions, not for model selection or validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "models = {\n    'lgbm': LGBMRegressor(..., random_state=42, ...)",
+   "reasoning": "The agent trains stochastic models (LGBM, XGBoost, CatBoost) exactly once with a fixed random seed and reports a single evaluation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without computing secondary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives year features from the date columns, so some basic feature engineering is present.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_ensemble = np.mean(val_preds, axis=0)\ntest_ensemble = np.mean(test_preds, axis=0)",
+   "reasoning": "The agent combines the model predictions using a simple, unweighted average without attempting to optimise the blending weights or use stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Categorical features treated as continuous numericals",
+   "description": "Categorical features are integer-encoded but are not explicitly declared as categorical when fitting gradient boosting models (like LightGBM and CatBoost). The models will treat these arbitrary integers as ordinal/continuous values, which can degrade performance and split quality.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr, y_tr) # No categorical_feature argument is passed for LightGBM or CatBoost"
+  }
+ ],
+ "summary": "The agent implements a standard regression pipeline with multiple gradient boosting models and an ensemble. However, there is a minor data leak where LabelEncoders are fit on the combined train and test sets. Additionally, the agent uses a naive unweighted average for ensembling, fails to declare categorical features to models that support them natively, and relies on a single evaluation of stochastic models.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

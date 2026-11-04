@@ -1,0 +1,145 @@
+{
+ "task": "financial-product-complaint",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data was used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"Company response to consumer\", axis=1)",
+   "reasoning": "The agent performs no explicit data cleaning and relies entirely on LightGBM and OneHotEncoder to handle missing values or dirty data implicitly.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Financial complaints datasets often contain temporal data (e.g., date of complaint), but without inspecting the columns, it is unclear if there was temporal order to ignore.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM Classifier is an appropriate model type for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross-validation to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The cross-validation averages scores across 5 different folds, so it is not a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_scores = cross_val_score(pipeline, X_train, y, cv=kf, scoring=\"accuracy\")",
+   "reasoning": "The agent only calculates accuracy, which is often misleading for multi-class classification if the classes are imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(...)",
+   "reasoning": "The agent uses raw categorical and numerical features directly with no derived features, despite complaints data typically containing rich text or date fields.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Pipeline early stopping parameters crash",
+   "description": "The agent passes `eval_set` and `callbacks` directly to `Pipeline.fit()` without the required `<step>__` prefix (e.g., `model__eval_set`). This will raise a TypeError in scikit-learn. Furthermore, the `eval_set` provided uses the raw, un-preprocessed `X_train`, which would cause the underlying model to crash during evaluation due to mismatched feature dimensions and data types.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline.fit(\n    X_train,\n    y,\n    eval_set=[(X_train, y)],\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)"
+  },
+  {
+   "name": "Early stopping on training data",
+   "description": "The agent configures early stopping using the training set itself as the evaluation set. This defeats the purpose of early stopping, as the training error will naturally continue to decrease, causing the model to train until it overfits or reaches the maximum number of estimators.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_train, y)]"
+  }
+ ],
+ "summary": "The agent implements a LightGBM classification pipeline with 5-fold cross-validation but completely neglects data cleaning and feature engineering. Critically, the final model training introduces execution-halting bugs by passing incorrect and un-prefixed arguments to the `Pipeline.fit()` method, and conceptually fails by using the training set as the early stopping validation set.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

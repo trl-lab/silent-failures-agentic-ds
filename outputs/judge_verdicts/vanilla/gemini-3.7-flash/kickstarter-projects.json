@@ -1,0 +1,149 @@
+{
+ "task": "kickstarter-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Basic data cleaning and formatting is handled, such as filling missing 'goal_usd' and converting object columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation of missing 'goal_usd' uses a constant (0) rather than dataset statistics, so no leakage occurs.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a clear temporal component ('launched_at', 'deadline'), but the agent uses random cross-validation instead of a time-based split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classifier (LGBMClassifier) is correctly chosen for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated over 5 different folds, naturally accounting for some variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics, so it does not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a binary classification problem based on the 'status' column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date components and applies log transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Averaging the predictions of the same model across cross-validation folds is standard practice, not naive ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Lost Test IDs in Submission",
+   "description": "The agent drops the unique identifier column from the test set during preprocessing without saving it, and relies on a generic numerical sequence for the submission file. This will cause the submission to fail evaluation or mismatch predictions to the true labels.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub = pd.DataFrame({'id': np.arange(len(test_preds)), 'status': test_preds})"
+  },
+  {
+   "name": "Silent Validation / No Metric Computed",
+   "description": "The agent implements a validation split and generates out-of-fold predictions, but fails to compute or report any performance metric (like ROC AUC) on the validation set, making the validation process effectively useless for evaluating the model.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_preds[val_idx] = model.predict_proba(X_va)[:, 1]"
+  }
+ ],
+ "summary": "The agent sets up a generally reasonable pipeline using LightGBM, date parsing, and cross-validation. However, it ignores the temporal nature of the dataset by using a random K-fold split. Furthermore, it suffers from two major coding oversights: it never computes the validation score despite importing the metric, and it fatally overwrites the test set IDs with a generic sequence in the submission file, which will invalidate the final predictions.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "goodreads-books-reviews-290312",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values for text and date columns, and uses LightGBM which natively handles numeric NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No cross-sample imputation is applied before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf_outer = KFold(n_splits=5, shuffle=True, random_state=SEED)",
+   "reasoning": "The dataset contains temporal features (e.g., date_added), but the agent uses a random split instead of a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, averaging the scores rather than doing a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "rmse = float(np.sqrt(mean_squared_error(y[val_idx], pred)))",
+   "reasoning": "The agent evaluates the model using only RMSE and does not verify its robustness or consider alternative metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly formulated as predicting a continuous rating.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date features, text statistics, and implements target encoding.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-sample target encoding leakage",
+   "description": "Applying target encoding to the full training set without using out-of-fold predictions leaks the target variable into the features. This causes the final model to heavily overfit to the leaked target encodings, drastically degrading its true test set performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_mask = np.ones(len(y), dtype=bool)\nX_full = add_target_features(X_base, user_ids, book_ids, y, full_mask)"
+  }
+ ],
+ "summary": "The agent implements a LightGBM regression model with 5-fold cross-validation and solid feature engineering, including a complex target encoding scheme. However, it critically fails by applying in-sample target encoding to the final full training set, directly leaking the target variable into the final model's features. Additionally, it uses a random split instead of time-based or grouped splitting, ignoring the temporal and relational structure of the dataset.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

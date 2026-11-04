@@ -1,0 +1,138 @@
+{
+ "task": "industry-payments-project",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[col] = df[col].fillna(df[col].median())",
+   "reasoning": "The agent performs basic missing value imputation for both numerical and categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, train_cats = prepare_data(features_df)\nX_test, _ = prepare_data(test_features)",
+   "reasoning": "Imputation is not done on the full dataset before splitting; it is applied to the train and test sets separately (though incorrectly, see other_failure_modes).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is not clear from the provided code and context if the data has a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = LGBMRegressor(\n    objective='regression',\n    metric='rmse',",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Predict on test data\npredictions = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without creating an internal validation split or using cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LGBMRegressor(\n    ...\n    random_state=42,\n    ...\n)\n\n# Train model\nmodel.fit(X_train, y_train)",
+   "reasoning": "The agent trains a stochastic model (LightGBM) exactly once without averaging over multiple random seeds or cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "metric='rmse'",
+   "reasoning": "The agent optimizes internally using only RMSE, without evaluating the model across multiple metrics to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = 'projectPayment'\n... objective='regression'",
+   "reasoning": "The task is appropriately formulated as a regression problem predicting 'projectPayment'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def prepare_data(df):\n    categorical_cols = df.select_dtypes(include=['object']).columns.tolist()\n    numerical_cols = df.select_dtypes(include=[np.number]).columns.tolist()",
+   "reasoning": "The agent uses the raw columns directly with only basic imputation and type conversion, without deriving any new features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputing test data using test set statistics",
+   "description": "The agent calculates imputation statistics (like the median) independently on the test set rather than applying the statistics learned from the training set. This violates the assumption that the test set is purely unseen data and can cause inconsistent predictions depending on the test set's distribution.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def prepare_data(df):\n...\n    for col in numerical_cols:\n        df[col] = df[col].fillna(df[col].median())\n...\nX_test, _ = prepare_data(test_features)"
+  }
+ ],
+ "summary": "The agent provides a basic but functional LightGBM regression script with elementary data cleaning. However, it completely lacks an internal validation strategy (FM06), skips feature engineering (FM07), and improperly calculates imputation statistics directly on the test set rather than reusing statistics fitted on the training set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

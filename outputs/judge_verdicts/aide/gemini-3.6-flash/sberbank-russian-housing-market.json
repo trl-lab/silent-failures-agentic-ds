@@ -1,0 +1,96 @@
+{
+ "task": "sberbank-russian-housing-market",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a significant temporal component (housing transaction dates over several years), but the agent uses standard shuffled K-Fold cross-validation, which ignores time and introduces look-ahead bias into the validation process.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test[feature_cols]) / kf.n_splits",
+   "reasoning": "The agent averages predictions from the cross-validation folds with equal weights (naive ensembling), rather than attempting to optimize the combination (e.g., via stacking or fold weight search).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage through global feature aggregation",
+   "description": "The agent calculates grouped statistics (e.g., mean and standard deviation) on a concatenated dataset containing both train and test data. This leaks information about the test distribution into the training features, compromising the integrity of the model and causing overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grp_mean = df_all.groupby(\"sub_area\")[col].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent provides a structurally robust solution with appropriate target transformations (log1p/expm1 for RMSLE optimization), sensible domain-specific data cleaning, and cross-validated CatBoost training. However, it makes two critical errors: it fails to account for the temporal nature of the dataset during validation (using shuffled K-Fold instead of time-based splitting), and it introduces severe data leakage by computing grouped feature aggregations across the combined train and test sets prior to splitting.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

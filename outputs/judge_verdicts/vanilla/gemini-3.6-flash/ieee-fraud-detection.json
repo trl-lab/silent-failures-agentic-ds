@@ -1,0 +1,141 @@
+{
+ "task": "ieee-fraud-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = df_all.select_dtypes(include=['object', 'category']).columns.tolist()\nfor col in cat_cols:\n    df_all[col] = df_all[col].astype(str).astype('category')",
+   "reasoning": "The agent makes no explicit effort to handle missing values or clean the data, relying entirely on LightGBM's default handling of NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a clear temporal component (TransactionDT), but the agent uses a randomized StratifiedKFold, which introduces severe look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation with a validation set for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses AUC, which is the correct and appropriate metric for this specific imbalanced classification task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts temporal features (dt_hour, dt_day) from the TransactionDT column.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / n_splits",
+   "reasoning": "The agent uses a naive, unweighted average to combine the predictions of the 5 cross-validation folds rather than weighting them by validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission format",
+   "description": "The agent drops the required ID column and generates synthetic, zero-indexed IDs for the submission file. This will cause the scoring system to reject the submission or evaluate it incorrectly because the IDs will not match the expected test set IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if 'TransactionID' in df_all.columns:\n    df_all = df_all.drop(columns=['TransactionID'])\n...\nsub = pd.DataFrame({\n    'id': np.arange(len(test_preds)),\n    'isFraud': test_preds\n})"
+  }
+ ],
+ "summary": "The agent successfully implements a LightGBM baseline with basic time-based feature engineering and cross-validation. However, it introduces critical look-ahead bias by using a randomized split on temporal data and fails to construct a valid submission file by dropping the true test IDs.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

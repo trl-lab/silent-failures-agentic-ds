@@ -1,0 +1,141 @@
+{
+ "task": "colleges-and-universities",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=1000, ngram_range=(1, 2), stop_words=\"english\")\ntfidf_mat = tfidf.fit_transform(text_data)",
+   "reasoning": "The agent fits a TF-IDF vectorizer on the concatenated train and test datasets, leaking test data vocabulary and frequencies into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values through explicit median imputation and CatBoost's native capabilities.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD is fit on the combined dataset before splitting, which leaks test set information into the dimensionality reduction process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_all[lat_col] = X_all[lat_col].fillna(X_all[lat_col].median())",
+   "reasoning": "The agent computes the median for imputation on the combined train and test dataset, leaking the test set's distribution into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is cross-sectional and does not have a strict temporal order requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostRegressor is an appropriate model choice for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to properly evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic CatBoost model multiple times via K-fold CV and across multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y, oof_preds))",
+   "reasoning": "The agent relies entirely on RMSE for evaluation without verifying if it is the most appropriate metric or robust against outliers for this specific target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including spatial transforms, pairwise interactions, and text decomposition.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_val_pred += val_p / len(configs)",
+   "reasoning": "The agent ensembles multiple model configurations using a simple unweighted average without attempting to optimize the combination weights (e.g., via Ridge or Nelder-Mead).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leaky feature engineering",
+   "description": "Computing group-by aggregations, frequency encodings, and global means (e.g., for spatial coordinates) on the combined train and test dataset leaks test set distribution statistics into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grp_mean = X_all.groupby(g)[col].transform(\"mean\")\n...\nfreq = X_all[c].value_counts()"
+  }
+ ],
+ "summary": "The agent applies extensive feature engineering and uses a solid cross-validation setup with leak-free target encoding. However, it critically fails by computing numerous transformations (TF-IDF, SVD, median imputation, group-by statistics, and frequency encodings) on the concatenated train and test dataset, causing severe data leakage. Additionally, the multi-model ensemble approach relies on a naive unweighted average rather than optimizing blend weights.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "broadband-availability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col])",
+   "reasoning": "The agent makes no explicit effort to clean data or handle missing values, relying entirely on the gradient boosting models to handle them natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is cross-sectional for the year 2019, so temporal splitting is not applicable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X.iloc[val_idx], y[val_idx]\n    \n    # LightGBM\n    lgb_model = LGBMRegressor(",
+   "reasoning": "The agent splits the data into train and validation sets during K-Fold, but never predicts on the validation set or calculates any validation metric to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the models at all, so this specific failure mode is superseded by FM06.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No metrics are reported, so this failure mode is not strictly applicable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col])",
+   "reasoning": "The agent uses raw columns directly without creating any derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (lgb_preds + cat_preds + xgb_preds) / 3.0",
+   "reasoning": "The agent uses a naive, unweighted average to combine predictions from three different models without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Mismatched categorical encoding",
+   "description": "Categorical variables are encoded into integer codes independently for the training and test sets. If the unique values differ between the sets, the integer codes will be mismatched, causing the model to receive corrupted features during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype(str).astype('category')\n    X_test[col] = X_test[col].astype(str).astype('category')\n...\n    X_xgb[col] = X_xgb[col].cat.codes\n    X_test_xgb[col] = X_test_xgb[col].cat.codes"
+  },
+  {
+   "name": "Fabricated submission IDs",
+   "description": "The agent drops the original identifier columns (like 'GEO_ID') and uses a simple generated sequence (e.g., `np.arange`) for the submission ID. This often results in a malformed submission file that cannot be evaluated properly if specific IDs are expected.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "'id': np.arange(len(final_preds))"
+  }
+ ],
+ "summary": "The agent implements a 5-fold cross-validation ensemble of LightGBM, CatBoost, and XGBoost, but critically fails to calculate any validation metrics to estimate generalisation. Additionally, the agent uses raw features with no explicit data cleaning, employs a naive equal-weight ensemble, and introduces a severe data corruption bug by encoding categorical variables independently in the train and test sets, leading to mismatched category codes.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

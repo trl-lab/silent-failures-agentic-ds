@@ -1,0 +1,72 @@
+{
+ "task": "miami-housing",
+ "failure_modes": {
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train[col] = train[col].fillna(train[col].median())\n... train_df, val_df = train_test_split(",
+   "reasoning": "Median imputation is fitted on the entire training set before performing the train/validation split, leaking validation set statistics into the training data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "random_state=42",
+   "reasoning": "Stochastic models (LightGBM, XGBoost) are trained and evaluated exactly once using a single random seed, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_lgb = np.sqrt(mean_squared_error(y_val_orig, val_pred_lgb))",
+   "reasoning": "The agent relies exclusively on RMSE for evaluation and does not compute other metrics (like MAE or R2) to robustly assess model performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage in stacking (in-sample residual training)",
+   "description": "The agent trains a residual correction model on the in-sample predictions of the base models. Because the base models were fit on this exact same data, their predictions are artificially accurate (overfitted). The residual model thus learns to predict overfitting noise rather than true out-of-sample errors, severely degrading generalization.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_pred_log_lgb = lgb_model.predict(X_train...)\n... y_train_resid = train_df[\"SALE_PRC\"].values - base_pred_train\n... resid_model.fit(X_train_resid, y_train_resid, ...)"
+  },
+  {
+   "name": "Target transformation optimizes wrong metric",
+   "description": "The agent log-transforms the target variable and trains models to optimize squared error in log space (minimizing RMSLE). Since the task evaluation metric is RMSE on the original scale, this approach penalizes large absolute errors insufficiently and will likely yield sub-optimal RMSE performance, especially for expensive outlier houses.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_eng[\"log_SALE_PRC\"] = np.log1p(train_eng[target_col])\n... y_train_log = train_df[\"log_SALE_PRC\"].values\n... lgb_model.fit(X_train, y_train_log, ...)"
+  },
+  {
+   "name": "Off-by-one error in XGBoost iteration range",
+   "description": "When predicting with XGBoost, the agent uses `iteration_range=(0, xgb_model.best_iteration)`. Because the `end` parameter in `iteration_range` is exclusive and `best_iteration` is a 0-based index, this structurally excludes the best tree from the ensemble.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "xgb_model.predict(X_val, iteration_range=(0, xgb_model.best_iteration))"
+  }
+ ],
+ "summary": "The agent implements a detailed pipeline with extensive feature engineering and an ensembling strategy. However, it critically fails by training a residual correction model on in-sample predictions, leading to severe data leakage in the stack. Furthermore, it leaks validation set statistics into the training set by applying global median imputation before splitting, and sub-optimally targets RMSLE instead of the required RMSE metric by training on a log-transformed target.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

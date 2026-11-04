@@ -1,0 +1,138 @@
+{
+ "task": "transmission-towers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and drops inappropriate columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling and power transformations are fit only on the training split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection removes constant columns based on training variance only.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputers are fit on the training split and then applied to validation/test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a train/validation split and uses it for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains an ensemble of models with different seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "loss_fn = lambda y_true, y_pred: float(root_mean_squared_error(y_true, y_pred))",
+   "reasoning": "The agent only uses RMSE for evaluation and does not report any secondary metrics to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including target encoding, date features, and numeric interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "return np.mean(np.stack(preds, axis=0), axis=0)",
+   "reasoning": "The agent combines the seed ensemble predictions using a simple unweighted average without any tuning.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding original test IDs",
+   "description": "The agent drops the unique identifier columns from the test set during initial preprocessing and replaces them with a generated sequential range for the final submission. This will cause the submission to fail evaluation if the platform expects the original IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_raw = drop_id_columns(test_raw)\n...\ntest_ids = np.arange(len(X_test), dtype=int)\n...\nsubmission = pd.DataFrame({'id': test_ids.astype(int), TARGET: test_pred.astype(float)})"
+  }
+ ],
+ "summary": "The agent implements a highly structured, leakage-safe pipeline with solid feature engineering and a seed ensemble of LightGBM models. However, it critically drops the original ID column from the test set and replaces it with a simple sequential range for the submission file, which will likely break the evaluation system. It also relies solely on a simple average for ensembling and only evaluates using RMSE.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,146 @@
+{
+ "task": "awarded-grants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent inspecting or utilizing test data statistics during EDA or before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by dropping high-cardinality and redundant columns, and explicitly handles missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent manually drops columns based on domain knowledge but does not apply data-driven feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train[col].median()\n    X_train[col] = X_train[col].fillna(median_val)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.15, random_state=42)",
+   "reasoning": "The median for imputation is calculated on the entire X_train dataset before splitting it into training (X_tr) and validation (X_val) sets, leaking validation statistics into training.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "datetime_cols = ['Project Period Start Date', 'Grant Project Period End Date', 'Data Warehouse Record Create Date']\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.15, random_state=42)",
+   "reasoning": "The dataset contains explicit date features, but the agent performs a random train-test split rather than a time-based split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression, and the agent correctly uses regressor models (LGBMRegressor, XGBRegressor, CatBoostRegressor).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly creates a validation set using train_test_split and evaluates the models on it.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not reuse a test set for model selection; it uses the validation set for metric calculation and blends predictions on the unseen test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "xgb_model = XGBRegressor(\n    n_estimators=1000,\n    learning_rate=0.05,\n    max_depth=6,\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n    eval_metric='rmse'\n)\nxgb_model.fit(X_tr, y_tr)",
+   "reasoning": "The models involve stochastic elements (like subsampling) but are evaluated exactly once on a single split, without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_rmse = np.sqrt(mean_squared_error(y_val, lgbm_val_pred))\nxgb_rmse = np.sqrt(mean_squared_error(y_val, xgb_val_pred))\ncb_rmse = np.sqrt(mean_squared_error(y_val, cb_val_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without supplementing it with other metrics like MAE or R-squared to provide a fuller picture of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is framed correctly as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts year and month from dates and computes project duration, demonstrating adequate feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses inverse RMSE weighting rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper encoding of categorical variables for tree models",
+   "description": "The agent applies LabelEncoder to categorical features and subsequently casts all columns to float. This forces tree models (including CatBoost, which features powerful native categorical handling) to treat nominal categories as continuous or ordinal variables, degrading performance and split quality.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = le.fit_transform(X_train[col])\n...\nX_train = X_train.astype(float)"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with feature engineering, an appropriate ensemble, and handling of unseen categories. However, it fails to respect the temporal nature of the dataset by using a random train-test split, leading to look-ahead bias. Additionally, it suffers from data leakage by imputing missing values before splitting, and suboptimally casts label-encoded nominal categories to continuous floats.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,53 @@
+{
+ "task": "recipient-executed-grants-commitments-disbursements",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le = LabelEncoder()\n        cat_df[f\"{col}_encoded\"] = le.fit_transform(str_vals)",
+   "reasoning": "The agent fits a LabelEncoder on the combined train and test data before splitting, which leaks test set categories into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=10, shuffle=True, random_state=42)",
+   "reasoning": "The agent extracts temporal features from date columns but uses a randomized KFold cross-validation, which ignores the chronological order of the financial data and can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_score = np.sqrt(mean_squared_error(y_train, oof_blend))\n    # ...\n    print(f\"Final Validation Score: {final_score}\")",
+   "reasoning": "The agent evaluates and optimizes the models exclusively using RMSE, without checking other metrics like MAE to ensure robustness to outliers.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target encoding leakage across CV loops",
+   "description": "Out-of-fold target encodings are computed globally as a pre-processing step using cross-validation, and then these encoded features are passed into a downstream cross-validation loop for model training. Because the downstream models' training folds overlap with the folds used to generate the target encodings (especially when the same random seed is used), the training features inadvertently contain target information from the validation set, causing severe data leakage and overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf_te = KFold(n_splits=10, shuffle=True, random_state=42)\n    # ... computes oof_te ...\n    kf = KFold(n_splits=10, shuffle=True, random_state=42)\n    # ... uses oof_te as feature in main training loop"
+  }
+ ],
+ "summary": "The agent implements a comprehensive machine learning pipeline with multiple models (LightGBM, XGBoost, CatBoost, PyTorch) and optimizes their ensemble weights. However, the solution suffers from a critical target leakage issue because out-of-fold target encodings are computed globally and then used as features in a subsequent cross-validation loop with identical folds, meaning the training data contains validation target information. Additionally, the agent fits transformers on the combined train and test sets, ignores the temporal nature of the data by using randomized cross-validation, and relies solely on RMSE for evaluation.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

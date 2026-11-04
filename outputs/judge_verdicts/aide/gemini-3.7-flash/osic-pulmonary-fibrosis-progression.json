@@ -1,0 +1,142 @@
+{
+ "task": "osic-pulmonary-fibrosis-progression",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values in categorical columns are explicitly filled, and the tree-based models used handle numerical missing values natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the full dataset (only constant-value fillna is used for categoricals).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses GroupKFold on 'Patient' to ensure patient records are kept together and not leaked across folds.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (CatBoostRegressor, LightGBM regression_l1) are appropriately used for predicting the continuous FVC target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with GroupKFold.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models across 5 cross-validation folds, which inherently averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mae = mean_absolute_error(y_true, oof_ensemble)\nprint(f\"Validation MAE: {val_mae:.4f}\")",
+   "reasoning": "The agent evaluates and reports only a single metric (MAE), without checking other metrics (though MAE is the specified target metric).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the task correctly as a regression problem predicting the delta from baseline FVC.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple derived features, including temporal deltas, ratios, and estimated lung capacity.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_ensemble = 0.55 * oof_preds_cb + 0.45 * oof_preds_lgb\ntest_ensemble = 0.55 * test_preds_cb + 0.45 * test_preds_lgb",
+   "reasoning": "The agent uses arbitrary, hardcoded weights (0.55 and 0.45) for ensembling without performing any weight search or optimization on the OOF predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "incorrect_test_targets",
+   "description": "The agent predicts only on the provided test dataset directly rather than generating the required combinations of test IDs and future time steps (e.g., Patient_Week). It also outputs arbitrary integer IDs instead of the required string identifiers.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_ids = list(range(len(test_df)))\n...\nsubmission = pd.DataFrame({\"id\": test_ids, \"FVC\": test_ensemble})"
+  }
+ ],
+ "summary": "The agent demonstrates good data science practices in feature engineering, target formulation (predicting delta FVC), and validation strategy (using GroupKFold by Patient). However, it critically fails to format the submission correctly, predicting only for the baseline rows present in the test file with integer IDs rather than generating the required `Patient_Week` future predictions. Additionally, it ensembles models using hardcoded, untuned weights.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

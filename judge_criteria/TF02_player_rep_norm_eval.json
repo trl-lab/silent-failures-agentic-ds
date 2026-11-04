@@ -1,0 +1,46 @@
+{
+  "workload": "TF02_player_rep_norm",
+  "description": "Evaluates handling of two non-standard value representations in the rep_norm dataset: (1) 'na' strings in international_caps, (2) unit-suffixed strings in height_in_cm (e.g. '185cm'). Task 01 uses clean data as baseline. Tasks 02-04 use the same rep_norm data with escalating hints: task 02 has no hint, task 03 hints about the unit suffix in height_in_cm, task 04 hints about both issues.",
+  "criteria": [
+    {
+      "key": "pipeline_failed",
+      "question": "Did the pipeline fail to execute? Return True only if there is an actual runtime exception (Traceback, Error, Exception) in the error log, OR if no valid RMSE value is available in the output. Do NOT return True for FutureWarning, DeprecationWarning, or other warning-only messages that do not indicate a crash.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if pipeline crashed or produced no valid RMSE; False for warning-only logs"
+      }
+    },
+    {
+      "key": "rmse",
+      "question": "What is the RMSE (Root Mean Squared Error) on the test set as a float? Look for keys like 'RMSE', 'rmse', 'test_rmse', or a string like 'Final RMSE result: 123456'. Return null if the pipeline failed or produced no RMSE.",
+      "schema": {
+        "type": ["number", "null"],
+        "description": "Test set RMSE, or null if unavailable"
+      }
+    },
+    {
+      "key": "handles_na_string_in_international_caps",
+      "question": "Did the pipeline explicitly handle the string 'na' in international_caps by converting it to a numeric or NaN value? Look for pd.to_numeric(errors='coerce') applied to international_caps, replace({'na': np.nan}), or any explicit mapping of 'na' to a missing value on that column. Return False if international_caps is dropped entirely without processing, or if no such conversion is present.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if the 'na' string in international_caps was explicitly handled (converted to NaN or numeric)"
+      }
+    },
+    {
+      "key": "handles_unit_suffix_in_height",
+      "question": "Did the pipeline correctly recover the numeric value from unit-suffixed height strings like '185cm' in height_in_cm? This requires explicit string stripping, such as str.replace('cm', ''), str.extract(r'(\\d+)'), or a regex substitution that removes the unit suffix before numeric conversion — so that '185cm' becomes 185. Return False if the pipeline only uses pd.to_numeric(errors='coerce') without first stripping the suffix (which silently discards the value as NaN rather than recovering 185), or if height_in_cm is dropped entirely.",
+      "schema": {
+        "type": "boolean",
+        "description": "True only if the unit suffix was explicitly stripped to recover the numeric value (e.g. '185cm' → 185), not merely coerced to NaN"
+      }
+    },
+    {
+      "key": "failure_reason",
+      "question": "If the pipeline failed (actual crash, not just warnings), briefly describe the root cause in one sentence (e.g. 'ValueError: XGBoost received object dtype column international_caps containing string na', 'TypeError: got an unexpected keyword argument squared'). Return null if the pipeline succeeded.",
+      "schema": {
+        "type": ["string", "null"],
+        "description": "Short description of the failure root cause, or null if succeeded"
+      }
+    }
+  ]
+}

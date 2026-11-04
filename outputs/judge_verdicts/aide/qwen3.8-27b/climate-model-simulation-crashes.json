@@ -1,0 +1,134 @@
+{
+ "task": "climate-model-simulation-crashes",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if train_numeric.notna().any() and test_numeric.notna().any():\n            features.append(col)",
+   "reasoning": "The agent inspects the test set to determine whether to include a feature based on missing values.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly replaces infinities and uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is safely encapsulated inside a scikit-learn Pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "common_cols = [c for c in train.columns if c in test.columns]\n...\nif train_numeric.notna().any() and test_numeric.notna().any():",
+   "reasoning": "Feature selection is performed globally based on the presence and non-null status of columns in both train and test datasets, which leaks test information into the feature choice.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is safely encapsulated inside a scikit-learn Pipeline.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The task involves simulation configurations, not a time series where temporal order is critical.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate binary classifiers (SVM, Logistic Regression) are used.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold StratifiedKFold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The models and splits are evaluated with a single fixed random seed, without multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = float(roc_auc_score(y, val_scores))\n    print(f\"5-fold CV ROC AUC: {cv_auc:.6f}\")",
+   "reasoning": "The agent only computes and reports ROC AUC, ignoring other potentially informative metrics like accuracy, precision, or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification formulation is correct for the task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[features].apply(pd.to_numeric, errors=\"coerce\")",
+   "reasoning": "The agent uses the raw numeric features as-is without engineering derived features or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_scores[val_idx] = 0.5 * p_svm + 0.5 * p_logreg",
+   "reasoning": "The predictions of the two models are combined using a hardcoded equal-weight average rather than tuning the combination weights via search or stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The solution employs robust modeling practices like cross-validation and pipelines to prevent data leakage during preprocessing. However, it leaks information by using the test dataset to filter features. Furthermore, it suffers from a lack of feature engineering, uses a naive equal-weight ensemble without tuning, and relies on a single random seed evaluation.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

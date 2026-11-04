@@ -1,0 +1,160 @@
+{
+ "task": "college-deposit-product-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if train_df[c].isna().sum() > 0 or test_df[c].isna().sum() > 0:\n            train_df[f\"{c}_isnan\"] = train_df[c].isna().astype(float)",
+   "reasoning": "The agent inspects the test set to determine whether to create a missing value indicator feature, which is a form of peeking at test data during preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing medians and filling categorical NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit on the training fold and applied to the validation and test folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are derived from the training dataset, so test missing-value statistics are not leaked into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no indication of temporal order in the dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model utilizes Dropout, LayerNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a robust 10-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 10 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is the specific metric mandated by the task description.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including target encoding, frequency encoding, and pairwise interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an advanced SLSQP-optimized blending strategy with L2 regularization.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Batch-dependent test features",
+   "description": "Computing features on the test set using operations that depend on the entire test set distribution (like quantile ranks). This makes predictions for a single instance dependent on what other instances happen to be in the test batch, breaking the independence of predictions and making the model unusable for single-instance inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df[f\"{c}_qrank\"] = test_df[c].rank(pct=True).astype(float)"
+  },
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Calculating imputation statistics (like median) and group-by feature aggregations on the entire training dataset before splitting it into cross-validation folds. This leaks information from the validation folds into the training folds, leading to overly optimistic out-of-fold scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med_val = train_df[c].median()\n...\ngrp_stats = (train_df.groupby(gc)[nc].agg([\"mean\", \"std\", \"median\", \"min\", \"max\", \"skew\", \"count\"])"
+  },
+  {
+   "name": "Target leakage in out-of-fold encoding",
+   "description": "Using the global target mean or standard deviation (computed over the entire training dataset) as a smoothing prior for out-of-fold target encoding. This slightly leaks the validation fold's target values into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "global_mean = train_df[target_col].mean()\n...\nfold_te_mean = ((sums + global_mean * sm) / (counts + sm)).to_dict()"
+  }
+ ],
+ "summary": "The agent has built a highly sophisticated pipeline with a 7-model ensemble, out-of-fold target encoding, and SLSQP-optimized blending. However, the solution contains a critical flaw: it computes quantile ranks directly on the test set, making predictions batch-dependent. Additionally, the agent peeks at the test set to decide on creating missing value indicators, and there is minor cross-validation leakage due to computing medians, group-by aggregations, and global target priors on the full training set before K-fold splitting.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,144 @@
+{
+ "task": "car-evaluation",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no peeking at test data occurred.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\n# ...\ndef extract_features(df):\n...",
+   "reasoning": "The agent proceeds directly to feature engineering and modeling without any checks or handling for missing values, duplicates, or anomalies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for the multi-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold Stratified Cross-Validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which inherently averages evaluation across multiple folds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_accuracy = accuracy_score(y_train, oof_pred_labels)\nprint(f\"Validation Accuracy (OOF): {oof_accuracy:.5f}\")",
+   "reasoning": "The agent only computes and reports accuracy, ignoring other metrics like F1-score or log-loss which are important for imbalanced multi-class tasks.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a standard multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates extensive derived features, including ordinal mappings and interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_val_prob = (hgb_val_prob + cb_val_prob + xgb_val_prob + lgb_val_prob) / 4.0\nfold_test_prob = (\n    hgb_test_prob + cb_test_prob + xgb_test_prob + lgb_test_prob\n) / 4.0",
+   "reasoning": "The agent uses a naive, equally-weighted average to ensemble the predictions of four distinct models without any tuning of the blending weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "vocabulary_leakage",
+   "description": "Fitting a categorical encoder (like LabelEncoder) on the combined train and test sets leaks information about the categories present in the test set to the training pipeline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_df, test_df], axis=0, ignore_index=True)\n...\nfor c in cat_cols:\n    le = LabelEncoder()\n    combined_feat[c] = le.fit_transform(combined_feat[c].astype(str))"
+  },
+  {
+   "name": "ignoring_native_categorical_support",
+   "description": "The agent label-encodes categorical features into integers and passes them as continuous numerical variables to gradient boosting models (like CatBoost and LightGBM), failing to leverage their native categorical feature handling for better splits.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cb_model = cb.CatBoostClassifier(\n    iterations=400,\n    learning_rate=0.05,\n    depth=6,\n    verbose=0,\n    random_seed=42 + fold,\n)\ncb_model.fit(X_tr, y_tr)"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with good feature engineering and cross-validation but falls short in a few key areas. It skips fundamental data cleaning, evaluates the models using only accuracy despite the potential for class imbalance, and defaults to a naive unweighted average for its ensemble. Additionally, it misses the opportunity to use native categorical handling in advanced tree models like CatBoost and LightGBM.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

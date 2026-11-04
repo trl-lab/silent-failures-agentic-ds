@@ -1,0 +1,134 @@
+{
+ "task": "mercari",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed and test data is not used prior to feature extraction.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = train.dropna(subset=[\"price\"]).reset_index(drop=True)",
+   "reasoning": "The agent explicitly drops rows with missing targets and handles missing values in text/categorical features via fillna().",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation is done using constant values (e.g., '__missing__') which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "A regression model (LightGBM regressor) is correctly used for predicting a continuous price.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, val_pred)",
+   "reasoning": "The model is evaluated across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y.iloc[val_idx], val_pred[val_idx])",
+   "reasoning": "The agent only tracks and reports RMSE, without evaluating other metrics like MAE which might be more robust to outliers in price prediction.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feats[\"desc_name_len_ratio\"] = feats[\"desc_len\"] / (feats[\"name_len\"] + 1)",
+   "reasoning": "The agent engineers multiple features including text lengths, word counts, category splits, and frequency encodings.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No target transformation for highly skewed target",
+   "description": "The model predicts a highly right-skewed continuous target variable directly without applying a log or power transformation. This can cause the model to overfit to extreme outliers and degrade overall performance, particularly when evaluated with a metric sensitive to large errors like RMSE.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train[\"price\"].astype(float)"
+  }
+ ],
+ "summary": "The agent provides a structurally sound solution using a 5-fold cross-validation setup and LightGBM with appropriate early stopping. It correctly engineers basic text, categorical, and frequency features without leaking data across the train/validation splits. However, it fails to log-transform the highly skewed target variable ('price'), which is a critical data science practice for this specific domain to prevent the RMSE metric from being dominated by extreme outliers.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

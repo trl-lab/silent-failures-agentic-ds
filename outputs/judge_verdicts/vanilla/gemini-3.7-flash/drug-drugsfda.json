@@ -1,0 +1,145 @@
+{
+ "task": "drug-drugsfda",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_vals = pd.concat([X_train_num[c], X_test_num[c]], axis=0).astype(str)\n    le.fit(full_vals)",
+   "reasoning": "The agent concatenates the training and test sets to fit the LabelEncoder, leaking the categorical distribution of the test set into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with empty strings, 'MISSING', or NaNs before extracting features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "TF-IDF and SVD are fit only on the training text, not on the combined train and test text, so no test leakage occurs through feature selection/extraction.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only uses constant value imputation (e.g., fillna('MISSING')), which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models (LightGBM and CatBoost) for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses StratifiedKFold to create train and validation splits.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated over 5 cross-validation folds, which inherently averages out variance across different random splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metric; instead, it relies on the default early stopping metric (Logloss), but failing to report the target metric is tracked as a separate issue below.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including regex extraction, date parsing, text length calculations, and TF-IDF with SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent combines the LightGBM and CatBoost predictions using a simple, unweighted average without attempting to optimize the blend weights or use a meta-model.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "data_leakage_during_cv",
+   "description": "The agent fits feature transformers (like TF-IDF or PCA/SVD) on the entire training dataset before splitting it into cross-validation folds. This leaks information from the validation folds into the training folds, leading to overly optimistic validation performance and early stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_tfidf = tfidf.fit_transform(train_text)\n...\nX_train_svd = svd.fit_transform(X_train_tfidf)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train_num, y_train)):"
+  },
+  {
+   "name": "no_validation_metric_computed",
+   "description": "The agent implements cross-validation and uses validation sets for early stopping, but never calculates or reports the actual target evaluation metric (e.g., ROC AUC) on the holdout folds, making it impossible to gauge the model's true generalization performance offline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "The cross-validation loop predicts on X_test_num but does not score the model on the validation set (X_va, y_va)."
+  }
+ ],
+ "summary": "The agent builds a robust cross-validation pipeline with extensive feature engineering and trains two gradient boosting models. However, it introduces data leakage by fitting TF-IDF and SVD on the full training set before cross-validation, and by fitting the LabelEncoder on the combined train and test sets. Additionally, the agent uses a naive equal-weight ensemble and fails to compute or report the target evaluation metric on the validation folds.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

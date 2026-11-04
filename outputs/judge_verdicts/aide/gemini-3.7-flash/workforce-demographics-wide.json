@@ -1,0 +1,146 @@
+{
+ "task": "workforce-demographics-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "np.unique(np.concatenate([lgb_xgb_train[c].values, lgb_xgb_test[c].values]))",
+   "reasoning": "The agent builds the categorical label encoding dictionary by concatenating both the training and test sets, which fits the encoding transformer on test data and violates strict test set isolation.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling numerical columns with the median and categorical columns with 'Missing'.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection algorithms are used before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med = cb_train[c].median()\ncb_train[c] = cb_train[c].fillna(med)",
+   "reasoning": "The agent calculates the median on the entire training set before performing the K-Fold split, which leaks validation missing-value statistics into the training folds during cross-validation.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no indication of temporal data in this demographics dataset, making random K-Fold appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for the given regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalization.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates on the validation folds, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently averages over multiple runs and data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is explicitly specified as the required task metric, so no additional verification of its appropriateness is strictly required here.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and the agent frames it appropriately.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers frequency and group aggregation features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble weights using SLSQP rather than using a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage during feature engineering",
+   "description": "The agent calculates group statistics and frequency encodings on the entire training set before splitting it into cross-validation folds. This leaks the feature distributions of the validation sets into the training folds, making the out-of-fold performance estimates overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = tab_train[cat_c].value_counts(normalize=True).to_dict()\n... g_mean = tab_train.groupby(cat_c)[num_c].mean().to_dict()"
+  }
+ ],
+ "summary": "The agent implements a strong gradient boosting ensemble with optimal weight search and cross-validation, but suffers from data leakage during preprocessing. Specifically, it computes imputation medians, frequency encodings, and group statistics on the entire training set before the CV split, which compromises the integrity of the out-of-fold validation scores. Additionally, it inappropriately peeks at the test set to define the categorical encodings.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

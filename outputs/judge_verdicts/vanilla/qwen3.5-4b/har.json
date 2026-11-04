@@ -1,0 +1,141 @@
+{
+ "task": "har",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent peeking at the test data during exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_imputer = SimpleImputer(strategy='median')\n...\nX_train = num_imputer.fit_transform(X_train)",
+   "reasoning": "The agent performs basic data cleaning by handling missing values with SimpleImputer and attempting to convert object columns to numeric.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = num_imputer.fit_transform(X_train)\nX_test = num_imputer.transform(X_test)",
+   "reasoning": "The agent correctly fits the imputer only on the training data and transforms the test data separately.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = XGBClassifier(",
+   "reasoning": "The agent correctly uses a classification model (XGBClassifier) for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train_enc)\n\n# Predict\ny_pred_enc = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without creating an internal validation split or computing any validation scores.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = XGBClassifier(\n    n_estimators=200, \n...\nmodel.fit(X_train, y_train_enc)",
+   "reasoning": "The agent trains a stochastic model (XGBoost) exactly once without running multiple iterations with different random seeds to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent calculates no evaluation metrics at all, so it does not fail by using 'only one' metric; the lack of evaluation is covered by FM06.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train_enc = le.fit_transform(y_train)",
+   "reasoning": "The task is appropriately formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = df_train[feature_columns]\nX_test = df_test[feature_columns]",
+   "reasoning": "The agent uses the raw columns as features directly without deriving any new domain-informed features or interactions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Assumes target column in test set",
+   "description": "The agent attempts to extract the target variable from the test dataset. In standard predictive modelling tasks, the holdout/test set does not contain the target, which causes a KeyError and crashes the execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = df_test[target_column]"
+  },
+  {
+   "name": "Incorrect indentation leading to unintended type conversion",
+   "description": "Due to incorrect code indentation, the agent applies operations meant only for specific column types to all columns in the test dataset.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "    if X_train[col].dtype == 'object':\n        ...\n    X_test[col] = pd.to_numeric(X_test[col], errors='coerce')"
+  }
+ ],
+ "summary": "The agent implements a basic XGBoost pipeline but commits a critical execution error by attempting to extract the target column from the test dataset, resulting in a KeyError. Additionally, the solution lacks an internal validation split to estimate generalisation performance, contains no feature engineering, and evaluates a stochastic model only once.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

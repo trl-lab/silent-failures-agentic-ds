@@ -1,0 +1,138 @@
+{
+ "task": "financial-intermediary-funds-commitments",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test data for any exploration or to inform preprocessing decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by dropping rows with missing targets and handling missing features via a custom Preprocessor.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "preprocessor = Preprocessor(cat_cols, num_cols, date_cols).fit(X_train_fold_raw)",
+   "reasoning": "The imputer (Preprocessor) is correctly fitted only on the training folds during cross-validation.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "While there are date columns, it is not strictly specified if the test set is split chronologically, making it unclear if a random KFold introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression_l2\"",
+   "reasoning": "The agent correctly uses a regression objective for a task predicting an Amount in USD.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly implements a K-Fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models over multiple folds in cross-validation, which naturally accounts for variance in the data splits and stochastic model initialisation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = float(np.sqrt(mean_squared_error(y_val_fold, val_pred)))",
+   "reasoning": "The agent only computes and reports RMSE, without evaluating other metrics like MAE or R2 to understand model behavior on outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "vals = (vals - pd.Timestamp(\"1970-01-01\")).dt.days",
+   "reasoning": "The agent only converts date columns into integers (days since epoch) and ordinally encodes categories, with no other derived features or interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dropping test IDs and generating fake IDs for submission",
+   "description": "The agent drops ID columns from the test set during preprocessing but then creates a submission file using a generated sequence instead of the original IDs. This will likely cause the submission to fail evaluation if the test IDs are not sequential or need to match specific original identifiers.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test = drop_id_columns(test)\n...\nsubmission = pd.DataFrame({\"id\": np.arange(len(test), dtype=int), \"Amount in USD\": test_pred.astype(float)})"
+  }
+ ],
+ "summary": "The agent implements a structurally sound LightGBM pipeline with proper K-Fold cross-validation, avoiding data leakage by fitting the preprocessor strictly within the CV folds. However, it fails to perform any meaningful feature engineering (FM07) and relies solely on a single evaluation metric (FM15). Most critically, the agent drops the original ID column from the test set and attempts to submit with a generated dummy ID sequence, which will likely result in an invalid submission format.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

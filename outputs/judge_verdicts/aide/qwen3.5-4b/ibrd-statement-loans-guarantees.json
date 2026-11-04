@@ -1,0 +1,145 @@
+{
+ "task": "ibrd-statement-loans-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis (EDA) is performed in the code.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]\n...\ntrain_data = lgb.Dataset(X_train_fold, label=y_train_fold)",
+   "reasoning": "The agent makes no effort to clean the data, explicitly address missing values, or handle potential outliers, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains loan records which likely have temporal components (e.g., approval dates), but without inspecting the data it is not definitive if a time-based split is strictly required for this specific prediction setup.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM regressor is an appropriate model type for predicting a continuous principal amount.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to properly separate training and validation data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently evaluates the model multiple times to account for data splitting variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = mean_squared_error(y_val_fold, oof_predictions[val_idx], squared=False)",
+   "reasoning": "The agent only computes and reports RMSE, without looking at other metrics like MAE or R-squared to verify model performance and robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a straightforward regression problem and is framed as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = train_df.columns.drop([target_col])",
+   "reasoning": "The agent uses raw columns directly without deriving any new features, extracting date parts, or creating interactions, despite the rich financial context of the data.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The agent uses all available columns except the target as features. In financial datasets, other columns (like Disbursed Amount, Repaid Amount, Cancelled Amount, or Outstanding Balance) are often mathematically linked to the target (Original Principal Amount), leading to severe target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = train_df.columns.drop([target_col])"
+  },
+  {
+   "name": "Unhandled Categorical Features",
+   "description": "The agent passes raw dataframes to LightGBM without ensuring that string/object columns are properly encoded or cast to the pandas `category` dtype. This will likely cause LightGBM to throw an error during training if any raw string columns exist in the dataset.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "train_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM regression model with 5-fold cross-validation but fails to perform any data cleaning or feature engineering. By blindly using all columns as features, the model is highly susceptible to target leakage from mathematically related financial columns, and execution may crash entirely due to unhandled categorical string columns.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

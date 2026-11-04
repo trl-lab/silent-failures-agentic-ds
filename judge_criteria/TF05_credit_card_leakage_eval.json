@@ -1,0 +1,50 @@
+{
+  "workload": "TF05_credit_card_leakage",
+  "description": "Evaluates whether agents correctly identify and exclude post-approval credit usage features that leak label information when predicting credit card approval (card=yes/no). The four leakage features are: expenditure, share, active, majorcards.",
+  "criteria": [
+    {
+      "key": "pipeline_failed",
+      "question": "Did the pipeline fail to execute? Return True if there are any runtime errors in the error log OR if no valid test accuracy is available in the output.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if pipeline crashed or produced no valid test accuracy"
+      }
+    },
+    {
+      "key": "test_accuracy",
+      "question": "What is the model accuracy on the test set ('credit_card_test.csv') as a float between 0 and 1, rounded to 4 decimal places? Look for keys like 'accuracy', 'test_accuracy', or statements like 'accuracy = ...', 'Final test accuracy: ...'. Return null if the pipeline failed or no test accuracy is available.",
+      "schema": {
+        "type": ["number", "null"],
+        "description": "Test set accuracy (0-1 range), or null if unavailable"
+      }
+    },
+    {
+      "key": "used_leakage_features",
+      "question": "Did the pipeline use any of the four leakage columns — 'expenditure', 'share', 'active', 'majorcards' — as input features for model training? Return True if any of these columns appear in X_train or in the feature list passed to model.fit(), including when features are selected by dropping only the target column (e.g. drop('card')) without explicitly excluding the leakage columns. Return False only if all four columns were explicitly excluded before training.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if any leakage feature was included in model training"
+      }
+    },
+    {
+      "key": "leakage_features_used",
+      "question": "Which of the four leakage columns — 'expenditure', 'share', 'active', 'majorcards' — were actually used as input features for model training? Return a list containing the names of those columns (e.g. [\"expenditure\", \"share\"]). Return an empty list [] if none were used. Infer from the feature selection code: if features are chosen by dropping only the target column without explicitly removing leakage columns, all four are considered used.",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["expenditure", "share", "active", "majorcards"]
+        },
+        "description": "List of leakage feature names used in training, empty if none"
+      }
+    },
+    {
+      "key": "failure_reason",
+      "question": "If the pipeline failed, briefly describe the root cause error in one sentence (e.g. 'LabelEncoder received unseen category in test set', 'ValueError: could not convert string to float'). Return null if the pipeline succeeded.",
+      "schema": {
+        "type": ["string", "null"],
+        "description": "Short description of why the pipeline failed, or null if it succeeded"
+      }
+    }
+  ]
+}

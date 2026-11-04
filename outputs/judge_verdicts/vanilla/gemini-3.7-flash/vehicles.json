@@ -1,0 +1,145 @@
+{
+ "task": "vehicles",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during preprocessing; all transformations are fitted solely on the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values appropriately, using medians for numerical columns and a 'missing' category for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly calculated using only the training data (e.g., X_train[col].median()) and then applied to the test data, avoiding test leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X_train_encoded):\n    X_tr, y_tr = X_train_encoded.iloc[train_idx], y_train[train_idx]",
+   "reasoning": "The agent sets up a K-Fold split but never evaluates the models on the validation sets or computes any validation metrics to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so it does not report a single stochastic evaluation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correct; the agent treats it as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic feature engineering by extracting year, month, and day components from datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent blends the predictions of LightGBM and CatBoost using a naive equal-weighted average without any validation or tuning of the blend ratio.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Wasted training data",
+   "description": "The agent uses K-Fold to create training subsets but completely ignores the validation indices (`val_idx`), meaning each model in the ensemble is trained on only 80% of the data while the remaining 20% is completely discarded rather than being used for evaluation or early stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X_train_encoded):\n    X_tr, y_tr = X_train_encoded.iloc[train_idx], y_train[train_idx]"
+  },
+  {
+   "name": "No early stopping for gradient boosting",
+   "description": "The agent trains gradient boosting models (LightGBM and CatBoost) for a large, fixed number of iterations (1000) without using a validation set for early stopping, which frequently leads to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model = LGBMRegressor(\n        n_estimators=1000,\n...\nlgb_model.fit(X_tr, y_tr)"
+  }
+ ],
+ "summary": "The agent implements a solid preprocessing pipeline and appropriately chooses strong gradient boosting algorithms. However, it entirely fails to validate the models, setting up cross-validation splits but ignoring the validation sets. This results in wasted training data, a lack of generalisation metrics, and the inability to use early stopping, leaving the 1000-iteration models highly prone to overfitting. The final ensemble is also a naive, untuned 50/50 blend.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

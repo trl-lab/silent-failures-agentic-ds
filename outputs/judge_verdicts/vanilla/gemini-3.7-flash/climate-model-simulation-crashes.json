@@ -1,0 +1,142 @@
+{
+ "task": "climate-model-simulation-crashes",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly checks for and handles missing values using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fit only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\n        X[col] = X[col].fillna(median_val)",
+   "reasoning": "Imputation is applied to the entire training dataset before the cross-validation split, causing leakage from validation folds into training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal component identified in this dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_mat[val_idx], y[val_idx]\n    # ...\n    X_va_s = scaler.transform(X_va)",
+   "reasoning": "Although the agent creates cross-validation splits, it never predicts on or evaluates the validation sets, failing to produce any internal validation score to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate any metrics, so it does not rely on only a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != target_col]\nX = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses the raw features as-is without attempting any derived features or transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_pred = 0.25 * p_lgb + 0.25 * p_xgb + 0.25 * p_cat + 0.15 * p_rf + 0.10 * p_lr",
+   "reasoning": "The agent uses a hardcoded weighted average for the ensemble without any tuning, weight search, or validation scores to justify the blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded ID generation in submission",
+   "description": "Creating an output file by generating IDs using `np.arange` instead of using the actual identifier column from the test dataset can result in a misaligned or invalid submission format if the IDs do not start at 0 or are non-sequential.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "'id': np.arange(len(test_preds))"
+  }
+ ],
+ "summary": "The solution implements a robust 5-fold cross-validation loop and correctly scales features after splitting, but it suffers from a critical oversight: it never actually evaluates the models on the validation folds, providing no estimate of generalisation performance. Furthermore, it leaks validation data into training folds by computing median imputation before the split, lacks any feature engineering, and uses completely arbitrary weights for its final ensemble.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

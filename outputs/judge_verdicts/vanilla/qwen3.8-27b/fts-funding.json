@@ -1,0 +1,153 @@
+{
+ "task": "fts-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data to inform EDA or preprocessing; it only uses test data to align columns and apply transformations fit on the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements basic data cleaning, replacing infinite values and filling NaNs in string/list columns, while relying on tree models to natively handle numerical missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is fit before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n        X_train,\n        y,\n        test_size=0.2,\n        random_state=RANDOM_STATE,\n    )",
+   "reasoning": "The dataset contains multiple date columns (e.g., date, firstReportedDate), indicating temporal data, but the agent uses a random split instead of a time-based split, causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data into a train and validation set.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates on a dedicated validation set, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n        X_train,\n        y,\n        test_size=0.2,\n        random_state=RANDOM_STATE,\n    )",
+   "reasoning": "The agent evaluates the models on a single train/validation split with a fixed random seed without using cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmses = {\n        name: float(np.sqrt(mean_squared_error(y_val, pred)))\n        for name, pred in val_preds.items()\n    }",
+   "reasoning": "The agent only computes RMSE for validation and does not look at any other metrics to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correct (regression on amountUSD).",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features from dates, text, and lists.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "weights = {name: (1.0 / max(rmse, 1e-12)) for name, rmse in val_rmses.items()}",
+   "reasoning": "The agent uses an inverse-RMSE weighted ensemble rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage via Frequency Encoding",
+   "description": "Encoding categorical features based on frequency over the entire training set before performing the train/validation split leaks validation distribution information into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = train[col].value_counts(normalize=True)\ntrain[f\"{col}_freq\"] = train[col].map(freq).fillna(0.0).astype(\"float32\")"
+  },
+  {
+   "name": "Missing Early Stopping for XGBoost",
+   "description": "The agent passes an eval_set to the XGBoost fit method but fails to specify early_stopping_rounds, meaning the model will train for the full number of estimators and potentially overfit without using the validation set to stop early.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "xgb_model.fit(\n        X_tr,\n        y_tr,\n        eval_set=[(X_val, y_val)],\n        verbose=False,\n    )"
+  }
+ ],
+ "summary": "The agent provides a structurally robust solution with good feature engineering and a weighted ensemble of gradient boosted trees. However, it fails to account for the temporal nature of the dataset by using a random train/validation split (FM05), and evaluates the stochastic models only once on a single metric (FM14, FM15). Additionally, categorical frequency encoding is computed before the validation split, causing minor data leakage, and the XGBoost model is missing its early stopping parameter despite being passed an evaluation set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

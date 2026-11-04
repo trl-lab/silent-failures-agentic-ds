@@ -1,0 +1,101 @@
+{
+ "task": "electric-retail-service-territories",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_test_preds + 0.5 * cb_test_preds",
+   "reasoning": "The agent combines predictions from LightGBM and CatBoost using a simple unweighted average without attempting to optimize the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent Categorical Encoding",
+   "description": "The agent converts categorical columns to pandas 'category' dtype independently for the train and test datasets. This leads to inconsistent underlying integer mappings (cat.codes) between train and test if the unique values differ, causing LightGBM to misinterpret test categories during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_lgb[col] = X_train_lgb[col].astype('category')\n    X_test_lgb[col] = X_test_lgb[col].astype('category')"
+  },
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates synthetic IDs for the submission file using a simple integer range instead of extracting and preserving the actual identifier column from the test dataset, which often breaks automated evaluation.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "'id': np.arange(len(final_preds), dtype=int)"
+  }
+ ],
+ "summary": "The agent implements a reasonable K-fold cross-validation setup but falls back on naive ensembling to combine its models. More critically, it introduces a severe data processing flaw by independently casting categorical columns to pandas 'category' type in the train and test sets, which breaks the category mappings for LightGBM. It also generates arbitrary sequential IDs for the final submission rather than carrying over actual test set IDs.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

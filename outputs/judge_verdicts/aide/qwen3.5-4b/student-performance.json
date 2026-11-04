@@ -1,0 +1,119 @@
+{
+ "task": "student-performance",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse_scores.append(fold_rmse)",
+   "reasoning": "The agent only computes and reports RMSE, without evaluating other metrics like MAE or R2 to verify model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [target, \"id\"]]",
+   "reasoning": "The agent uses the raw columns directly without creating any domain-informed derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Transductive imputation on test set",
+   "description": "The agent imputes missing values in the test set using the test set's own statistics (e.g., median) rather than the statistics learned from the training set, causing data leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test[col] = X_test[col].fillna(X_test[col].median())"
+  },
+  {
+   "name": "TypeError in categorical encoding",
+   "description": "The agent attempts to map categorical columns using a sklearn LabelEncoder object with pandas .map(), which expects a dict, Series, or function. Passing a LabelEncoder object directly will raise a TypeError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test[col] = X_test[col].map(label_encoders[col])"
+  },
+  {
+   "name": "Invalid early stopping without validation set",
+   "description": "The agent passes an early stopping callback to the LightGBM training function for the final model without providing a validation set, which will cause a ValueError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=1000,\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)],\n)"
+  },
+  {
+   "name": "Data leakage during cross-validation",
+   "description": "The agent imputes missing values in the entire training set before splitting it into cross-validation folds, leaking information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].fillna(X_train[col].median())\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM regressor with cross-validation but introduces multiple critical execution errors and data leakages. Applying LabelEncoder via pandas `.map()` and using early stopping without a validation set will immediately crash the script. Additionally, imputing the test set with its own median causes transductive data leakage, and imputing before CV splitting compromises the validation scores. No feature engineering is performed.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

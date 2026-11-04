@@ -1,0 +1,138 @@
+{
+ "task": "ibrd-statement-loans-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent using test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling categoricals with 'missing', coercing numerics to handle errors, and relying on CatBoost's native handling of missing numeric values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is done row-wise (e.g., fillna with a constant) rather than fitting an imputer with global statistics, so no data leaks before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n            X_train_full,\n            y_train_full,\n            test_size=0.2,\n            random_state=42,\n            shuffle=True,\n        )",
+   "reasoning": "The dataset contains loan dates indicating a strong temporal component, but the agent uses a random split (shuffle=True), ignoring temporal order and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation set using train_test_split and evaluates the model on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(y_val, val_pred)))\n        print(f\"Validation RMSE: {val_rmse:.6f}\")",
+   "reasoning": "The agent trains and evaluates the stochastic CatBoost model exactly once, without using cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(y_val, val_pred)))",
+   "reasoning": "The agent reports only RMSE, failing to verify performance with other metrics like MAE which would better indicate robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as predicting the continuous target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers several features, including date parts (year, month, day) and differences between various dates.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage through Post-Event Columns",
+   "description": "The agent includes all columns (except IDs and Dates) in the feature set. In financial datasets like loan portfolios, columns such as 'Disbursed Amount', 'Repaid', or 'Due' are recorded after the loan is issued and trivially leak the target ('Original Principal Amount'), rendering the model useless for predicting new loans.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "exclude = set([TARGET] + ID_COLS + DATE_COLS)\n    cat_cols = []\n    for col in df.columns:\n        if col in exclude:\n            continue"
+  }
+ ],
+ "summary": "The agent implements a generally sound CatBoost regression pipeline with good handling of dates and missing values. However, it fails to account for the temporal nature of the loan dataset by using a random train/test split, which introduces look-ahead bias. Additionally, it likely suffers from severe target leakage by failing to exclude post-approval financial metrics from the feature set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

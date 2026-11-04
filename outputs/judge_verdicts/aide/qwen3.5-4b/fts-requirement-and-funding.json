@@ -1,0 +1,152 @@
+{
+ "task": "fts-requirement-and-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is loaded but only used at the very end for final predictions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent makes no effort to clean the data, passing raw feature columns directly into the model without checking for outliers or inconsistencies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal structure that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regressor is appropriate for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models over multiple folds, though it fails to correctly average the scores.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))",
+   "reasoning": "The agent only computes RMSE and does not use any secondary metrics to assess model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Variable scope evaluation bug / Data leakage",
+   "description": "The final evaluation block uses `val_idx` from the last iteration of the CV loop to evaluate `best_model`. If `best_model` was saved from an earlier fold, this `val_idx` will contain data that was part of its training set, resulting in an invalid and leaked evaluation score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_pred = best_model.predict(X_train[val_idx])\nval_rmse = np.sqrt(mean_squared_error(y_train[val_idx], val_pred))"
+  },
+  {
+   "name": "Best fold model selection",
+   "description": "The agent selects the single best model from the cross-validation folds to make test predictions, rather than ensembling the predictions of all fold models or retraining on the full dataset. This discards training data and overfits to a specific validation fold.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if val_rmse < best_score:\n    best_score = val_rmse\n    best_model = model\n\n...\ntest_pred = best_model.predict(X_test)"
+  },
+  {
+   "name": "Categorical feature crash risk via .values",
+   "description": "Extracting `.values` from a pandas DataFrame to create a numpy array will result in an object-dtype array if there are any string/categorical columns, which LightGBM cannot natively handle and will cause a crash.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "X_train = train_df[feature_cols].values"
+  }
+ ],
+ "summary": "The agent correctly implements a 5-fold cross-validation loop for a LightGBM regressor but completely skips data cleaning and feature engineering. Critically, the solution contains a variable scoping bug where the 'best' model is evaluated on the final fold's validation indices, potentially leaking training data if the best model was from an earlier fold. Furthermore, selecting the single best fold model instead of ensembling is a suboptimal practice that throws away valuable data.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

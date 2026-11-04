@@ -1,0 +1,142 @@
+{
+ "task": "ibrd-statement-loans-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].astype(str).value_counts()\n                data[f'{col}_freq'] = s.map(freq).fillna(0)",
+   "reasoning": "The agent concatenates the training and test sets to compute the frequency encoding for categorical variables, leaking the test set's distribution into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and dirty data by coercing errors in numeric conversions, filling missing strings, and replacing NaT integers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation transformer is fit on the combined dataset; missing values are handled via constant fill or left for the gradient boosting models.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains multiple temporal features (e.g., 'Board Approval Date') indicating a timeline of loans, but the agent uses randomized KFold cross-validation, mixing past and future loans and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation to evaluate model performance on validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "'metric': 'rmse',",
+   "reasoning": "The agent optimizes strictly on RMSE, which is highly sensitive to outliers in skewed targets like loan amounts, without verifying robustness using other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent frames the task correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives multiple date components and duration features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent ensembles the LightGBM and CatBoost predictions using a naive, unweighted 50/50 average without optimizing the blend weights or using a stacking regressor.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage / Look-ahead Bias",
+   "description": "The model includes features that represent events occurring long after the prediction target is established. Using post-event variables (like closure dates or final statuses) to predict an initial value guarantees severe target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "date_cols = [\n    'First Repayment Date', 'Last Repayment Date', 'Agreement Signing Date',\n    'Board Approval Date', 'Effective Date (Most Recent)',\n    'Closed Date (Most Recent)', 'Last Disbursement Date'\n]"
+  }
+ ],
+ "summary": "The agent implements a reasonable gradient boosting pipeline with cross-validation and feature engineering. However, it introduces critical target leakage by using future events (like repayment and closed dates) to predict the original loan amount. Additionally, it leaks test set distribution data by computing frequency encodings on the combined dataset, ignores the temporal nature of the loans by using randomized cross-validation, and performs a naive unweighted ensemble of its models.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

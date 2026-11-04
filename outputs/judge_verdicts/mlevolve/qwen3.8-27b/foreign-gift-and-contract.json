@@ -1,0 +1,153 @@
+{
+ "task": "foreign-gift-and-contract",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"\\nMissing values (test):\\n{test.isnull().sum()[test.isnull().sum() > 0]}\")",
+   "reasoning": "The agent inspects missing value statistics on the test set during initial EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with zero (np.nan_to_num) or using missing-indicator columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "train_feat, val_feat, y_tr, y_val = train_test_split(train_features, y_train_full, test_size=0.15, random_state=42)",
+   "reasoning": "The dataset contains date columns (e.g., 'Receipt Date', 'Contract Start Date'), but a random train/test split is used, which risks temporal data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LightGBM and XGBoost regressors) for predicting a continuous Amount.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is created and used for early stopping.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model variant evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.train(..., seed=42); xgb_model = xgb.train(..., seed=42)",
+   "reasoning": "The stochastic models are trained and evaluated exactly once using a single random seed and a single validation split, without cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = root_mean_squared_error(y_val, val_pred)",
+   "reasoning": "The agent evaluates solely using RMSE, which can be highly sensitive to extreme outliers typical in monetary 'Amount' targets, without checking alternative robustness metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including date decomposition, text length, frequency encoding, and numeric interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_pred = 0.5 * lgb_val_pred + 0.5 * xgb_val_pred",
+   "reasoning": "The agent combines LightGBM and XGBoost using a naive equal-weight average without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Target Encoding",
+   "description": "Target encoding is computed on the entire training split and mapped directly back to it without using out-of-fold (OOF) estimation. This means a row's own target value is used to compute its encoded feature, which causes tree-based models to heavily overfit to the target-encoded columns.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "agg['smoothed'] = (agg['sum'] + prior_mean * m_smooth) / (agg['count'] + m_smooth)\n        target_enc_maps[col] = agg['smoothed']\n...\ndf[f\"{col}_target_enc\"] = df[col].map(target_enc_maps[col]).fillna(train_mean)"
+  },
+  {
+   "name": "Destroying Native Missing Value Handling",
+   "description": "Replacing all NaNs in numeric arrays with 0.0 prevents gradient boosting libraries (like LightGBM and XGBoost) from utilizing their native, often superior, missing value handling (e.g., learning default split directions for NaNs).",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "arr = np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0)"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering pipeline and successfully ensembles LightGBM and XGBoost. However, a critical flaw exists in the target encoding implementation, which leaks the target into the training features by omitting out-of-fold estimation. Additionally, the agent uses a random split on temporally ordered data, applies naive equal-weight ensembling, and destroys native NaN handling by filling all missing numeric values with 0.0.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

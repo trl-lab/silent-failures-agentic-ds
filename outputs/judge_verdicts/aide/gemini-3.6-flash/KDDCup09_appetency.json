@@ -1,0 +1,137 @@
+{
+ "task": "KDDCup09_appetency",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with a constant 'missing' for categorical columns, and relies on CatBoost's native handling for numerical ones.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype(str).fillna(\"missing\")",
+   "reasoning": "Imputation is done using a constant value ('missing'), which does not compute any statistics and therefore cannot leak test distributions.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostClassifier is correctly used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold to create proper train and validation splits.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, not just a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_auc = roc_auc_score(y, oof_preds)\nprint(f\"OOF ROC AUC: {oof_auc:.5f}\")",
+   "reasoning": "The agent only computes and reports the ROC AUC score without verifying other metrics like precision-recall or confusion matrix statistics for this highly imbalanced dataset.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[\"n_missing\"] = X.isnull().sum(axis=1)",
+   "reasoning": "The agent computes missing value counts and frequency encodings as derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(test_pool)[:, 1] / skf.n_splits",
+   "reasoning": "The agent combines the K-fold models by taking a naive, unweighted average of their predictions without any tuning.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via test set feature encoding",
+   "description": "The agent fits a feature encoder (e.g., frequency encoding) on the combined train and test datasets before cross-validation. This leaks information about the test set distribution into the training features, potentially causing overfitting to the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq_map = pd.concat([X[col], X_test[col]]).value_counts(normalize=True)\nX[f\"{col}_freq\"] = X[col].map(freq_map).astype(float)"
+  }
+ ],
+ "summary": "The agent correctly frames the task and implements a robust cross-validation strategy with basic feature engineering. However, there is a critical data leakage issue where frequency encoding is calculated using the combined train and test datasets, leaking test distribution information into the training features. Additionally, the agent uses a simple unweighted average for ensembling the fold models and relies entirely on a single evaluation metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "food-prices_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or preprocessing that leaks test set statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_processed, test_processed = preprocess_data(train_df, test_df, target_col)",
+   "reasoning": "The agent performs no explicit data cleaning (such as handling missing values, duplicates, or outliers) and relies entirely on LightGBM's native handling of missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which evaluates the model across multiple folds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_val, val_pred)",
+   "reasoning": "The agent evaluates performance solely using RMSE and does not compute any other metrics to check for robustness (e.g., MAE for outliers).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts several derived features from datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_predictions += model.predict(X_test) / n_splits",
+   "reasoning": "The agent simply averages the predictions of the cross-validation folds with equal weights, rather than attempting a more sophisticated blending.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "ID column used as feature",
+   "description": "The identifier column is not dropped from the dataframe before model training, meaning it is passed as a feature to the model. This can lead to severe overfitting or data leakage if the ID correlates with the target (e.g., due to temporal ordering).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if col in [target_col, \"is_train\", \"id\"]: continue\n...\nfeature_cols = [c for c in train_processed.columns if c != target_col]"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates the submission file using a newly created sequence of integers for the ID column instead of preserving the actual IDs from the test set. This will result in an invalid or misaligned submission file.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test_predictions)), \"usdprice\": test_predictions})"
+  }
+ ],
+ "summary": "The agent sets up a reasonable 5-fold cross-validation pipeline with LightGBM and implements automated datetime feature extraction. However, it contains two critical execution flaws: it fails to drop the 'id' column from the feature set, potentially causing severe target leakage, and it uses a synthetic integer sequence for the submission file IDs instead of the actual test set IDs. Additionally, it skips explicit data cleaning, relying entirely on the model to handle any anomalies.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

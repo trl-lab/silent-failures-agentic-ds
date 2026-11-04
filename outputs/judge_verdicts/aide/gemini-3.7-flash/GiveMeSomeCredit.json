@@ -1,0 +1,149 @@
+{
+ "task": "GiveMeSomeCredit",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data, such as handling anomalous age values and missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the combined full dataset (train and test are processed separately).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so a standard cross-validation split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a LightGBM classifier with a binary objective, which matches the task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold Stratified K-Fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over multiple folds and averages across 2 different random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes and reports ROC-AUC, which is the official metric for the task and appropriate for class imbalance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the task correctly as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers a wide variety of derived features such as ratios, log transforms, and domain-specific groupings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_preds[val_idx] += model.predict(X_va, num_iteration=model.best_iteration) / len(seeds)",
+   "reasoning": "The agent ensembles the predictions of multiple seeds using a naive, unweighted average without attempting to optimize the blending weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage in cross-validation",
+   "description": "The agent computes statistics for imputation on the entire training dataset before performing cross-validation splits, leaking validation set distributions into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_age = df[\"age\"].replace(0, np.nan).median()\ndf[\"age\"] = df[\"age\"].replace(0, median_age)\n# Followed by:\nskf.split(X_train, y_train)"
+  },
+  {
+   "name": "Imputing test data with test statistics",
+   "description": "The agent computes imputation statistics (e.g., median) independently on the test set rather than applying the statistics learned from the training set, which violates standard inductive learning practices.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test = engineer_features(test_df.drop(columns=[target_col], errors=\"ignore\"))"
+  }
+ ],
+ "summary": "The agent developed a robust LightGBM solution with thoughtful feature engineering and multi-seed cross-validation. However, it made methodological errors with imputation by computing the median age over the entire training set prior to CV splits (causing internal leakage) and computing it independently on the test set (failing to freeze training parameters for inference). Additionally, the ensembling across seeds is a simple unweighted average.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

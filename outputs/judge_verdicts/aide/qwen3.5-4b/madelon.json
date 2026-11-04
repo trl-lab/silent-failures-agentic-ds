@@ -1,0 +1,141 @@
+{
+ "task": "madelon",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not peeked at during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Load data\ntrain_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\n# Extract features and target\nX_train = train_df.drop(columns=[\"Class\"])",
+   "reasoning": "The agent proceeds directly from loading the data to modeling without any checks for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is correctly applied after the train/validation split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a binary objective is appropriate for binary classification.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_val_pred = model.predict(X_val_sel)\nval_accuracy = accuracy_score(y_val, y_val_pred)",
+   "reasoning": "The agent trains a LightGBM model with stochastic parameters (bagging_fraction, feature_fraction) but evaluates it only once on a single validation split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_val, y_val_pred)",
+   "reasoning": "The agent evaluates the model using only accuracy and logloss, without calculating other metrics like AUC, F1-score, or precision/recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "selector = SelectKBest(f_classif, k=15)\nX_train_sel = selector.fit_transform(X_train_full, y_train_full)",
+   "reasoning": "The agent uses raw features directly via SelectKBest and does not engineer any new features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution crash: accuracy_score with continuous probabilities",
+   "description": "The agent passes raw predicted probabilities from a LightGBM binary model directly into scikit-learn's `accuracy_score` without thresholding or rounding. This will raise a ValueError ('Classification metrics can't handle a mix of binary and continuous targets').",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_val_pred = model.predict(X_val_sel)\nval_accuracy = accuracy_score(y_val, y_val_pred)"
+  },
+  {
+   "name": "Redundant/duplicated code blocks",
+   "description": "The agent accidentally concatenates two iterations of the script into a single file, resulting in imports, data loading, and feature selection being run twice sequentially.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "import pandas as pd\nimport numpy as np\nfrom sklearn.model_selection import train_test_split..."
+  }
+ ],
+ "summary": "The agent correctly sets up a validation split and applies feature selection without leakage, but the solution will crash at runtime. The validation evaluation passes continuous probabilities to `accuracy_score` without rounding, which will raise a ValueError in scikit-learn. Additionally, there is a lack of basic data cleaning and feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

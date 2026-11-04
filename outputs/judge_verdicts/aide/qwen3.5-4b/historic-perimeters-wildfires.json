@@ -1,0 +1,145 @@
+{
+ "task": "historic-perimeters-wildfires",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train = train.dropna()\ntest = test.dropna()",
+   "reasoning": "The agent drops all rows with missing values instead of properly handling or imputing them, which also incorrectly removes rows from the test set.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The task involves historic wildfires which likely have a temporal component, but without inspecting the columns it's unclear if a temporal split is required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regressor for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, which averages performance over multiple data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_val, y_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without supplementing it with other metrics like MAE which might be robust to outliers in acreage.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train.drop([\"id\", \"gisacres\"], axis=1)\ntest_features = test.drop([\"id\"], axis=1)",
+   "reasoning": "The agent uses raw columns directly and makes no effort to create derived features or interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Altering test set size",
+   "description": "Dropping rows from the test set due to missing values. This leads to a mismatch in the expected number of predictions and causes submission failures in competitions or missing predictions in production systems.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test = test.dropna()"
+  },
+  {
+   "name": "Early stopping without eval_set",
+   "description": "Using an early stopping callback during model fitting without providing an evaluation set. This causes execution to fail as the callback cannot monitor any validation metric.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(\n    train_features,\n    train[\"gisacres\"],\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM regression pipeline with 5-fold cross-validation but suffers from critical data handling and execution errors. It drops missing values from the test set, which will alter the submission size, and uses an early stopping callback without an evaluation set during the final model fit, which will cause a runtime error. Furthermore, there is a complete lack of feature engineering and exploration of the data.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,105 @@
+{
+ "task": "titanic",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_age_medians = train_df.groupby(\"Pclass\")[\"Age\"].median()\n... X_train, X_val, y_train_split, y_val = train_test_split(X_train_full, ...)",
+   "reasoning": "Missing value imputation statistics are calculated on the full training set before it is split into train and validation sets, causing a slight data leakage from the validation fold into the training fold.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_train_split, oof_ensemble_pred)",
+   "reasoning": "The agent only uses accuracy for evaluation and does not verify its appropriateness via other metrics (e.g. F1-score, ROC-AUC), although it is the default metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper Stacking / Meta-learner Overfitting",
+   "description": "When retraining the stacking ensemble on the full training dataset, the meta-learner is trained on the base models' predictions of their own training data (in-sample predictions) rather than out-of-fold predictions. This causes the meta-learner to severely overfit by assigning disproportionately high weights to the base models that memorize the training data (e.g., tree ensembles).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_full_scaled, y_train)\nfull_train_level1_preds[:, m_idx] = model.predict_proba(X_train_full_scaled)[:, 1]\nmeta_learner_full.fit(full_train_level1_preds, y_train)"
+  },
+  {
+   "name": "Stale Derived Features / Unhandled NaNs",
+   "description": "Features derived from columns with missing values are computed prior to imputation. While the original column is later imputed, some derived features are not recomputed. This leaves them with missing values that are later improperly filled (e.g., with zeros), destroying the feature's intended logic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"Age_Pclass\"] = df[\"Age\"] * df[\"Pclass\"]  # computed in Step 2 while Age has NaNs\ntrain_df[\"Age\"] = train_df[\"Age\"].fillna(...)  # imputed in Step 3, but Age_Pclass is never recomputed"
+  }
+ ],
+ "summary": "The agent builds a highly sophisticated pipeline with extensive feature engineering and a stacking ensemble. However, it makes a critical error in the final step by training the meta-learner on in-sample base model predictions, completely undermining the stacking model's ability to generalize. Additionally, the agent fails to recompute some derived features after imputing missing values, injecting corrupt data into the model.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

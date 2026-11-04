@@ -1,0 +1,138 @@
+{
+ "task": "satimage",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent checks for the presence of nulls in the test data, but does not use test data distributions to compute the median.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The median used for imputation is computed strictly on the training set (X), avoiding data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models (LightGBM and CatBoost) are used for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X.iloc[val_idx], y_encoded[val_idx]",
+   "reasoning": "The agent creates validation folds but never evaluates the models on them to compute a validation score.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the models internally or report any scores.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses raw features directly without any derived features, missing opportunities to aggregate the spatial neighborhood features in the satimage dataset.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_probs += lgb_model.predict_proba(X_test) / (2 * n_splits)",
+   "reasoning": "The agent uses a naive, unweighted average to combine predictions from the LightGBM and CatBoost models.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unused validation sets for early stopping",
+   "description": "Validation sets are created during cross-validation but not passed to gradient boosting models (e.g., LightGBM, CatBoost) for early stopping. This forces the models to train for a fixed number of iterations, which can lead to overfitting or suboptimal performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X.iloc[val_idx], y_encoded[val_idx]\n\n    # LightGBM Classifier\n    lgb_model = lgb.LGBMClassifier(\n        n_estimators=500,\n..."
+  }
+ ],
+ "summary": "The agent successfully implements a cross-validated ensemble of LightGBM and CatBoost models and avoids data leakage during imputation. However, it fails to compute any validation metrics or use the validation folds for early stopping, rendering the validation splits effectively useless, and relies entirely on a naive unweighted average for the final predictions.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

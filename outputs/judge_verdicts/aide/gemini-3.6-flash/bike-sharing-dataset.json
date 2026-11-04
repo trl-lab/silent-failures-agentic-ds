@@ -1,0 +1,141 @@
+{
+ "task": "bike-sharing-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_raw = pd.read_parquet(\"./input/train.parquet\")\n...\ndef process_features(df):",
+   "reasoning": "The agent proceeds directly from loading the data to feature engineering without making any attempt to check for or clean missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on the dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a randomized K-Fold split instead of a time-based split for a time-series dataset, introducing look-ahead bias by allowing future events to predict past ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently averages performance across multiple different data splits, sufficiently accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"Validation RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent only computes and reports RMSE without verifying behavior with secondary metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering including cyclical transformations, weather interactions, and date components.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_log_pred = (lgb_log.predict(X_va) + xgb_log.predict(X_va) + cat_log.predict(X_va)) / 3.0\n...\nfold_val_pred = 0.5 * np.expm1(val_log_pred) + 0.5 * val_raw_pred",
+   "reasoning": "The agent combines multiple models using a naive, unweighted equal average (dividing by 3.0 and multiplying by 0.5) without attempting to tune or optimize the blending weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test data leakage via global aggregation",
+   "description": "The agent concatenates the train and test sets to compute group-level aggregate statistics (e.g., means) and maps them back as features. This leaks the statistical distribution of the test set into the training data, invalidating the integrity of the validation and likely causing overfitting to the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "all_data = pd.concat([train_df, test_df], axis=0, ignore_index=True)\ngrp_cols = [\"hr\", \"workingday\"]\nagg_stats = all_data.groupby(grp_cols)[[\"temp\", \"hum\", \"windspeed\"]].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering pipeline and successfully fits multiple gradient boosting models on both the log and raw target scales. However, the solution suffers from two critical flaws: using a randomized K-Fold split that ignores the temporal nature of the bike-sharing dataset (FM05), and leaking test set statistics into the training features by aggregating over the concatenated train and test data. Additionally, it uses naive ensembling (FM12) and skips basic data cleaning (FM03).",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

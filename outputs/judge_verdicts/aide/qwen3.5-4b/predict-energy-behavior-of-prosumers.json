@@ -1,0 +1,155 @@
+{
+ "task": "predict-energy-behavior-of-prosumers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No peeking at test data is observed during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_train = train_df.dropna(subset=[\"target\"])",
+   "reasoning": "The agent only drops rows with missing targets and relies entirely on LightGBM's native handling for missing feature values without any explicit cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM Regressor is appropriate for the continuous target regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation split is used to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using cross-validation over 5 folds, which provides an estimate of variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = mean_absolute_error(y_val, val_pred)",
+   "reasoning": "The agent only uses Mean Absolute Error (MAE) and does not verify performance with any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a regression problem, though it ignores the time-series nature.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"hour\"] = df[\"datetime\"].dt.hour",
+   "reasoning": "The agent derives basic datetime features like hour, day of week, and month, so feature engineering is technically present.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Time-series data leakage via random splitting",
+   "description": "The agent uses random shuffling for cross-validation on a time-series forecasting task. This leaks future information into the training set, allowing the model to predict past events using future context, which invalidates the validation score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)"
+  },
+  {
+   "name": "Execution error from dropping non-existent column",
+   "description": "The agent attempts to drop the target column from the test set, but the test set typically does not contain the target column in Kaggle competitions, which will raise a KeyError and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_data = lgb.Dataset(test_df.drop(\"target\", axis=1), reference=final_data)"
+  },
+  {
+   "name": "Evaluating on training data",
+   "description": "The agent calculates the final validation score by generating predictions on the exact same dataset used to train the final model. This provides a meaningless, overly optimistic performance metric.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_score = mean_absolute_error(y_final, final_model.predict(X_final))\nprint(f\"Final Validation MAE: {val_score:.4f}\")"
+  },
+  {
+   "name": "Unused relational datasets",
+   "description": "The agent loads multiple relational datasets (e.g., weather, client, prices) but never merges them into the main training and test sets, effectively discarding significant predictive signal.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "client_df = pd.read_csv(\"./input/client.csv\")\nweather_df = pd.read_parquet(\"./input/forecast_weather.parquet\")"
+  }
+ ],
+ "summary": "The solution implements a basic LightGBM regression model but suffers from critical data leakage due to randomly shuffling time-series data during cross-validation. Additionally, the script is likely to crash by attempting to drop a non-existent target column from the test set, evaluates final performance directly on the training data, and completely ignores several loaded relational datasets containing valuable predictive signals.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

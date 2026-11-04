@@ -1,0 +1,142 @@
+{
+ "task": "historic-perimeters-wildfires",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA; it only uses the combined dataframe for type inference and datetime parsing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "trn_data = lgb.Dataset(X_tr, label=y_tr)",
+   "reasoning": "The agent makes no explicit effort to handle missing values, duplicate rows, or outliers, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent identifies datetime columns but uses a randomly shuffled K-Fold split, introducing look-ahead bias by ignoring the temporal order of historic wildfires.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 folds and averages their test predictions, which mitigates variance from a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent solely calculates and reports RMSE without verifying its robustness, which may be heavily skewed by outlier wildfires.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts multiple datetime components (year, month, day, dayofweek, dayofyear) from temporal columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += np.clip(test_fold_pred, 0, None) / n_splits",
+   "reasoning": "The agent combines the predictions of the 5 cross-validation models using a naive, unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring skew in target variable",
+   "description": "The agent fails to apply a log transformation (or similar) to a strictly positive, highly right-skewed target variable like 'acres burned'. Optimizing RMSE directly on such a skewed target makes the model overly sensitive to extreme outliers.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train_df[target_col].values"
+  }
+ ],
+ "summary": "The agent provides a functional LightGBM baseline with datetime feature extraction and 5-fold cross-validation. However, it fails to account for the temporal nature of the dataset by using a randomly shuffled split, which introduces look-ahead bias. Additionally, it relies entirely on the model to handle missing values, ignores the heavy right-skew of the target variable, and uses a naive averaging ensemble for predictions.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

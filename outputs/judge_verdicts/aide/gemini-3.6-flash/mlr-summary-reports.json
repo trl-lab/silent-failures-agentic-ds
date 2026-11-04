@@ -1,0 +1,148 @@
+{
+ "task": "mlr-summary-reports",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts()\n    combined[f\"{col}_freq\"] = combined[col].map(freq)",
+   "reasoning": "The agent computes frequency encoding and group aggregation statistics on the combined dataset, leaking test distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the target column, parses numeric series, and handles missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is fit on the combined dataset before splitting; the meta-learner scaler is properly fit on out-of-fold predictions.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no feature selection step applied in the code.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Numeric imputation uses the median of X_train after splitting, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "It is not clear if the dataset has a strict temporal order requiring a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, which inherently averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = root_mean_squared_error(y, meta_oof)\nprint(f\"Validation RMSE: {final_rmse:.5f}\")",
+   "reasoning": "The agent only computes and reports RMSE, without using any secondary metrics to contextualise performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including log transforms, interactions, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a Ridge regression meta-learner for stacking, which is a principled ensembling method.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unreversed Target Transformation",
+   "description": "The agent scales the target variable (e.g., dividing by 100) before training, but fails to reverse this transformation on the final test predictions, resulting in submissions that are on the completely wrong scale.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if target_clean.dropna().mean() > 1.5:\n    target_clean = target_clean / 100.0"
+  },
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates submission IDs using an arbitrary sequence (e.g., `np.arange()`) instead of extracting the actual identifier column from the test dataset, which will likely cause evaluation failures on a scoring platform.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame(\n    {\"id\": np.arange(len(meta_test_preds)), \"Adjusted MLR\": meta_test_preds}\n)"
+  }
+ ],
+ "summary": "The solution implements a robust pipeline with cross-validation and stacking, properly handling most imputation after splitting. However, it suffers from data leakage by calculating group statistics and frequencies on the combined train and test sets. Additionally, critical errors exist in the final submission generation, including failing to reverse a scaling factor applied to the target variable and hardcoding submission IDs instead of preserving the test set's original identifiers.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

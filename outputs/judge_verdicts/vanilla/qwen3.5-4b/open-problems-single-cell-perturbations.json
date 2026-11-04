@@ -1,0 +1,141 @@
+{
+ "task": "open-problems-single-cell-perturbations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or preprocessing that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# CatBoost automatically handles missing values and categorical columns (strings) as categorical features\n    # We do not perform manual encoding",
+   "reasoning": "The agent skips data cleaning entirely, relying on the model to handle any issues like missing values or categories automatically.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostRegressor is an appropriate model family for regression tasks, even though the specific loss function parameter provided is incorrect for multi-output.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_matrix, eval_set=(X_train, None), verbose=0)",
+   "reasoning": "The agent trains the model on the entire training dataset and predicts on the test set without establishing any train/validation split to evaluate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = CatBoostRegressor(**params, loss_function='RMSE')\n    \n    # Store original feature order to ensure proper alignment if columns shuffled\n    model.fit(X_train, y_matrix, eval_set=(X_train, None), verbose=0)",
+   "reasoning": "The agent trains and evaluates the stochastic CatBoost model exactly once without multiple runs or cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any evaluation, so it cannot be penalised for using only one evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly identifies the task as multi-output regression, even though it incorrectly assumes the data structure.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train[features]\n    X_test = test[features]",
+   "reasoning": "The agent uses the raw feature columns as-is without attempting any feature engineering or derived transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure due to missing target column",
+   "description": "The agent assumes all target variables are stored as lists within a single column named `__multi_output__`, leading to a KeyError since the targets are actually spread across multiple distinct columns.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_raw = train[target_col].tolist()"
+  },
+  {
+   "name": "Invalid CatBoost configuration for multi-output",
+   "description": "The agent sets `loss_function='RMSE'` for a multi-output target in CatBoost. CatBoost requires `loss_function='MultiRMSE'` to train on 2D multi-output arrays, so this configuration would cause an error during fitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = CatBoostRegressor(**params, loss_function='RMSE')"
+  }
+ ],
+ "summary": "The agent attempts to solve a multi-output regression task using CatBoostRegressor but fails execution immediately because it assumes the target is packed into a single column named `__multi_output__`. Additionally, it skips data cleaning, feature engineering, and internal validation, and configures CatBoost with an incompatible loss function (`RMSE` instead of `MultiRMSE`) for a 2D target matrix.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 1,
+ "stage_count_max": 8,
+ "no_code": false
+}

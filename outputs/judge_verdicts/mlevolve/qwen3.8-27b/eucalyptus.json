@@ -1,0 +1,76 @@
+{
+ "task": "eucalyptus",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Missing values in test:\\n{test.isnull().sum()}\")",
+   "reasoning": "The agent explicitly computes and prints test set missing value statistics during the exploratory data analysis phase.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_acc = accuracy_score(y.iloc[val_idx], fold_val_pred)",
+   "reasoning": "The agent only computes accuracy to evaluate the models, without considering metrics like balanced accuracy or F1-score that might be more informative for multi-class tasks.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ensemble_val_proba = (lgb_val_proba + xgb_val_proba) / 2.0",
+   "reasoning": "The agent uses a simple unweighted average of the two models' probabilities without attempting to optimize the combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect Groupby Transform Mapping",
+   "description": "The agent computes group aggregates using `transform()`, which returns a Series indexed by row, and then erroneously uses this row-indexed Series to `.map()` features in the validation and test sets based on categorical values. This maps test categories to arbitrary training row indices, producing meaningless features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sp_mean = X.groupby(sp)[agg_col].transform(\"mean\")\n            X[f\"Sp_mean_{agg_col}\"] = sp_mean\n            X_test[f\"Sp_mean_{agg_col}\"] = X_test[sp].map(sp_mean)"
+  },
+  {
+   "name": "Dummy Submission ID",
+   "description": "The agent constructs the submission file using an auto-generated numerical sequence instead of carrying over the actual identifier column from the test dataset, which will cause evaluation to fail if the grading metric expects specific IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": range(len(test_pred)), \"Utility\": test_pred})"
+  },
+  {
+   "name": "Off-by-One in XGBoost Iteration Range",
+   "description": "The agent subtracts 1 from `median_xgb_iter` when specifying the `iteration_range` for XGBoost prediction. Since `iteration_range` is already exclusive at the upper bound, this erroneously excludes the final tree and will crash with a ValueError if the median iteration happens to be 1.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "xgb_test_proba = final_xgb_model.predict(dtest_xgb, iteration_range=(0, median_xgb_iter - 1))"
+  }
+ ],
+ "summary": "The agent implements a reasonable cross-validated pipeline but introduces a critical bug when mapping group-level features to the test set, mapping categorical values to arbitrary row indices instead of grouped aggregates. Furthermore, the agent creates a dummy ID column for the submission file rather than retaining the actual test IDs, which breaks evaluation. Minor issues like peeking at test statistics, using a naive unweighted ensemble, and relying solely on accuracy are also present.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

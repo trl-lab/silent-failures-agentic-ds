@@ -1,0 +1,148 @@
+{
+ "task": "us-school-bus-fleet",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at test statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n...\ny = train_df[target_col].values\nX = train_df.drop(columns=[target_col])",
+   "reasoning": "The agent loads the data and passes it directly to feature engineering and modelling without checking for or handling missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection algorithm is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains datetime columns, but it is unclear if the specific task requires temporal splitting or if random cross-validation is sufficient for predicting cross-sectional bus age.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y, oof_preds))",
+   "reasoning": "The agent only computes and reports RMSE, without verifying if it is robust to potential outliers in the bus age distribution compared to other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering by extracting temporal features from datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Averaging cross-validation predictions is standard practice and not considered a naive ensemble in this context.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Biased out-of-fold evaluation via early stopping",
+   "description": "The agent uses the validation fold for early stopping and then reports the prediction error on that same validation fold. This introduces an optimistic bias because the model implicitly trained on the validation data to choose the optimal number of boosting rounds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_val, y_val)], callbacks=[lgb.early_stopping(50, verbose=False)] ... oof_preds[val_idx] = model.predict(X_val)"
+  },
+  {
+   "name": "Missing non-negative constraint for strictly positive target",
+   "description": "The target variable ('Bus age') represents a physical quantity that cannot be negative, but the agent uses a standard regressor without any target transformation (like a log transform) or non-negative constraint, which could result in invalid negative predictions.",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "model = lgb.LGBMRegressor(...) # No objective adjustment or target transform"
+  }
+ ],
+ "summary": "The agent implements a standard LightGBM pipeline with cross-validation and basic datetime feature engineering. However, the solution skips explicit data cleaning and introduces an optimistic bias in its validation scores by using the holdout folds for early stopping. Furthermore, the model lacks constraints to prevent negative predictions for the strictly positive 'Bus age' target.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

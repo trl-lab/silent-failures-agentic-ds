@@ -1,0 +1,152 @@
+{
+ "task": "contributions-to-financial-intermediary-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent reads the raw data and extracts values without any explicit data cleaning or handling of missing values, relying entirely on the model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+   "reasoning": "The agent correctly fits the scaler only on the training set and transforms the test set separately, avoiding leakage across the main train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Financial contribution datasets typically contain dates or temporal sequences, but without inspecting the dataset columns, we cannot definitively confirm if temporal order was ignored by the random shuffle.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with 'objective': 'regression') for predicting a continuous target ('Amount in USD').",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, not a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))",
+   "reasoning": "The agent solely calculates and reports RMSE, without evaluating other metrics like MAE which might be more robust to outliers in financial data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is a standard regression approach which aligns with the target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [\"id\", \"Amount in USD\"]]",
+   "reasoning": "The agent passes the raw feature columns directly into the model without applying any feature engineering, derived transformations, or categorical encodings.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage in Cross-Validation",
+   "description": "The agent applies a scaler (or other transformer) to the entire training dataset before splitting it into cross-validation folds. This leaks distribution statistics from the validation folds into the training folds during the CV process.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train_scaled)):"
+  },
+  {
+   "name": "Flawed Cross-Validation Aggregation",
+   "description": "The agent takes the minimum (or maximum) validation score across folds to report the model's overall performance, rather than the mean. This yields an overly optimistic estimate of model generalization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if val_rmse < best_val_score:\n    best_val_score = val_rmse\n...\nprint(f\"Best 5-fold CV RMSE: {best_val_score:.4f}\")"
+  },
+  {
+   "name": "Overfitting final model due to missing early stopping iteration",
+   "description": "The agent uses early stopping during cross-validation, but trains the final model on the entire training set for a hardcoded maximum number of iterations without incorporating the optimal number of iterations found during CV. This can lead to massive overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    best_params,\n    lgb.Dataset(X_train_scaled, label=y_train),\n    num_boost_round=1000,\n    verbose_eval=-1,\n)"
+  }
+ ],
+ "summary": "The agent establishes a basic LightGBM model but makes multiple critical logic errors in the validation and training pipeline. It leaks validation data by scaling the entire training set before the CV split, incorrectly evaluates CV performance by taking the minimum score instead of the mean, and heavily risks overfitting the final model by training for a hardcoded 1000 rounds without early stopping. Furthermore, no data cleaning or feature engineering is implemented.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

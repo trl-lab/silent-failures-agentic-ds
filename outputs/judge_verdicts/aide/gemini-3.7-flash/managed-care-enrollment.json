@@ -1,0 +1,153 @@
+{
+ "task": "managed-care-enrollment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed in the final solution.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans data by filling missing values and parsing dates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scalers or normalizers are applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[col] = combined[col].fillna(combined[col].median())",
+   "reasoning": "The agent computes the median on the combined train and test sets to fill missing values, leaking test statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent detects and extracts datetime features but uses a randomized KFold split, which ignores temporal order and introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor, LightGBM) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates on OOF predictions, not the test set, to find ensemble weights.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which naturally averages performance across multiple folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cb_fold_rmse = root_mean_squared_error(y_va, cb_oof[val_idx])",
+   "reasoning": "The agent only computes and reports RMSE, without using any alternative metrics to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (datetime, cyclical, interactions, aggregations, frequency encoding).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes ensemble weights using scipy.optimize.minimize.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Group Aggregations",
+   "description": "The agent calculates grouped statistics (e.g., mean, std, min, max) over the combined train and test dataset before splitting. This leaks the test set's feature distributions into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "agg_df = combined.groupby(cat)[num].agg([\"mean\", \"std\", \"min\", \"max\"]).reset_index()"
+  },
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "Frequency encoding is applied on the combined train and test dataset before splitting, leaking information about the test set's category distributions into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(normalize=True)\ncombined[f\"{col}_freq\"] = combined[col].map(freq).fillna(0)"
+  }
+ ],
+ "summary": "The agent produces a well-structured solution with solid feature engineering, cross-validation, and an optimized ensemble. However, the preprocessing suffers from significant data leakage because imputations, frequency encodings, and group aggregations are calculated over the combined train and test sets. Additionally, the agent ignores temporal ordering by using a randomized split despite the presence of datetime features.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

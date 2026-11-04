@@ -1,0 +1,148 @@
+{
+ "task": "food-prices_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements basic data cleaning like missing value imputation and categorical encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not impute on the full combined dataset before splitting (though it incorrectly uses test set medians for test imputation separately).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(feature_columns, y_train)\n\n# Predict\n# Reset index to start from 0 as requested\ntest_df_clean = test_df.reset_index(drop=True)\nids = range(len(test_df_clean))\npredictions = model.predict(feature_columns_test)",
+   "reasoning": "The agent trains on the entire training set without creating a validation set to evaluate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any evaluation, single or multiple.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task on the provided target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features_list = [col for col in X_train_full.columns if col != 'usdprice']\nfeature_columns = X_train_full[features_list].copy()",
+   "reasoning": "The agent uses raw features directly without attempting any feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Error (KeyError)",
+   "description": "The script attempts to drop the target column from the test set, but the test set does not contain the target column, leading to a KeyError that stops execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test_full = test_df.drop('usdprice', axis=1) # Test set should not have target"
+  },
+  {
+   "name": "Test Set Statistic Leakage",
+   "description": "Missing values in the test set are imputed using statistics (like median) calculated from the test set itself, rather than from the training set, violating the principle that the test set should be treated as completely unseen data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if feature_columns_test[col].isnull().sum() > 0:\n        feature_columns_test[col].fillna(feature_columns_test[col].median(), inplace=True)"
+  },
+  {
+   "name": "Brittle Label Encoding",
+   "description": "The agent uses LabelEncoder on the test set after fitting it on the training set. If the test set contains unseen categories, the transform method will fail with a ValueError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_columns_test[col] = encoder.transform(feature_columns_test[col].astype(str))"
+  }
+ ],
+ "summary": "The agent correctly identifies the task as a regression problem and applies a LightGBM model. However, the solution fails to execute due to a fatal KeyError when attempting to drop the non-existent target column from the test set. Additionally, the script suffers from a lack of internal validation, applies no feature engineering, sets up brittle categorical encoding that will crash on unseen test labels, and improperly uses test set statistics to impute test data.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

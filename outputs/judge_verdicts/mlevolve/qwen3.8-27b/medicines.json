@@ -1,0 +1,101 @@
+{
+ "task": "medicines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_pred_ensemble = np.mean(val_preds_list, axis=0)\ntest_pred_ensemble = np.mean(test_preds_list, axis=0)",
+   "reasoning": "The agent combines the multi-seed LightGBM predictions using a simple unweighted mean, without optimizing the ensemble combination.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Destructive Categorical Feature Engineering",
+   "description": "The agent extracts character-level text statistics (like length, vowel count, etc.) for all object and categorical columns, but then explicitly drops the original columns entirely. This destroys the categorical information (the actual category values), rendering the subsequent categorical processing steps useless and severely degrading model performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in remaining_object:\n    ... \n    df = df.drop(columns=[col])"
+  },
+  {
+   "name": "Optimistic Validation via Early Stopping Leakage",
+   "description": "The agent uses the validation set for early stopping during model training, and then evaluates the final ensemble's performance on that exact same validation set. This results in an over-optimistic estimate of generalization because the models were explicitly tuned on this data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "valid_sets=[dval] ... callbacks=[lgb.early_stopping(stopping_rounds=100, verbose=False)] ... val_auc = roc_auc_score(y_val, val_pred_ensemble)"
+  }
+ ],
+ "summary": "The agent successfully implements a train/validation split, robust missing value imputation, and trains a multi-seed LightGBM ensemble. However, it contains a critical logic flaw in the feature engineering pipeline where all categorical features are permanently dropped after extracting basic text statistics, completely destroying the category labels. Additionally, the validation score is biased due to evaluating the naive unweighted ensemble on the same validation set used for early stopping.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

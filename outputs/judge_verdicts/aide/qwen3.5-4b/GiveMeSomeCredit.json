@@ -1,0 +1,145 @@
+{
+ "task": "GiveMeSomeCredit",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by dropping unnecessary columns and imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = train.fillna(train.median(numeric_only=True))",
+   "reasoning": "The agent computes the median and imputes missing values on the entire training set before cross-validation splits, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is a standard credit scoring dataset without a strict time series structure, so random splitting (StratifiedKFold) is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification model (LightGBM with objective='binary') for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is trained and evaluated across 5 cross-validation folds, and the metric is averaged, so it is not a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses ROC AUC, which is the specified metric for the task and is robust for evaluating binary classification models.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "feature_cols = train.drop(columns=[\"SeriousDlqin2yrs\"]).columns\nX_train = train[feature_cols]",
+   "reasoning": "The agent uses the raw columns as-is without introducing any derived features, domain-informed transformations, or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Set Imputation Leakage",
+   "description": "Imputing missing values in the test set using statistics (like median or mean) calculated from the test set itself, rather than using statistics learned from the training set. This violates the assumption that test data should be treated as unseen.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test = test.fillna(test.median(numeric_only=True))"
+  },
+  {
+   "name": "Discarding CV Models",
+   "description": "The agent trains models in a cross-validation loop but only uses the model from the final fold to make predictions on the test set, discarding the models trained on earlier folds and losing the benefits of ensembling.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_test_pred = model.predict(X_test, num_iteration=model.best_iteration)"
+  }
+ ],
+ "summary": "The agent correctly sets up a LightGBM model with 5-fold cross-validation but completely neglects feature engineering. More critically, the solution suffers from data leakage due to pre-split imputation, improperly imputes the test set using its own medians, and carelessly uses only the final fold's model for test predictions.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

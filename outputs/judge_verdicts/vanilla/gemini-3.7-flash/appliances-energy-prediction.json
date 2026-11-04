@@ -1,0 +1,149 @@
+{
+ "task": "appliances-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used to inform EDA or preprocessing steps before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via imputation, although the strategy is suboptimal.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a constant fill value (0) for imputation, which does not leak statistics across splits.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series of appliance energy usage, but the agent splits the data randomly using KFold with shuffle=True, which ignores temporal order and introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data internally using KFold cross-validation and evaluates on a validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation to train multiple models and averages their predictions, rather than evaluating exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report or optimize using an inappropriate single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple relevant features, including date parts, cyclical time encodings, and temperature differences.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += (0.5 * pred_lgb + 0.5 * pred_cb) / kf.n_splits",
+   "reasoning": "The agent combines the LightGBM and CatBoost models using a naive, unweighted/equal-weight average without attempting to tune or optimize the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Arbitrary zero imputation for continuous features",
+   "description": "Filling missing values in continuous features with 0 can severely distort the data distribution and introduce false patterns, especially for features like temperature where 0 is not a central or representative value.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train_full[numeric_cols].fillna(0)"
+  },
+  {
+   "name": "Missing validation metric computation",
+   "description": "The agent performs cross-validation but fails to compute or report any performance metric on the validation sets, making it impossible to estimate generalization performance or compare models offline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):"
+  }
+ ],
+ "summary": "The agent sets up a reasonably robust feature engineering pipeline and successfully creates an ensemble of LightGBM and CatBoost models. However, it critically ignores the temporal nature of the dataset by using a randomized K-Fold split, which causes look-ahead bias and invalidates the internal validation process. Additionally, the agent uses a naive equal-weight ensemble, arbitrarily fills missing values with 0, and fails to compute or report any validation score.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

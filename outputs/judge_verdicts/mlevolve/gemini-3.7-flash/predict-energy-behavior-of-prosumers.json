@@ -1,0 +1,105 @@
+{
+ "task": "predict-energy-behavior-of-prosumers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "self.prod_lgb_l1.fit(\n            X_train,\n            y_train,\n            eval_set=[(X_val, y_val)],",
+   "reasoning": "The agent trains stochastic models (LightGBM and XGBoost) exactly once with a fixed random state and evaluates them, without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "prod_val_mae = competition_mae(y_val_prod, val_preds_post[val_mask_prod])\n    cons_val_mae = competition_mae(y_val_cons, val_preds_post[val_mask_cons])",
+   "reasoning": "The agent only computes and reports the Mean Absolute Error (MAE) for evaluation, without considering any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Independent categorical encoding",
+   "description": "Categorical columns are cast to the 'category' dtype independently on the train, validation, and test splits. This causes the underlying integer codes to differ if the splits have different unique values or a different order of appearance. Tree-based models (like LightGBM and XGBoost) rely on these underlying integer codes, meaning test-set features will be silently misaligned and mapped to the wrong categories during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for cat_col in categorical_cols:\n        train_split[cat_col] = train_split[cat_col].astype(\"category\")\n        val_split[cat_col] = val_split[cat_col].astype(\"category\")\n        df_full_test[cat_col] = df_full_test[cat_col].astype(\"category\")"
+  },
+  {
+   "name": "Overfitting ensemble weights to validation set",
+   "description": "The ensemble combination weights are optimized using the exact same validation set that was used for early stopping during the training of the base models. This practice can lead to overfitting the ensemble weights to the validation data; out-of-fold predictions or a completely independent holdout set should be used instead.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dual_model.fit_prod(X_train_prod, y_train_prod, X_val_prod, y_val_prod)\n...\ndual_model.optimize_weights(X_val_prod, y_val_prod, X_val_cons, y_val_cons)"
+  }
+ ],
+ "summary": "The agent built a sophisticated dual-regime feature engineering pipeline and successfully implemented a time-based validation split. However, there is a critical execution flaw where categorical features are encoded independently across the train, validation, and test sets, which will corrupt the underlying integer encodings used by the LightGBM and XGBoost models during test inference. Additionally, the ensemble weights are prone to overfitting because they are optimized on the same validation data used for early stopping.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

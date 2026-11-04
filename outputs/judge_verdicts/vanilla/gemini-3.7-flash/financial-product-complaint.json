@@ -1,0 +1,156 @@
+{
+ "task": "financial-product-complaint",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA, though it does inappropriately use test data for categorical encoding later.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with constants or 'Missing'.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before the train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before the train/test split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies on constants (e.g., -1 or 'Missing'), which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains dates ('Date received'), but the agent uses random stratified splitting instead of a time-based split, risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classifier for the multiclass task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold CV, which inherently evaluates the model across multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes using a standard multiclass loss which is appropriate for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as multiclass classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including date extraction, text statistics, and TF-IDF/SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Averaging probabilities across CV folds is a standard and acceptable practice.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage in Cross-Validation",
+   "description": "The agent applies feature extraction transformations (like TF-IDF and TruncatedSVD) on the entire training set before splitting it into cross-validation folds. This causes information from the validation folds to leak into the training process, leading to overly optimistic validation performance during early stopping.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_train = tfidf.fit_transform(narrative_train)\n...\nsvd_train = svd.fit_transform(tfidf_train)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train_df, y)):"
+  },
+  {
+   "name": "Test Data Leakage via Categorical Encoding",
+   "description": "The agent combines the training and test sets to fit a LabelEncoder for categorical features. This leaks knowledge of the test set distribution and categories into the training pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "unique_vals = list(set(X_train_df[col].unique()).union(set(X_test_df[col].unique())))\n    le.fit(unique_vals)"
+  },
+  {
+   "name": "No Validation Metric Reported",
+   "description": "Although the agent sets up cross-validation, it completely fails to calculate, log, or print any validation metrics (such as accuracy) across the folds, leaving the user with no estimate of the model's generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_probs += clf.predict_proba(X_test_df) / skf.n_splits\n\nfinal_preds = np.argmax(test_probs, axis=1)"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering pipeline but introduces significant data leakage by fitting TF-IDF and SVD on the entire training set prior to cross-validation. Additionally, it leaks test set categories during label encoding, ignores the temporal nature of the data when splitting, and fails to report any validation metrics to evaluate performance.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "internet_advertisement",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements functions to fill missing values for both numeric and categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is done on the pre-split training set rather than the full combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is not a time series task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a binary objective is an appropriate choice for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n        params,\n        lgb_train_data,\n        num_boost_round=5000\n    )",
+   "reasoning": "The agent trains the model on the full training set without using a validation split or cross-validation to estimate performance or implement early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n        params,\n        lgb_train_data,\n        num_boost_round=5000\n    )",
+   "reasoning": "The agent trains a single model instance without averaging predictions over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Because there is no validation set, the agent does not report or internally compute any evaluation metrics during training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the problem correctly as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col])",
+   "reasoning": "The agent uses the raw features as-is and performs no derived feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unencoded_target_causes_crash",
+   "description": "The target column is categorical (strings) but is passed directly to the model without being encoded as numeric or boolean, causing a runtime exception.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_train_data = lgb.Dataset(X_train, label=y_train)\n# Traceback: ValueError: pandas dtypes must be int, float or bool. Fields with bad pandas dtypes: class: category"
+  },
+  {
+   "name": "hard_predictions_for_auc",
+   "description": "The task metric is ROC AUC, which requires continuous probabilities to properly score the ranking. The agent outputs hard class labels instead, strictly degrading the metric.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predicted_classes = [\"nonad\" if p < threshold else \"ad\" for p in predictions]"
+  },
+  {
+   "name": "missing_preprocessing_on_test",
+   "description": "The agent defines a function to impute numeric missing values and applies it to the training set, but completely forgets to call the function on the test set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = fill_numeric(X_train, numeric_cols)\n...\nX_test = fill_object(X_test, object_cols) # Apply same transformation"
+  }
+ ],
+ "summary": "The agent's solution contains critical errors, most notably failing to encode the categorical target column which immediately triggers a LightGBM crash. Furthermore, it outputs hard string class labels instead of probabilities, effectively crippling the required ROC AUC metric. Finally, it lacks any internal validation split and entirely forgets to apply its numeric imputation logic to the test set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

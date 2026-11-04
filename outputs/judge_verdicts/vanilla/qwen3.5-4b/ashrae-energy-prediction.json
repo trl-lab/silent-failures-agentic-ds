@@ -1,0 +1,145 @@
+{
+ "task": "ashrae-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_test_feat[col] = df_test_feat[col].fillna(fill_val)",
+   "reasoning": "The agent computes imputation statistics solely from the training set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fill_val = df_train_feat[col].median()",
+   "reasoning": "The agent explicitly imputes missing values using median for numeric and mode for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection algorithm is applied; only common columns are retained.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are computed only on the training set and applied to the test set, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no validation split, so random splitting of temporal data is not applicable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = CatBoostRegressor(param_name='', **params)",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "eval_set=[(df_train_feat, df_train_feat[TARGET_COLUMN])]",
+   "reasoning": "The agent trains on the full training set and passes the exact same training set as the validation set to the model, meaning there is no holdout validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(df_train_feat, df_train_feat[TARGET_COLUMN], ...)",
+   "reasoning": "The agent fits the stochastic CatBoost model exactly once without using cross-validation or multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "'loss_function': 'RMSE', 'metric': 'RMSE'",
+   "reasoning": "The agent optimizes for and reports only RMSE, despite the task metric being RMSLE, and does not apply a log transformation to the highly skewed target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as predicting a continuous target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_feats_list = cat_cols",
+   "reasoning": "The agent uses raw columns as-is and fails to create any derived features, such as extracting datetime components from timestamps, which is critical for this task.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "fatal_execution_error_set_indexer",
+   "description": "Attempting to slice a pandas DataFrame using a Python `set` of column names, which raises a TypeError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_cols = set([col for col in df_train.columns if col != TARGET_COLUMN])\n...\ndf_train_feat = df_train[train_cols]"
+  },
+  {
+   "name": "fatal_execution_error_undefined_variable",
+   "description": "Referencing an undefined variable in the code, which will raise a NameError and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_train_feat[num_cols] = df_train_feat[num_cols].combine_first(...).fillna(train_numeric_median[nums])"
+  }
+ ],
+ "summary": "The solution contains critical execution errors, including trying to index a DataFrame with a set and referencing undefined variables, which will prevent it from running. Beyond the crashes, the data science approach is flawed: it lacks a validation set (evaluating the model on its own training data), skips essential feature engineering (like parsing timestamps), and optimizes for RMSE instead of the required RMSLE metric without transforming the target.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

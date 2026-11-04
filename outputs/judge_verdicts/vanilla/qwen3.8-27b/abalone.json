@@ -1,0 +1,138 @@
+{
+ "task": "abalone",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by handling missing values, coercing numeric types, and replacing infinite values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test missing-value statistics are not leaked, as the imputation statistics are fit exclusively on the training dataframe.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly performed using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_fit, X_val, y_fit, y_val = train_test_split(\n            X_train,\n            y_train,\n            test_size=0.2,\n            random_state=RANDOM_STATE,\n        )",
+   "reasoning": "The agent evaluates the stochastic models using a single train/validation split with a fixed random seed, without cross-validation to account for performance variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(y_val, val_pred)))",
+   "reasoning": "The agent evaluates the models and weights the ensemble using only RMSE, without verifying robustness with other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categorical_cols = [\n        col\n        for col in X_train.columns\n        if X_train[col].dtype == object or str(X_train[col].dtype) == \"category\"\n    ]\n    numeric_cols = [col for col in X_train.columns if col not in categorical_cols]",
+   "reasoning": "The agent uses raw features and basic encoding but does not create any domain-informed derived features (e.g., volume or density ratios) which are standard and highly relevant for the abalone dataset.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an inverse-RMSE weighted ensemble rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage during Imputation",
+   "description": "Imputation statistics (like median and mode) are computed on the full training dataset before splitting it into training and validation sets, causing information from the validation set to leak into the training process.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, y_train, X_test = prepare_features(train_df, test_df)\n\n    if len(X_train) > 10:\n        X_fit, X_val, y_fit, y_val = train_test_split("
+  }
+ ],
+ "summary": "The solution provides a robust baseline using an inverse-RMSE weighted ensemble of gradient boosting models and safe target/feature handling. However, it lacks domain-specific feature engineering which is crucial for the abalone dataset, and it relies on a single train/validation split rather than cross-validation to account for variance. Additionally, there is a minor data leakage issue where imputation statistics are computed before the validation split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

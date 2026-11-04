@@ -1,0 +1,144 @@
+{
+ "task": "drug-consumption",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or print distribution statistics on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with the training set's mean.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Standard scaling is properly applied inside an sklearn Pipeline during cross-validation, not before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied after separating the training and test features.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for the classification task, and only uses regressors as base models to generate ordinal meta-features.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold Stratified K-Fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 5 folds via cross-validation, which inherently accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y, oof_classes_opt)\nprint(f\"5-Fold CV Accuracy: {cv_accuracy:.4f}\")",
+   "reasoning": "The agent exclusively uses and optimizes for accuracy without verifying if it is appropriate for a multi-class task that is likely imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive domain-specific feature engineering, including Big Five summary statistics and psychological domain indices.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated meta-learner stacking approach alongside Powell optimization for class multipliers, rather than naive ensembling.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Train-Test Concatenation for Feature Engineering",
+   "description": "The agent concatenates the training and test datasets before performing group-by aggregations and computing group means. This causes statistics from the test set to leak into the training features, violating the isolation of the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat(\n    [train_df[base_features], test_df[base_features]], axis=0\n).reset_index(drop=True)\n...\ngroup_mean = combined.groupby(rounded_group)[val_col].transform(\"mean\")"
+  },
+  {
+   "name": "Overfitting by Optimizing Hyperparameters on Full OOF Predictions",
+   "description": "The agent optimizes post-processing parameters (class multiplier weights) using the entire out-of-fold prediction set at once, rather than within the cross-validation loop. This leaks information across folds and makes the reported cross-validation score overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_result = minimize(\n    loss_func,\n    init_weights,\n    args=(oof_meta_probs, y),\n    method=\"Powell\",\n)"
+  }
+ ],
+ "summary": "The solution employs a sophisticated stacking pipeline with domain-specific feature engineering and ordinal meta-features. However, it suffers from severe data leakage because group-level aggregations are computed on the combined train and test sets. Additionally, the post-processing weights are optimized on the entire OOF set at once, and the agent relies solely on accuracy without considering potential class imbalance.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

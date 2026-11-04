@@ -1,0 +1,141 @@
+{
+ "task": "spaceship-titanic",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data and uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly placed inside an sklearn Pipeline, avoiding data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMClassifier is appropriate for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation set using train_test_split and evaluates the pipeline on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "pipeline.fit(X_train, y_train)\n    val_predictions = pipeline.predict(X_val)\n    _ = accuracy_score(y_val, val_predictions)",
+   "reasoning": "The model is trained and evaluated exactly once using a single random split, rather than using cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "_ = accuracy_score(y_val, val_predictions)",
+   "reasoning": "The agent only computes accuracy without verifying if it's the best metric (e.g. by checking class balance or adding secondary metrics like F1-score or ROC-AUC).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as binary classification predicting the 'Transported' column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering by splitting the 'Cabin' column into 'Deck', 'CabinNum', and 'Side'.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dropped submission ID",
+   "description": "The agent drops the required identifier column (e.g., PassengerId) during data cleaning and generates a generic integer sequence for the submission file instead. This will cause the submission to fail evaluation because the required IDs are missing.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in [\"PassengerId\", \"Name\"]:\n        if col in df.columns:\n            df = df.drop(columns=[col])\n...\noutput = pd.DataFrame({\"id\": np.arange(len(test_predictions), dtype=int), \"Transported\": test_predictions})"
+  },
+  {
+   "name": "Incorrect target output format",
+   "description": "The agent casts the boolean target column to an integer (0 or 1) for the submission file, whereas Kaggle typically expects the native boolean string mapping (True/False) for this specific task.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "test_predictions = pipeline.predict(X_test).astype(int)"
+  }
+ ],
+ "summary": "The data science solution is structurally sound in its preprocessing and modeling, properly utilizing pipelines to prevent data leakage and performing useful feature engineering on the 'Cabin' column. However, there is a critical execution failure: the agent drops the 'PassengerId' column early on and replaces it with a generic integer sequence for the final output, which will result in an invalid submission format. Furthermore, only a single train/validation split is used with accuracy as the sole metric.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

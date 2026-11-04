@@ -1,0 +1,142 @@
+{
+ "task": "china-overseas-finance-inventory",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent relies entirely on LightGBM's native capabilities to handle missing values and applies no data cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Cannot determine if the dataset has a temporal order that would be violated by random KFold splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM Regressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "By using 5-fold CV, the agent averages performance over multiple runs, mitigating single-run variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val_fold, y_val_pred))",
+   "reasoning": "The agent reports only RMSE and does not verify performance with other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != \"installed_capacity\"]",
+   "reasoning": "The agent uses raw columns directly without engineering any new features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_preds = np.mean(fold_preds, axis=0)",
+   "reasoning": "The agent uses a simple unweighted average to ensemble fold predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Mixing native and scikit-learn APIs",
+   "description": "The agent mixes the native modeling API (e.g., lgb.Dataset) with the scikit-learn wrapper API (e.g., LGBMRegressor.fit), which will cause a Type or Value error during training because the scikit-learn wrapper expects array-like inputs, not Dataset objects.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_fold, label=y_train_fold)\n    val_data = lgb.Dataset(X_val_fold, label=y_val_fold, reference=train_data)\n\n    # Train LightGBM model\n    model = lgb.LGBMRegressor(...)\n    ...\n    model.fit(train_data, val_data, callbacks=callbacks)"
+  }
+ ],
+ "summary": "The agent sets up a basic 5-fold cross-validation pipeline with LightGBM but fails to apply any explicit data cleaning or feature engineering, relying entirely on the model. Additionally, there is a critical execution error where the agent passes native `lgb.Dataset` objects into the scikit-learn `LGBMRegressor.fit` method, which will cause the script to crash.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

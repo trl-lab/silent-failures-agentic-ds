@@ -1,0 +1,138 @@
+{
+ "task": "new-york-city-taxi-fare-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by dropping missing values, filtering negative fares, and bounding coordinates to valid ranges.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not scale or normalize the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n                    X, y, test_size=0.2, random_state=RANDOM_STATE\n                )",
+   "reasoning": "The dataset has a temporal component (pickup_datetime) but the agent uses a random split, which can introduce look-ahead bias (e.g., learning future fare structures).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a regression model (LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly performs a train/validation split and computes a validation score.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_model.fit(X_train, y_train)\n                val_pred = val_model.predict(X_val)\n                _ = rmse(y_val, val_pred)",
+   "reasoning": "The agent evaluates a stochastic model (LGBMRegressor) exactly once without cross-validation or averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "_ = rmse(y_val, val_pred)",
+   "reasoning": "The agent only computes RMSE and does not evaluate using any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including datetime parts, cyclic features, haversine distance, and bearing.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Silently discarding validation results",
+   "description": "The agent computes a validation metric but assigns it to a dummy variable and does not log, print, or use it for any decisions (e.g., early stopping, hyperparameter tuning). This renders the validation step completely useless.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "_ = rmse(y_val, val_pred)\n                del val_model, X_train, X_val, y_train, y_val, val_pred"
+  }
+ ],
+ "summary": "The agent provides a robust feature engineering pipeline and properly handles data cleaning and edge cases. However, it uses a random train-test split on temporal data, and computes a validation metric which it completely ignores and deletes.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

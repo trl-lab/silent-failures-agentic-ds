@@ -1,0 +1,145 @@
+{
+ "task": "financial-intermediary-funds-cash-transfers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent inspecting or using the test data for anything other than final predictions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train[feature_cols]",
+   "reasoning": "The agent makes no effort to clean the data, handle missing values, or address outliers, relying solely on LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kfold = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Cash transfer data typically has a temporal component, but without inspecting the dataset columns it cannot be definitively proven that a time-based split was required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM regressor) is appropriately used for predicting a continuous amount.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kfold = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = mean_squared_error(y_train, predictions, squared=False)",
+   "reasoning": "The agent evaluates the stochastic model using 5-fold cross-validation, which inherently averages performance across multiple models/splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = mean_squared_error(y_train, predictions, squared=False)",
+   "reasoning": "The agent only uses RMSE for evaluation and does not consider other metrics like MAE which might be more robust to outliers in financial data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col != target]",
+   "reasoning": "The agent uses the raw columns entirely as-is without any feature engineering or derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "early_stopping_without_validation_set",
+   "description": "The agent uses an early stopping callback during the final model training on the full dataset, but fails to provide a validation set. This will cause LightGBM to throw a ValueError and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(params, final_train_data, num_boost_round=500, callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)])"
+  },
+  {
+   "name": "unencoded_categorical_features",
+   "description": "The agent passes raw dataframe columns directly into LightGBM without encoding string/object columns or converting them to pandas categorical types. If any string features exist in the dataset, LightGBM will throw a TypeError.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "X_train = train[feature_cols]"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM model with 5-fold cross-validation but omits all data cleaning and feature engineering. Critically, the script will crash during the final training phase because it attempts to use an early stopping callback without providing a validation set to LightGBM. Additionally, it fails to encode potential categorical string variables, which could cause a secondary execution failure.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "bike-sharing-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no peeking at test data occurs.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\n# Drop unused ID and sub-target columns if present",
+   "reasoning": "The agent loads the data and drops some columns but makes no explicit effort to check for or handle missing values or duplicates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a temporal sequence of bike rentals, but the agent uses random shuffling for cross-validation, introducing significant look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (XGB, LGBM, CatBoost) are appropriately used for predicting continuous rental counts.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation scheme is used to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly kept for final predictions and is not used to evaluate or select models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains and evaluates over 5 folds, which averages performance and accounts for variance rather than relying on a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse_xgb = root_mean_squared_error(y_val, np.clip(oof_xgb[val_idx], 0, None))",
+   "reasoning": "The agent only uses RMSE for evaluation and does not calculate any secondary metrics (like MAE or R-squared) to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem targeting the 'cnt' column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and thoughtful feature engineering, including cyclical encoding, physical atmospheric formulas, and temporal interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(\n    ensemble_loss,\n    init_weights,\n    method=\"SLSQP\",\n    bounds=bounds,\n    constraints={\"type\": \"eq\", \"fun\": lambda w: 1 - sum(w)},\n)",
+   "reasoning": "The agent uses SLSQP optimization to find optimal out-of-fold ensemble weights rather than relying on naive averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a highly sophisticated pipeline with excellent feature engineering and an advanced out-of-fold ensemble optimization technique. However, it critically fails to account for the temporal nature of the dataset by using randomized K-Fold cross-validation, which leads to look-ahead bias and invalidates the cross-validation score. Additionally, it skips basic data cleaning.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,156 @@
+{
+ "task": "child-adult-healthcare-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in numerical, categorical, and text columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (e.g., median filling) is fit strictly on the training set (cb_train), not the full combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a 'Core Set Year' column indicating a temporal component, but random KFold cross-validation is used instead of time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor, LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation, satisfying the requirement for a train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with different random seeds per fold, meaning the models are evaluated multiple times.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE as the objective and evaluation metric, which is the correct target metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers new features by combining text columns and extracting TF-IDF representations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.7 * cb_test_preds + 0.3 * lgb_test_preds",
+   "reasoning": "The agent blends predictions using hardcoded, arbitrary weights without any tuning or validation-based optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Transformers (like TF-IDF or OrdinalEncoder) are fit on the entire training set before performing cross-validation. This leaks information from the validation folds into the training folds, making the validation scores artificially optimistic and undermining early stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_train = tfidf.fit_transform(combined_text_train).toarray()\n...\nlgb_train[col] = oe.fit_transform(cb_train[[col]]).astype(int)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(cb_train, y_train)):"
+  },
+  {
+   "name": "No evaluation metric reported",
+   "description": "The agent performs cross-validation but does not calculate or report any validation scores, making it impossible to assess the model's expected performance or tune the ensemble.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cb_test_preds += cb_model.predict(cb_test) / n_splits"
+  },
+  {
+   "name": "Missing early stopping for LightGBM",
+   "description": "The LightGBM model is configured with 1000 estimators but no early stopping mechanism is provided, increasing the risk of overfitting (unlike the CatBoost model, which properly uses early stopping).",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "callbacks=[]"
+  }
+ ],
+ "summary": "The agent implements a solid baseline pipeline using CatBoost and LightGBM models, handling both categorical and text features adequately. However, the solution suffers from cross-validation leakage by fitting transformers on the entire training set before the CV splits, completely fails to report any validation metrics, and relies on an arbitrary, untuned blending strategy for ensembling.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

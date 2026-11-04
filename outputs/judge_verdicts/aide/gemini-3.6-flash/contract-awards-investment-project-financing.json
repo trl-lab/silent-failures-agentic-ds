@@ -1,0 +1,141 @@
+{
+ "task": "contract-awards-investment-project-financing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling text/categorical NaNs with 'Missing' and numerical NaNs with -999.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation (like StandardScaler) is applied to the numerical features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(df_all[c])\n    svd = TruncatedSVD(n_components=12, random_state=42)\n    svd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent fits TF-IDF and SVD (PCA) on the concatenated train and test data, leaking test set vocabulary and distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent imputes missing values using constants (-999 and 'Missing'), which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date columns indicating a temporal dimension, but the agent uses randomized cross-validation instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (XGBRegressor, LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross validation, evaluating the model over multiple folds rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates RMSE, which aligns with the task's stated metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a regression problem to predict the contract amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, TF-IDF + SVD, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_val_pred = 0.5 * xgb_val + 0.5 * lgb_val\n    fold_test_pred = 0.5 * xgb_test + 0.5 * lgb_test",
+   "reasoning": "The agent uses a naive, hardcoded 50/50 equal-weight average to blend the two models without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage via Global Frequency Encoding",
+   "description": "Categorical frequency encoding is computed on the entire combined dataset (train + test) before splitting, leaking test set category distribution statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[c].value_counts().to_dict()\n    df_all[f\"{c}_freq\"] = df_all[c].map(freq)"
+  }
+ ],
+ "summary": "The agent built a robust gradient boosting pipeline with thorough feature engineering (target encoding, text SVD, date extraction). However, the solution suffers from critical data leakage by fitting TF-IDF and SVD on the combined train and test sets, as well as look-ahead bias by using randomized cross-validation on a temporal dataset. Additionally, global frequency encoding introduces minor test data leakage, and the final ensemble relies on an untuned naive average.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

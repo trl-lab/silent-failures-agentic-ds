@@ -1,0 +1,153 @@
+{
+ "task": "food-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data statistics during EDA or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, such as handling missing values with fillna and converting data types.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is used in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection techniques are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (-999), which does not calculate statistics over the full dataset, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train_encoded, test_size=0.2, random_state=42, stratify=y_train_encoded)",
+   "reasoning": "The dataset contains temporal features (date_created, date_started) but the agent uses a random split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for the classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a validation set using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_model = LGBMClassifier(n_estimators=500, learning_rate=0.05, max_depth=7, num_leaves=63, random_state=42, verbose=-1)\nlgbm_model.fit(X_tr, y_tr)",
+   "reasoning": "The agent trains stochastic models (LightGBM, XGBoost, CatBoost) exactly once with a fixed random seed and reports a single validation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_val_acc = accuracy_score(y_val, lgbm_val_pred)",
+   "reasoning": "The agent only uses accuracy to evaluate the models, without verifying if it is robust for the class distribution (e.g., ignoring precision/recall or F1 score).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including extracting date components, reaction keywords, and lengths.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "avg_proba = (lgbm_proba + xgb_proba + cat_proba) / 3.0",
+   "reasoning": "The agent ensembles the models using a naive unweighted average of probabilities without tuning the combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Failure to retrain on full data",
+   "description": "The agent splits the training data to create a validation set and trains models on the training subset, but then uses these same models to predict on the test set without retraining on the full available training data, effectively throwing away a portion of the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgbm_model.fit(X_tr, y_tr)\n...\nlgbm_proba = lgbm_model.predict_proba(X_test)"
+  },
+  {
+   "name": "Hardcoded output IDs",
+   "description": "The agent generates the output CSV using an arbitrary sequence (e.g., range) for the ID column instead of preserving the actual IDs or indices from the test dataset, which will likely cause a mismatch in automated evaluation systems.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(final_pred))"
+  }
+ ],
+ "summary": "The agent provides a structurally solid solution with good feature engineering and an ensemble of gradient boosting models. However, it exhibits several common failure modes: ignoring temporal order by using a random split, performing naive unweighted ensembling, relying solely on accuracy for evaluation, and failing to retrain models on the full training set before generating final predictions. Additionally, hardcoding the output IDs will likely cause submission failures.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

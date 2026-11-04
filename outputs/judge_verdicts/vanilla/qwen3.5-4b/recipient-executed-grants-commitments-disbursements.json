@@ -1,0 +1,152 @@
+{
+ "task": "recipient-executed-grants-commitments-disbursements",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements basic missing value imputation for both numerical and categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalising is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the full combined dataset before splitting; train and test sets are imputed separately.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the provided pre-split train and test sets, so temporal splitting logic is not applicable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is an appropriate model type for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed.values, y_train.values)\n\n# Generate Predictions\npredictions = model.predict(X_test_clean.values)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without creating a validation split to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any scores.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "onehot_encoded = pd.get_dummies(working_df, columns=categorical_cols)",
+   "reasoning": "The agent only applies basic imputation and one-hot encoding without deriving any new features from the data.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "target_in_test_set_keyerror",
+   "description": "The agent attempts to extract the target variable from the test set, which does not contain it, causing a fatal KeyError and script failure.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = test_df[TARGET_NAME]"
+  },
+  {
+   "name": "train_test_feature_mismatch",
+   "description": "The agent applies one-hot encoding separately to train and test sets. While it filters out test columns not present in the train set, it fails to add train columns that are missing from the test set, causing a shape mismatch when predicting with a NumPy array.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_cols_to_keep = [col for col in X_test_processed.columns if col in train_cols]\nX_test_clean = X_test_processed[test_cols_to_keep]\n...\npredictions = model.predict(X_test_clean.values)"
+  },
+  {
+   "name": "test_set_statistic_leakage",
+   "description": "The agent computes imputation statistics (e.g., median and mode) directly on the test set instead of applying the statistics learned from the training set, which is a form of test data leakage.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = working_df[col].median()\nworking_df[col] = working_df[col].fillna(median_val)"
+  }
+ ],
+ "summary": "The agent's solution contains fatal execution errors: it incorrectly tries to extract the target from the test set, and it handles one-hot encoding improperly, leading to a feature dimension mismatch during prediction. Additionally, the agent lacks internal validation, performs no feature engineering, and calculates imputation statistics directly on the test set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

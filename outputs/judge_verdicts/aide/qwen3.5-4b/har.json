@@ -1,0 +1,141 @@
+{
+ "task": "har",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent makes no explicit effort to clean the data, relying entirely on LightGBM's default handling of missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass objective for the LightGBM model.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model multiple times via 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_acc = accuracy_score(y_val_fold, y_pred_class)",
+   "reasoning": "The agent solely evaluates the model using accuracy and does not check other metrics like log-loss or F1-score to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in exclude_cols]",
+   "reasoning": "The agent uses raw features directly without any derived features or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid LightGBM metric for multiclass",
+   "description": "The agent specifies an unsupported metric for the LightGBM parameters given the objective. 'accuracy' is not a valid metric for LightGBM's multiclass objective (which expects 'multi_error' or 'multi_logloss'), leading to a fatal crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"metric\": \"accuracy\","
+  },
+  {
+   "name": "Incorrect multiclass prediction handling",
+   "description": "The agent uses `np.round()` on multiclass probability predictions instead of `np.argmax(..., axis=1)`. This results in a 2D array of rounded probabilities (0s and 1s) rather than a 1D array of predicted class labels, which will cause metric calculation to fail or be completely incorrect.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred = model.predict(X_val_fold)\ny_pred_class = np.round(y_pred).astype(int)"
+  }
+ ],
+ "summary": "The agent sets up a standard 5-fold cross-validation pipeline but commits critical execution errors that prevent the code from running successfully. It specifies an unsupported metric ('accuracy') for LightGBM's multiclass objective, causing a fatal error, and incorrectly applies `np.round` to predicted probabilities instead of `np.argmax`, which breaks the evaluation step. Additionally, the agent skips data cleaning and feature engineering entirely.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

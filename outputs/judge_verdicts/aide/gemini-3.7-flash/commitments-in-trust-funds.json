@@ -1,0 +1,149 @@
+{
+ "task": "commitments-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].value_counts()\n    combined_df[f\"{col}_freq\"] = combined_df[col].map(freq)",
+   "reasoning": "The agent computes categorical frequencies on the combined train and test set, leaking the test set's distribution into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles categorical missing values and extracts features from dates; relying on LightGBM for numerical missing values is a valid tree-based strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation uses a constant string ('missing') which does not leak test statistics into the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date features (which the agent extracts), but the agent uses a random K-Fold split rather than a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM regressor is appropriate for predicting continuous financial amounts.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Cross-validation averages predictions over multiple folds, mitigating the variance of a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_val_fold, val_pred)",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying model robustness with other metrics like MAE which could be important for financial outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date features and computes frequency encoding for categoricals.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across folds, which is standard practice, rather than naively ensembling disparate models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Un-transformed skewed target",
+   "description": "The target variable is a financial amount, which is typically heavily right-skewed. The agent predicts this raw value directly without applying a log-transform or similar normalization, making the RMSE metric overly sensitive to large outliers.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "y = train_df[target_col].values"
+  },
+  {
+   "name": "Improper handling of missing dates",
+   "description": "When converting datetimes to timestamps, pandas converts NaT (missing dates) into extreme negative integers. Passing these extreme values into the model as features creates artificial outliers that can distort learning.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dt = pd.to_datetime(combined_df[col], errors=\"coerce\")\n    combined_df[f\"{col}_timestamp\"] = dt.astype(\"int64\") // 10**9"
+  }
+ ],
+ "summary": "The agent provides a mostly standard LightGBM regression pipeline with cross-validation. However, it introduces data leakage by computing frequency encodings on the combined train and test sets, and fails to respect temporal ordering in its cross-validation strategy despite extracting date features. Furthermore, it does not address the likely skewness of the financial target variable, which can harm RMSE optimization.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

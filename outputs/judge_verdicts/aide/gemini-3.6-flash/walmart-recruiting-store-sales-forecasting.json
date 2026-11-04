@@ -1,0 +1,144 @@
+{
+ "task": "walmart-recruiting-store-sales-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set during data exploration or feature engineering design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = add_hierarchical_lag_features(\n    train, sales_lookup, dept_lookup, store_lookup, lags\n)",
+   "reasoning": "The agent creates numerous lag features which will naturally contain missing values for early dates, but makes no explicit effort to impute them, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "split_date = dates[int(len(dates) * 0.8)]\n\ntr_mask = train[\"Date\"] < split_date\nval_mask = train[\"Date\"] >= split_date",
+   "reasoning": "The agent correctly uses a time-based split to separate the validation set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with regression_l1 objective) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a time-based validation split and evaluates the model on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_wmae = compute_wmae(y_val, val_preds, w_val)\nprint(f\"Validation WMAE: {val_wmae:.4f}\")",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated exactly once on a single validation split, without using cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def compute_wmae(y_true, y_pred, weights):",
+   "reasoning": "The agent only computes and reports the WMAE metric, without evaluating any other metrics like MAE or RMSE to better understand the model's performance characteristics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the task correctly as a time-series forecasting problem using historical lag features.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers extensive date-part and hierarchical lag features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unaligned Categorical Encoding",
+   "description": "Categorical variables are cast to the 'category' data type independently on the train and test sets. If the sets of unique categories differ between the two datasets, the underlying pandas integer codes will misalign, leading to incorrect feature representation and severely degraded predictions during test time.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for c in cat_cols:\n    train[c] = train[c].astype(\"category\")\n    test[c] = test[c].astype(\"category\")"
+  },
+  {
+   "name": "Incorrect Submission Format",
+   "description": "The submission file uses arbitrary sequential integers for the ID column instead of the format specifically required by the competition (typically a concatenation of identifiers like Store_Dept_Date), which will cause the submission to fail evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame(\n    {\"id\": np.arange(len(test_preds)), \"Weekly_Sales\": test_preds}\n)"
+  }
+ ],
+ "summary": "The agent correctly sets up a time-based validation split and engineers robust, non-leaking lag features for the temporal forecasting task. However, a critical flaw exists where categorical columns are cast to the 'category' type independently in the train and test sets, which will misalign category codes and corrupt test predictions. Furthermore, the submission file is formatted with sequential integers instead of the required ID format, and the agent relies entirely on the model to handle the missing values generated by the lag features.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

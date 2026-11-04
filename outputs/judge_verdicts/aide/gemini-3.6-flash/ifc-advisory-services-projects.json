@@ -1,0 +1,105 @@
+{
+ "task": "ifc-advisory-services-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tfidf = tfidf.fit_transform(text_data)\n\n    svd = TruncatedSVD(n_components=15, random_state=42)\n    svd_feats = svd.fit_transform(X_tfidf)",
+   "reasoning": "TF-IDF and TruncatedSVD (a form of PCA) are applied to the combined train and test text features before splitting, leaking test information into the selected feature components.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Despite the presence of date columns indicating a temporal aspect to the projects, the agent uses a random K-fold split, which ignores temporal order and can cause look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMRegressor(\n        n_estimators=1200,\n        learning_rate=0.03,\n        num_leaves=31,\n        subsample=0.8,\n        colsample_bytree=0.8,\n        random_state=42,\n        verbosity=-1,\n    )",
+   "reasoning": "The agent trains stochastic models using a single random seed and single cross-validation split without averaging over multiple runs to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"Validation Metric: {cv_rmse:.4f}\")",
+   "reasoning": "The agent evaluates the models solely on RMSE, without using secondary metrics to check robustness or performance characteristics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Unsupervised Encodings on Combined Data",
+   "description": "The agent computes unsupervised encodings (e.g., frequency encoding, group-by means and standard deviations) on the combined train and test dataset before splitting. This leaks the distribution of test set features into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "grp_mean = df.groupby(c_cat)[c_day].transform(\"mean\")\n...\nfreq = df[col].value_counts(normalize=True).to_dict()"
+  }
+ ],
+ "summary": "The agent implements a sophisticated modeling pipeline with extensive feature engineering, target encoding, and an optimized ensemble. However, it suffers from multiple forms of data leakage by applying TF-IDF, TruncatedSVD, and aggregate statistics on the combined dataset before splitting. Furthermore, the use of a random K-fold split ignores the temporal nature of the project data, potentially introducing look-ahead bias.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

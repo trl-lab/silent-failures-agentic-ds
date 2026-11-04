@@ -1,0 +1,145 @@
+{
+ "task": "beer-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_df = test.copy()",
+   "reasoning": "Test data is copied but not used for EDA or statistics calculation.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = train_processed[col].median(); train_processed[col] = train_processed[col].fillna(median_val)",
+   "reasoning": "The agent explicitly handles missing values by filling them with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before the train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = train_processed[col].median(); val_processed[col] = val_processed[col].fillna(median_val)",
+   "reasoning": "Imputation relies strictly on training set statistics and is applied after splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_params = {'objective': 'regression', 'metric': 'rmse'}",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for param in text_encoder.parameters(): param.requires_grad = False",
+   "reasoning": "The deep learning model is only used for feature extraction (frozen weights) and not trained, so regularization is not applicable.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df, val_df = train_test_split(train_no_target, test_size=0.2, random_state=42)",
+   "reasoning": "The agent creates a separate validation split from the training data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_final = lgb.train(...) \n test_predictions = model_final.predict(X_test_all)",
+   "reasoning": "The agent trains a stochastic model (LightGBM) exactly once without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_val_rmse = float(np.sqrt(mean_squared_error(y_val, val_predictions)))",
+   "reasoning": "The agent only calculates and reports RMSE, without supplementing it with other metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_params = {'objective': 'regression'}",
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_features(...)",
+   "reasoning": "The agent extensively engineers textual, categorical, and numerical interaction features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Evaluating on Training Data (Data Leakage)",
+   "description": "The agent retrains the final model on a combined dataset of both training and validation sets, but then calculates the final validation score by predicting on that same validation set. This results in evaluating the model on its own training data, artificially inflating the performance metric and failing to measure true generalization.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_full = np.vstack([X_train_all, X_val_all])\n...\nmodel_final = lgb.train(..., train_data_full)\n...\nval_predictions = model_final.predict(X_val_all)\nfinal_val_rmse = float(np.sqrt(mean_squared_error(y_val, val_predictions)))"
+  },
+  {
+   "name": "Unsafe string operations on mixed-type data",
+   "description": "Applying lambda functions that call string methods (like `.split()`) on pandas Series without ensuring all elements are valid strings can cause execution crashes. For example, if a column contains floats, `str.lower()` returns `NaN`, and calling `.split()` on `NaN` raises an `AttributeError`.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "text_lower = text.str.lower()\nfeatures[f\"{text_col}_pos_words\"] = text_lower.apply(lambda x: sum(1 for w in positive_words if w in x.split()))"
+  }
+ ],
+ "summary": "The agent performs extensive and generally well-structured feature engineering and correctly sets up a validation split initially. However, it critically fails at the final evaluation stage by retraining its model on the combined train and validation sets and then evaluating it on the validation set, causing severe data leakage. Additionally, unsafe string operations in the feature engineering pipeline likely lead to an execution crash.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "sf-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by dropping NaN targets, extracting date features, and filling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string ('missing') without fitting an imputer on the whole dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_va, y_tr, y_va = train_test_split(\n            X_full, y_full, test_size=0.2, random_state=RANDOM_STATE, stratify=y_full\n        )",
+   "reasoning": "The dataset contains temporal events ('Dates'), but the agent uses a random stratified split instead of a time-based split, which can cause look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multi-class classifier (LGBMClassifier) for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a train/validation split for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = make_model(3000)\n    model.fit(\n        X_tr,\n        y_tr,",
+   "reasoning": "The agent trains the stochastic LightGBM model a single time without using multiple runs/seeds to estimate variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "eval_metric=\"multi_logloss\"",
+   "reasoning": "The agent only uses log-loss for early stopping and does not evaluate or report any other metrics like accuracy.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as multi-class classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts several useful features from the 'Dates' column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "hard_labels_for_probabilistic_metric",
+   "description": "The task is evaluated using log loss, which requires submitting predicted probabilities for each class. The agent instead submits hard class predictions (argmax) in a single column, which will cause an evaluation error or extremely poor score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred = np.argmax(proba, axis=1).astype(np.int64)\n...\nsubmission = pd.DataFrame({\n            \"id\": np.arange(len(test_df)),\n            \"Category\": y_pred.astype(float),\n        })"
+  },
+  {
+   "name": "forced_class_prediction_hack",
+   "description": "The agent explicitly overrides valid predictions for arbitrary rows to ensure that every class is predicted at least once. This corrupts the model's actual outputs without meaningfully improving calibration.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for cls in missing:\n        candidates = [i for i in range(len(y_pred)) if i not in used]\n        ...\n        y_pred[best_row] = cls"
+  }
+ ],
+ "summary": "The agent correctly preprocesses the data and performs feature engineering, but fails fundamentally on the submission format. By converting probabilities to hard class labels for a log loss metric, the submission will be invalid or score terribly. Additionally, the agent ignores the temporal nature of the dataset by using a random train/validation split rather than a time-based cutoff.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

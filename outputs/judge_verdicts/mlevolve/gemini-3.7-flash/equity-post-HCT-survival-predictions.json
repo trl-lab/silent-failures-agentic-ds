@@ -1,0 +1,105 @@
+{
+ "task": "equity-post-HCT-survival-predictions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "medians = train_feat[feature_cols].median()\n    X_train_full = train_feat[feature_cols].fillna(medians).values.astype(np.float32)",
+   "reasoning": "The agent computes the median for imputation on the entire training dataset prior to cross-validation splitting, leaking statistical information from the validation folds into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_ensemble = 0.5 * oof_nn_rank + 0.5 * oof_xgb_rank",
+   "reasoning": "The agent uses a naive, unweighted 50/50 average to combine the Neural Network and XGBoost predictions without any attempt to tune or optimize the blend weights.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "OOF Leakage via Early Stopping",
+   "description": "The model evaluates on the validation fold to determine the best early stopping epoch, and then uses the predictions from that exact same 'best' epoch as its out-of-fold (OOF) predictions. This biases the OOF predictions to be overly optimistic, which degrades the reliability of the local validation score and any subsequent ensembling.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_c > best_c_index:\n    best_state = { k: v.cpu().clone() for k, v in nn_model.state_dict().items() }\n\nnn_model.load_state_dict(best_state)\n...\noof_nn_preds[val_idx] = nn_model(torch.tensor(X_va, dtype=torch.float32).to(device)).cpu().numpy().flatten()"
+  },
+  {
+   "name": "Global Ranking of Translation-Invariant Folds",
+   "description": "The neural network uses translation-invariant loss functions (Cox Partial Likelihood and Pairwise Ranking), meaning the absolute scale of the output scores can have arbitrary constant shifts per fold. Ranking the concatenated OOF predictions globally mixes these uncalibrated scores, which invalidates the relative ordering between samples originating from different folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_nn_rank = rankdata(oof_nn_preds) / len(oof_nn_preds)"
+  }
+ ],
+ "summary": "The agent correctly formulates the problem as a survival analysis task and implements appropriate domain-specific feature engineering alongside custom deep learning loss functions. However, the solution contains data leakage due to imputing missing values and calculating categorical frequencies on the full training set before cross-validation. Furthermore, the out-of-fold predictions are flawed due to early stopping leakage and the global ranking of uncalibrated, translation-invariant fold predictions.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

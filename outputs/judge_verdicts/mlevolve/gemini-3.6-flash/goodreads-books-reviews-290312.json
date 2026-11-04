@@ -1,0 +1,149 @@
+{
+ "task": "goodreads-books-reviews-290312",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "raw_train = raw_train.dropna(subset=[\"rating\"]).reset_index(drop=True)",
+   "reasoning": "The agent explicitly drops rows with missing targets and handles other NaNs during feature engineering.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_scaled = scaler.fit_transform(np.nan_to_num(train_feat.values))\nX_va_scaled = scaler.transform(np.nan_to_num(val_feat.values))",
+   "reasoning": "Scaling is correctly applied after the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_tfidf = tfidf.fit_transform(train_df[\"review_text\"].fillna(\"\"))\nX_va_tfidf = tfidf.transform(val_df[\"review_text\"].fillna(\"\"))",
+   "reasoning": "Feature extraction and dimensionality reduction (SVD) are fitted solely on the training split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_cnt = train_data[col].map(counts).fillna(0).astype(np.float32)\nva_cnt = val_data[col].map(counts).fillna(0).astype(np.float32)",
+   "reasoning": "Imputation and encoding are computed on the training set and mapped to validation and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df, val_df = train_test_split(\n    raw_train, test_size=0.2, random_state=42, stratify=raw_train[\"rating\"].astype(int)\n)",
+   "reasoning": "The dataset includes temporal data (e.g., 'read_at', 'date_added'), but the agent uses a random split instead of a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses regression models for a rating prediction task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)",
+   "reasoning": "The neural network includes dropout layers, batch normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df, val_df = train_test_split(",
+   "reasoning": "A validation split is explicitly created and used.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_p_lgb = lgb_model.predict(val_feat)\ntest_p_lgb = lgb_model.predict(test_feat)",
+   "reasoning": "The agent evaluates and blends on the validation set, keeping the test set strictly for final inference.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "nn_model, criterion, optimizer, scheduler = build_pytorch_model(\n    input_dim=X_tr_scaled.shape[1]\n)\n...\nfor epoch in range(epochs):\n    nn_model.train()",
+   "reasoning": "The agent trains stochastic models (Neural Network, GBDTs) only once with a fixed random seed and does not average over multiple initializations to reduce variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_rmse_epoch = np.sqrt(mean_squared_error(y_val, va_preds_epoch))",
+   "reasoning": "The agent uses RMSE, which is exactly the designated metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "class DeepTabularNet(nn.Module):\n...\n            nn.Linear(hidden_dim // 2, 1),\n...",
+   "reasoning": "The task is appropriately modeled as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_feat[\"votes_per_word\"] = (\n    train_feat[\"n_votes\"] / (train_feat[\"text_word_count\"] + 1.0)\n).astype(np.float32)",
+   "reasoning": "Extensive feature engineering is applied, including text metrics, date extraction, TF-IDF with SVD, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(\n    loss_func,\n    init_weights,\n    method=\"SLSQP\",",
+   "reasoning": "The agent uses SLSQP optimization to find the best blend weights for the ensemble, rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Timeout",
+   "description": "The script exceeds the maximum execution time limit (e.g., 2 hours). This frequently happens when fitting sequentially computationally expensive models like large GBDTs, Neural Networks, and high-dimensional Ridge regression folds without tight optimization on large datasets.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TIMEOUT after 7200s"
+  }
+ ],
+ "summary": "The agent provides a highly comprehensive feature engineering and ensembling solution, correctly avoiding common data leakage pitfalls in its preprocessing steps. However, it falls back on a basic random train/validation split, which ignores both the temporal nature of the reviews and the subject grouping (users/books), leading to potential data leakage and over-optimistic evaluation. Furthermore, the extensive pipeline of complex models running sequentially likely caused the observed 2-hour execution timeout.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

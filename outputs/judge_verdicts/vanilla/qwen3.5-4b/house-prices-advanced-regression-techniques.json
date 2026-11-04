@@ -1,0 +1,152 @@
+{
+ "task": "house-prices-advanced-regression-techniques",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of peeking at test data during EDA or fitting transformers on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly attempts to handle missing values by imputing medians and modes.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median and mode) are computed strictly on the training set and then applied to the test set, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While housing data has sale dates, random splitting is standard for this specific Kaggle task, and the agent doesn't even split the data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(feature_train_processed, target_transformed, eval_set=None)",
+   "reasoning": "The agent trains the model on the full training dataset and generates test predictions without creating a validation split to evaluate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any scores, so single-evaluation variance is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metric is calculated or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "columns_to_use = [col for col in train_df.columns if col != 'SalePrice' and col != 'Id']",
+   "reasoning": "The agent uses raw columns directly without creating any derived features, interactions, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target column leakage into test imputation (KeyError)",
+   "description": "The script iterates over all numeric columns found in the training set (which includes the target variable) and attempts to fill missing values for these columns in the test set. Because the test set does not contain the target variable, this raises a KeyError and crashes the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "num_cols = train_df.select_dtypes(include=[np.number]).columns.tolist()\nfor col in num_cols:\n    median_val = train_df[col].median()\n    train_df[col] = train_df[col].fillna(median_val)\n    test_df[col] = test_df[col].fillna(median_val)"
+  },
+  {
+   "name": "Invalid cast of categorical strings to float",
+   "description": "The agent attempts to cast the entire feature dataframe to float64. Since the dataframe still contains raw categorical string columns (no encoding was applied), this will throw a ValueError and crash the execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_train_processed = feature_set_train.astype(np.float64)"
+  },
+  {
+   "name": "Incorrect inverse log transformation",
+   "description": "The agent applies a log1p transform `np.log(y + 1)` to the target variable during training, but attempts to invert it using `np.exp(y_pred - 1)` instead of the correct `np.exp(y_pred) - 1`. This mathematical error will severely distort the scale of the final predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_transformed = np.log(target_train + 1)\n...\npredictions_original = np.exp(predictions_log - 1)"
+  }
+ ],
+ "summary": "The agent's solution contains multiple critical execution and logic errors that prevent it from running successfully. It crashes when trying to impute the target variable on the test set (which doesn't exist) and again when attempting to cast raw categorical strings to floats without encoding. Furthermore, the mathematical inversion of the target's log transformation is incorrect, and the model lacks any validation split or feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

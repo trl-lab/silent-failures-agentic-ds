@@ -1,0 +1,138 @@
+{
+ "task": "financial-intermediary-funds-funding-decisions",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col], X_test[col]], axis=0)\n    le.fit(combined)",
+   "reasoning": "The LabelEncoder is fit on a combination of both the training and test sets, leaking information about test set categories into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with 'Unknown' for categorical columns and the median for numeric columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train[col].median()\n    X_train[col] = X_train[col].fillna(median_val)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The median value for imputation is calculated on the entire training set before splitting it into training and validation sets, causing data leakage from the internal validation set into the training subset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not possible to determine if the dataset has a temporal order from the provided code alone, though funding decisions often involve dates.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for a continuous regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly splits the training data into train and validation sets using train_test_split to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_model.fit(X_tr, y_tr)\n\n# Evaluate\nval_pred = lgbm_model.predict(X_val)",
+   "reasoning": "The stochastic LightGBM model (using subsampling) is only trained and evaluated once without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(np.mean((val_pred - y_val) ** 2))",
+   "reasoning": "The agent computes and reports only RMSE, without using any secondary metrics (like MAE) to verify performance or robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task predicting a continuous amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(target, axis=1).copy()",
+   "reasoning": "No feature engineering is performed; the raw features are used directly after basic imputation and encoding.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation for highly skewed target",
+   "description": "Financial amounts (like 'Amount in USD') are typically heavily right-skewed. Failing to apply a log-transformation (or similar) to the target variable before training a model minimizing RMSE can lead to poor performance, as the model will over-index on large outlier values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "target = 'Amount in USD'\n...\ny_train = train_df[target].copy()"
+  }
+ ],
+ "summary": "The agent correctly identifies the task as regression and implements a standard LightGBM pipeline with proper missing value handling and categorical encoding. However, it introduces data leakage by fitting the LabelEncoder on both the train and test sets (FM02) and by calculating the numeric imputation median prior to the internal validation split (FM04). Furthermore, the solution lacks any feature engineering (FM07) and fails to address the likely skewed distribution of the financial target variable.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

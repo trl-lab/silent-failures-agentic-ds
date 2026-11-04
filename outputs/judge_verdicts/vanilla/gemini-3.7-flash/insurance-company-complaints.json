@@ -1,0 +1,145 @@
+{
+ "task": "insurance-company-complaints",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing categorical values and date parsing errors, while relying on tree models to natively handle numerical missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string independently for train and test sets, without fitting an imputer on the combined data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor and CatBoostRegressor) for a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, maintaining a strict internal train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models across 5 different cross-validation folds, accounting for variance instead of doing a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the models using RMSE, which is the explicitly requested and appropriate metric for this regression task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates derived date features, duration in days, and frequency encoded features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent uses a naive, unweighted average (50/50 blend) of LightGBM and CatBoost predictions without tuning the combination weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric reporting",
+   "description": "The agent performs cross-validation but fails to calculate or print the validation metric for the folds or the overall out-of-fold predictions, making it impossible to assess model quality offline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):"
+  },
+  {
+   "name": "Data leakage across cross-validation folds",
+   "description": "The agent applies data transformations (like frequency encoding) on the entire training dataset before splitting it into cross-validation folds. This leaks distribution information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = X[col].value_counts()\n    X[col + '_freq'] = X[col].map(freq).fillna(0)"
+  }
+ ],
+ "summary": "The agent successfully implements a regression pipeline with reasonable feature engineering, categorical encoding, and 5-fold cross validation. However, it fails to tune its ensemble weights, applying a naive 50-50 split (FM12). Additionally, it computes frequency encoding globally before CV splitting (causing mild target leakage across folds) and fails to report any validation scores during training.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

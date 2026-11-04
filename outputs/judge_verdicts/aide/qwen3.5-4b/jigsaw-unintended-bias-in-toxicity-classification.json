@@ -1,0 +1,152 @@
+{
+ "task": "jigsaw-unintended-bias-in-toxicity-classification",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col not in [\"target\", \"id\"]]",
+   "reasoning": "The agent makes no effort to check for or handle missing values, duplicates, or outliers before training.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Temporal order is not explicitly relevant or visible in this snippet.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, providing an averaged score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(roc_auc_score(val_data[\"target\"], val_pred))",
+   "reasoning": "The agent only calculates ROC AUC and does not evaluate any other metrics like PR AUC or calibration.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent formulates the task as binary classification, which matches the simplified prompt metric.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col not in [\"target\", \"id\"]]",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features or processing text variables.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid eval_set format in LightGBM",
+   "description": "The `eval_set` argument in `LightGBM.fit` expects a list of `(X, y)` tuples. Passing a list of `[X, y]` will cause a ValueError during training when the model attempts to unpack the validation set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "eval_set=[val_data[feature_cols], val_data[\"target\"]]"
+  },
+  {
+   "name": "Early stopping without validation set",
+   "description": "Using an early stopping callback without providing an `eval_set` will cause an error because there is no validation metric to monitor during the final fit.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "callbacks=[lgb.early_stopping(50, verbose=False)]"
+  },
+  {
+   "name": "Continuous target passed to classifier",
+   "description": "The target variable in the Jigsaw dataset is typically a float representing toxicity fraction. Failing to binarize it (e.g., target >= 0.5) before passing it to a classifier like LGBMClassifier will result in an error.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "model.fit(train_data[feature_cols], train_data[\"target\"], ...)"
+  }
+ ],
+ "summary": "The agent attempts a standard 5-fold cross-validation setup using LightGBM but fails fundamentally on execution due to incorrect LightGBM API usage (passing invalid `eval_set` formats and using early stopping without an evaluation set). Furthermore, it completely skips data cleaning, potential target binarization, and feature engineering, which are crucial for this dataset.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "KDDCup09_appetency",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "missing_in_test = [c for c in feat_order if c not in test.columns]",
+   "reasoning": "The agent only checks test column names for consistency but does not calculate any distributions or statistics on the test set before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "def clip_num(df, cols): ... def apply_log(X): ... np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)",
+   "reasoning": "The agent handles outliers via winsorization, handles skewness with log transforms, and fills missing values during standardisation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "with np.errstate(invalid=\"ignore\", divide=\"ignore\", over=\"ignore\"): ... safe = np.where(finite, X_tr_raw, 0.0) ... sumv = safe.sum(axis=0)",
+   "reasoning": "Standardisation parameters (mean and std) are strictly calculated on the training split (X_tr_raw) and then applied to all sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "r = np.corrcoef(a[m], y_tr[m])[0, 1] ... topk = sorted(num_used, key=lambda c: corr[c], reverse=True)[:10]",
+   "reasoning": "Feature selection (top-k correlated features) is computed using only the training split targets (y_tr) and training features (X_tr).",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "return np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)",
+   "reasoning": "Missing value imputation happens implicitly during standardisation using the training set's mean, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "criterion = FocalBCELoss(alpha=alpha, gamma=2.0).to(device)",
+   "reasoning": "The agent correctly formulates the task as a binary classification problem using binary cross-entropy loss.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout)",
+   "reasoning": "The agent includes Dropout and weight decay in the DeepFM model architecture to provide regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "idx_tr, idx_va = train_test_split(np.arange(len(train)), test_size=0.2, stratify=y01, random_state=SEED)",
+   "reasoning": "The agent properly splits the data into a training and validation set before model training.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "torch.manual_seed(SEED) ... model = DeepFM(...)",
+   "reasoning": "The agent sets a random seed and trains a stochastic DeepFM model exactly once without using cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = float(roc_auc_score(y_va, val_proba))",
+   "reasoning": "The agent solely relies on ROC AUC for evaluation and does not check other metrics (like PR AUC) which could be highly informative for imbalanced classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y01 = (y > 0).astype(int).values",
+   "reasoning": "The agent correctly frames the problem as binary classification, mapping the original target values to 0 and 1.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "out[f\"{a}__x__{b}\"] = X[a].values * X[b].values",
+   "reasoning": "The agent engineers multiple new features including block-level aggregates, missing indicators, target encodings, and top-k interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-fold Target Encoding Leakage",
+   "description": "The agent calculates target encoding based on the training set and maps it directly to the same training set without cross-validation or adding noise. This causes target leakage within the training set, allowing the model to severely overfit to the target-encoded features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "mean_c, cnt_c = tmp.groupby(s.values).mean(), tmp.groupby(s.values).count()\nte = (cnt_c * mean_c + SMOOTH * gm) / (cnt_c + SMOOTH)\n... \nout[c + \"__te\"] = s.map(te).fillna(gm).astype(float).values"
+  }
+ ],
+ "summary": "The agent provides a largely robust and well-structured DeepFM solution, strictly applying feature engineering and normalisation post-split to avoid data leakage. However, it suffers from an in-fold target encoding leakage because it computes target encodings directly on the train set without using out-of-fold techniques. Additionally, it trains the stochastic deep learning model only once and relies solely on a single evaluation metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

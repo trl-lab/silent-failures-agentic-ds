@@ -1,0 +1,145 @@
+{
+ "task": "ashrae-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train[\"timestamp\"] = train[\"timestamp\"].fillna(pd.Timestamp(\"2016-01-01 00:00:00\"))",
+   "reasoning": "The agent explicitly handles missing values in timestamp, building_id, and meter.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants, which does not leak statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_mask = row_chunk < k",
+   "reasoning": "The agent correctly uses a time-based expanding window split for validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr = X_cv[train_mask]\nX_val = X_cv[val_mask]",
+   "reasoning": "The agent implements a 5-fold time-based cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "np.mean(metrics)",
+   "reasoning": "The agent evaluates the model across 5 validation folds and averages the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "metrics.append(rmsle_from_log(y_val, pred_log))",
+   "reasoning": "The agent only computes and reports RMSLE, without auxiliary metrics like MAE or RMSE to better understand performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on log-transformed targets.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "out[\"is_weekend\"] = (out[\"dayofweek\"] >= 5).astype(np.int8)",
+   "reasoning": "The agent extracts multiple datetime components and derived features like is_weekend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring relational data",
+   "description": "The agent fails to load and merge auxiliary relational tables provided in the dataset (e.g., weather data, building metadata), relying only on the main training table. This discards critical predictive signals.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(\"./input/train.parquet\")\ntest = pd.read_parquet(\"./input/test.parquet\")"
+  },
+  {
+   "name": "Improper imputation of categorical IDs",
+   "description": "The agent imputes missing categorical identifiers with an existing valid ID (e.g., 0), which incorrectly merges missing values with a legitimate entity instead of treating them as a separate 'unknown' category.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"building_id\"] = df[\"building_id\"].fillna(0)"
+  }
+ ],
+ "summary": "The agent implements a solid time-based cross-validation strategy using LightGBM and correctly targets the RMSLE metric. However, it completely ignores the auxiliary relational datasets (weather and building metadata) which are crucial for this task, and improperly fills missing categorical IDs with valid existing IDs (e.g., building 0).",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

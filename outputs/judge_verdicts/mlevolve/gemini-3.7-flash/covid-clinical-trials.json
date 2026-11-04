@@ -1,0 +1,157 @@
+{
+ "task": "covid-clinical-trials",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used during exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are appropriately handled using SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit on the training folds and applied to validation/test folds inside the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature transformations like TF-IDF and TruncatedSVD are properly fitted on training folds inside the CV loop.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "SimpleImputer is correctly fitted only on the training fold inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A standard stratified k-fold is used, which is acceptable absent explicit instructions requiring a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (LGBMRegressor, XGBRegressor, and a PyTorch NN with MSELoss) are correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates Dropout layers, AdamW weight decay, and early stopping via model checkpointing.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a robust 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Cross-validation naturally evaluates the stochastic models multiple times (once per fold) and averages the predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "RMSE is optimized and reported, which is the correct required metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem predicting days_to_complete.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives numerous useful features including datetime parts, text length/complexity, category counts, and TF-IDF embeddings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses scipy.optimize.minimize (SLSQP) to find the optimal weighted average for the ensemble.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "conditional_feature_generation_mismatch",
+   "description": "Feature engineering logic conditionally creates columns (e.g., a log1p transform only if all values are non-negative) based on the independent properties of the train and test sets. Any difference in distribution between the two sets will cause a column mismatch, leading to a fatal ValueError when concatenating features or assigning column names.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if len(valid_vals) > 0 and (valid_vals >= 0).all():\n            fe_df[f\"{col}_log1p\"] = np.log1p(val.clip(lower=0))"
+  },
+  {
+   "name": "id_column_used_as_feature",
+   "description": "The row identifier 'id' is not excluded from the feature set and is passed directly to the models. Tree-based models and neural networks can overfit to row identifiers, especially if the IDs encode sequential information that differs between train and test splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in df_train.columns if c != target_col]"
+  }
+ ],
+ "summary": "The agent's solution is structurally very sound, correctly avoiding all standard data leakage and modeling failure modes. Validation, model selection, ensembling, and deep learning implementations are highly robust. However, there is a critical fragility in the stateless feature engineering where conditional features are created independently for train and test sets, which will crash the script if distributions differ. Additionally, the 'id' column is inadvertently retained as a feature.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

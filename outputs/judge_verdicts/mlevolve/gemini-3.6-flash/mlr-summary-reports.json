@@ -1,0 +1,141 @@
+{
+ "task": "mlr-summary-reports",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set during feature engineering or preprocessing setup.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "imputer = SimpleImputer(strategy=\"median\")",
+   "reasoning": "The agent uses an imputer to explicitly handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_scaled = scaler.fit_transform(X_tr_imp)\nX_va_scaled = scaler.transform(X_va_imp)",
+   "reasoning": "The scaler is correctly fit only on the training split before transforming the validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit feature selection step applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_imp = imputer.fit_transform(X_tr_fe[num_features])\nX_va_imp = imputer.transform(X_va_fe[num_features])",
+   "reasoning": "The imputer is properly fit only on the training set after splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "X_tr, X_va, y_tr, y_va = train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The agent uses a random split, but it's unclear from the context if the dataset has a strict temporal structure that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "self.head = nn.Sequential(... nn.Linear(hidden_dim // 2, 1))\ncriterion = nn.MSELoss()",
+   "reasoning": "The agent correctly uses a regression model output and loss function for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "self.dropout = nn.Dropout(dropout)\noptimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)",
+   "reasoning": "The deep learning model includes dropout layers, weight decay, and early stopping for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr, X_va, y_tr, y_va = train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The agent creates and evaluates on a validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)\nfor epoch in range(1, epochs + 1):",
+   "reasoning": "The agent trains a stochastic PyTorch model exactly once on a single data split, without multiple seeds or cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(y_va_true, val_preds_eval)))",
+   "reasoning": "The agent only computes RMSE and does not verify with any other metrics (e.g. MAE) if it's robust to potential outliers in the target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = train_raw[target_col].copy()",
+   "reasoning": "The task formulation matches the expected continuous regression setup.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_domain_features(df):",
+   "reasoning": "The agent derives several domain-specific features like ratios and per-member metrics.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in target encoding",
+   "description": "Target encoding is computed on the entire training set and mapped directly back onto it without using out-of-fold (OOF) cross-validation. This leaks the target variable into the training features, leading to overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_map = y_tr.groupby(X_tr_fe[col]).mean().to_dict()\n    global_mean = y_tr.mean()\n    X_tr_fe[f\"{col}_target_enc\"] = X_tr_fe[col].map(target_map).fillna(global_mean)"
+  }
+ ],
+ "summary": "The agent generally follows good ML practices by splitting data before imputation, scaling, and using regularisation on the deep learning model. However, it severely leaks the target variable by computing target encoding directly on the training set without out-of-fold mapping. It also relies on a single evaluation run of a stochastic model using only one metric.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

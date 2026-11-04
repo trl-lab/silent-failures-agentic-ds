@@ -1,0 +1,144 @@
+{
+ "task": "meta-critic_whisky",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data manually; it automates the pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and filling with 'missing'.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit scaling (like StandardScaler or MinMaxScaler) is applied to the numerical features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\n        svd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent applies TruncatedSVD to the combined train and test sets, leaking test set variance into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "vals = combined[col].astype(float)\n    df_feat[col] = vals.fillna(vals.median())",
+   "reasoning": "The agent applies median imputation to numerical columns on the combined dataset before splitting, leaking test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (CatBoostRegressor) for a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model 5 times across cross-validation folds using different random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent only computes RMSE to evaluate the model's performance and does not use any additional metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineer features including text lengths, TF-IDF, pairwise numeric interactions, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent uses a simple unweighted average to combine the predictions of the 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage in categorical/text encoding",
+   "description": "The agent calculates frequency encoding and TF-IDF vectors on the combined train and test dataset, causing information about the test distribution (frequencies and vocabulary/IDF) to leak into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freqs = s.value_counts(normalize=True)\n    df_feat[f\"{col}_freq\"] = s.map(freqs).fillna(0)\n...\ntfidf_mat = tfidf.fit_transform(text_series)"
+  },
+  {
+   "name": "Leakage in feature transformation decisions",
+   "description": "The agent uses the skewness of the combined dataset to decide whether to apply a log1p transformation, leaking test set distribution characteristics into the feature engineering pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if abs(vals.skew()) > 0.75:\n            df_feat[f\"{col}_log1p\"] = np.log1p(df_feat[col])"
+  }
+ ],
+ "summary": "The solution implements a thorough modelling pipeline with solid feature engineering, text processing, and cross-validation. However, it suffers from critical data leakage because imputation, frequency encoding, TF-IDF extraction, and SVD are all performed on the concatenated train and test datasets before splitting. Furthermore, it relies on a single metric (RMSE) for evaluation.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

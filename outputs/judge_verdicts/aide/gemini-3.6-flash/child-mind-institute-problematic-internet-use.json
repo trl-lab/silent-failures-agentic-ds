@@ -1,0 +1,112 @@
+{
+ "task": "child-mind-institute-problematic-internet-use",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna(subset=[\"sii\"]).reset_index(drop=True)",
+   "reasoning": "The agent only drops rows with a missing target, relying entirely on the model to handle missing feature values without any explicit imputation or cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = cohen_kappa_score(y, oof_discrete, weights=\"quadratic\")",
+   "reasoning": "The agent only calculates and reports the QWK score without evaluating other metrics like RMSE or classification accuracy to better understand the model's underlying performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[feature_cols]",
+   "reasoning": "The agent uses the raw columns as-is without engineering any derived features, domain-informed transforms, or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test) / 5.0",
+   "reasoning": "The agent uses a simple, unweighted average to combine the predictions from the cross-validation folds, without tuning the ensemble weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Misaligned Categorical Encoding",
+   "description": "Casting categorical columns to 'category' dtype independently on the train and test sets causes Pandas to infer different category-to-integer mappings if the test set lacks some categories present in the train set. This leads to corrupted, misaligned features during test-time prediction.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df[col] = train_df[col].astype(\"category\")\ntest_df[col] = test_df[col].astype(\"category\")"
+  },
+  {
+   "name": "Biased OOF Evaluation (Threshold Overfitting)",
+   "description": "The agent optimizes the classification thresholds on the entire out-of-fold (OOF) prediction set, and then evaluates the OOF score using these exact same thresholds. This constitutes evaluating on the training data of the threshold optimizer, leading to a slightly over-optimistic validation score.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rounder.fit(oof_preds, y)\n\noof_discrete = rounder.predict(oof_preds)\nscore = cohen_kappa_score(y, oof_discrete, weights=\"quadratic\")"
+  }
+ ],
+ "summary": "The solution implements a reasonable baseline using LightGBM as a regressor with Nelder-Mead threshold optimization for the ordinal QWK metric. However, it suffers from a critical flaw where categorical columns are cast independently on train and test sets, likely misaligning category codes and corrupting predictions. Additionally, it lacks any feature engineering or explicit data cleaning, and marginally overfits the threshold optimization by evaluating on the exact same OOF predictions used to fit the thresholds.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

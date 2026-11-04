@@ -1,0 +1,138 @@
+{
+ "task": "new-york-city-taxi-fare-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data during feature extraction.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the training data by filtering invalid coordinates and fare amounts.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global imputers are fitted before splitting; missing values are handled locally or via LightGBM's native support.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_split, val_split = train_test_split(\n        train_df, test_size=0.15, random_state=42, shuffle=True\n    )",
+   "reasoning": "The dataset contains a strong temporal component (pickup_datetime), but the agent uses a random split with shuffle=True, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split and evaluates the model on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(\n        X_train,\n        y_train,\n        eval_set=[(X_val, y_val)],",
+   "reasoning": "The agent trains a LightGBM model with stochastic parameters (subsample, colsample_bytree) and evaluates it on a single validation split, rather than using cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = calculate_rmse(y_val, val_preds)\n    print(f\"Validation RMSE: {score:.5f}\")",
+   "reasoning": "The agent only computes and reports RMSE, without evaluating other potentially informative metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as predicting a continuous fare amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and domain-appropriate feature engineering, including distances, bearings, and time components.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Failure to subsample large datasets",
+   "description": "The agent attempts to load and train on the entire dataset without checking its size or applying subsampling. For massive datasets (like NYC Taxi Fare with ~55M rows), this leads to Out-Of-Memory (OOM) errors or execution timeouts.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n... TIMEOUT after 7200s"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with excellent feature engineering for spatial and temporal data. However, it fails to account for the massive scale of the dataset, leading to an execution timeout. Methodologically, it relies on a random train-test split for temporal data and only evaluates the stochastic model once using a single metric.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

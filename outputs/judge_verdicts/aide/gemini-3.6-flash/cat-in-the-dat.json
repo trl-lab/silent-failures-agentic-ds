@@ -1,0 +1,144 @@
+{
+ "task": "cat-in-the-dat",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "y = train[\"target\"].values\n...\nfeature_cols = [c for c in train.columns if c not in [\"id\", \"target\"]]",
+   "reasoning": "The agent makes no effort to handle or even check for missing values, duplicates, or anomalies before modeling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Logistic regression is an appropriate model type for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold Stratified Cross-Validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)\nprint(f\"5-Fold CV ROC AUC Score: {cv_auc:.5f}\")",
+   "reasoning": "The agent uses only ROC AUC for evaluation and does not check secondary metrics like log loss or calibration.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "encoder = OneHotEncoder(handle_unknown=\"ignore\", dtype=np.float32)\nencoder.fit(df_all)",
+   "reasoning": "The agent uses raw columns as-is with only a basic OneHotEncoder, missing opportunities to derive features or handle high-cardinality categorical variables.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / skf.n_splits",
+   "reasoning": "The agent ensembles cross-validation fold predictions using a naive, unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM14": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Transformer fit on full dataset (Leakage)",
+   "description": "A data transformer (e.g., OneHotEncoder) is fit on the combined train and test datasets before splitting. This leaks the test set's category distributions into the transformation pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([train[feature_cols], test[feature_cols]], axis=0)\n\nencoder = OneHotEncoder(handle_unknown=\"ignore\", dtype=np.float32)\nencoder.fit(df_all)"
+  },
+  {
+   "name": "Execution Failure",
+   "description": "The process crashes unexpectedly (likely out-of-memory), which can happen when naive one-hot encoding is applied to extremely high-cardinality features without proper dimensionality reduction or memory management.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "[03:40:19] CRITICAL REPL child process died unexpectedly"
+  }
+ ],
+ "summary": "The agent sets up a basic Logistic Regression pipeline with cross-validation but fails to effectively handle the high-cardinality categorical features central to this dataset. It applies a naive OneHotEncoder fit across both train and test sets (causing mild leakage) and uses no derived feature engineering. Finally, the script fails during execution, likely due to memory limits being exceeded by the one-hot encoding.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": false
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

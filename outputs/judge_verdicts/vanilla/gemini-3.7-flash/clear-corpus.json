@@ -1,0 +1,149 @@
+{
+ "task": "clear-corpus",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for exploration or to fit preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing with the median for numerical features and a 'missing' string for categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are used before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median) are correctly calculated only on the training data, meaning test statistics are not leaked.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so temporal ordering is not applicable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a regression problem, and the agent correctly uses regression models (Ridge, LGBMRegressor, CatBoostRegressor).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent sets up a K-Fold cross-validation scheme for training, avoiding training purely on the full dataset.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models (LightGBM and CatBoost) are trained and evaluated over 5 cross-validation folds, and their predictions are averaged, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any internal evaluation metrics at all, so it does not inappropriately rely on a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a standard regression problem targeting 'BT Easiness'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers a powerful derived feature by stacking TF-IDF text representations using out-of-fold predictions from a Ridge model.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_test_preds + 0.5 * cb_test_preds",
+   "reasoning": "The agent combines the final predictions from LightGBM and CatBoost using a naive, unweighted 50/50 average without any validation-based tuning of the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Transformations like TF-IDF are fit on the entire training dataset prior to cross-validation splits. This leaks information from the validation folds (such as vocabulary and IDF weights) into the training folds, making out-of-fold features slightly biased.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tfidf_train = tfidf.fit_transform(train_excerpts)\n...\nfor train_idx, val_idx in kf.split(train_df):"
+  },
+  {
+   "name": "Missing evaluation reporting",
+   "description": "The agent sets up cross-validation but entirely fails to compute or print any internal validation metric (like RMSE), making it impossible to assess model performance without submitting to an external leaderboard.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "import root_mean_squared_error ... (never used in the evaluation loop)"
+  }
+ ],
+ "summary": "The agent demonstrates a generally solid approach, employing out-of-fold stacking for text features alongside robust gradient boosting models for the tabular data. However, it exhibits a naive ensembling strategy for its final predictions and leaks validation data during cross-validation by fitting TF-IDF on the entire training set prior to splitting. Additionally, the agent completely fails to compute or report any validation scores internally.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,137 @@
+{
+ "task": "dont-overfit-ii",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_raw = train_df[feature_cols].values.astype(np.float32)",
+   "reasoning": "The agent directly extracts raw features into a numpy array without any checks or explicit handling for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "qt = QuantileTransformer(\n        output_distribution=\"normal\", random_state=42, n_quantiles=min(len(y), 100)\n    )\n    X_train_qt = qt.fit_transform(X_train_raw)",
+   "reasoning": "The agent fits the QuantileTransformer and StandardScaler on the entire training set before the K-Fold cross-validation split, leaking validation fold distributions into the training folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "correlations = np.abs(\n        [np.corrcoef(X_train_raw[:, i], y)[0, 1] for i in range(X_train_raw.shape[1])]\n    )\n    top_feature_indices = np.argsort(correlations)[::-1][:15]",
+   "reasoning": "The agent performs target-correlation based feature selection and fits PCA on the full training dataset before cross-validation, causing severe target leakage into the validation folds.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models for this binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes dropout, AdamW weight decay, and explicit L1/L2 penalties in the custom loss function.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a Stratified 5-Fold cross-validation loop.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions and is not used to evaluate or select models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated across 5 cross-validation folds, satisfying the need for multiple evaluations.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes and evaluates using roc_auc_score, which is the exact requested and appropriate metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including row-wise statistics, interaction features, and PCA.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a dynamic rank-averaged ensembling method weighted by each model's cross-validation performance above a baseline, rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent correctly frames the task, uses appropriate models with proper regularisation, and implements a robust weighted ensembling strategy. However, it critically fails by performing global scaling, target-correlation feature selection, and PCA on the entire training set before K-Fold cross-validation. This will cause severe data leakage across folds and artificially inflate the CV scores used for ensemble weighting.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

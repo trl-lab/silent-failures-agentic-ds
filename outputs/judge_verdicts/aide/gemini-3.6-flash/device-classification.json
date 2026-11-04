@@ -1,0 +1,137 @@
+{
+ "task": "device-classification",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "ordinal_encoder.fit_transform(df_all[cat_cols].astype(str))",
+   "reasoning": "The agent fits the OrdinalEncoder and computes frequency encodings on the combined train and test dataset, leaking test set statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates missing value indicators and relies on XGBoost's native missing value handling, which is a valid strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No data imputation is performed, as the agent relies on XGBoost's native handling of missing values.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses XGBClassifier for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses a 5-fold StratifiedKFold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the model on multiple splits to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "accuracy = accuracy_score(y, oof_preds)",
+   "reasoning": "The agent only evaluates using accuracy, without considering other metrics like F1-score or log-loss to check for class imbalances or calibration.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "df_all[f\"{col}_freq\"] = df_all[col].map(freq_map).fillna(0)",
+   "reasoning": "The agent only applies basic frequency encoding and missing value indicators, without engineering any domain-informed derived features or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across CV folds, which is standard practice and not considered naive ensembling of distinct models.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding test IDs",
+   "description": "The agent drops the ID column from the test set without saving it, and then generates fake IDs for the submission file using an arithmetic range. This will cause the submission to fail or be evaluated incorrectly if the true test IDs are not a simple 0-indexed sequence.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test_pred_labels)), \"device_class\": test_pred_labels})"
+  }
+ ],
+ "summary": "The agent provides a well-structured XGBoost baseline with 5-fold cross-validation. However, it leaks test data information by fitting encoders on the combined train and test datasets. Crucially, the agent drops test set IDs during preprocessing and generates fake IDs for the submission file, which will likely result in a broken submission.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

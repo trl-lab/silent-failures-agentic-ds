@@ -1,0 +1,142 @@
+{
+ "task": "vehicle",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data inspection is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is explicitly performed via median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly localized within scikit-learn Pipelines during the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med = train_df[col].median()\n            train_df[col] = train_df[col].fillna(med)",
+   "reasoning": "Median imputation is calculated and applied to the full training data before the cross-validation split, leaking validation statistics into the training folds.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate multi-class classification models are used for the task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A StratifiedKFold cross-validation strategy is correctly implemented.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final inference and is not reused for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated across 5 folds and their test predictions are averaged, mitigating variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent reports accuracy but optimizes the ensemble using multi-class cross-entropy (log-loss), utilizing appropriate metric variety.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification task is appropriately framed.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements domain-relevant feature engineering, creating various geometric and moment ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent avoids naive ensembling by using scipy.optimize to find log-loss minimizing weights for the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "OOF Leakage via Early Stopping",
+   "description": "The agent uses the validation fold during cross-validation to early-stop a gradient boosting model (e.g., LightGBM), and then uses the predictions on that exact same validation fold for the out-of-fold (OOF) ensemble matrix. This biases the OOF predictions because the model was actively tuned on them via early stopping, leading to overfitting during the subsequent ensemble weight optimization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "valid_sets=[val_data],\n            callbacks=[\n                lgb.early_stopping(stopping_rounds=40, verbose=False),\n...\noof_preds[\"lightgbm\"][val_idx] = lgb_model.predict(X_va, num_iteration=lgb_model.best_iteration)"
+  }
+ ],
+ "summary": "The agent provides a robust and well-structured solution featuring solid cross-validation, custom feature engineering, and a log-loss optimized ensemble. However, it suffers from two data leakage issues: computing the imputation median before the cross-validation split (leaking validation statistics into training folds), and early-stopping LightGBM on the validation fold while using those same biased predictions for out-of-fold ensembling.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

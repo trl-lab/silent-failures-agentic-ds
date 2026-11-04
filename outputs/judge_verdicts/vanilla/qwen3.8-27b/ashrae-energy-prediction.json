@@ -1,0 +1,138 @@
+{
+ "task": "ashrae-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Target missing values are dropped and feature missing values are explicitly filled with constant values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is stateless (e.g., fillna(-1)), so no leakage occurs before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_fit, X_val, y_fit, y_val = train_test_split(X_train, y_train, test_size=0.10, random_state=RANDOM_STATE, shuffle=True)",
+   "reasoning": "The dataset is a time series of energy readings, but the validation split is performed randomly, introducing look-ahead bias and failing to measure generalization to future time periods.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for this continuous target regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is created and used to determine early stopping iterations.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "model = make_model()\n    best_iter = 300\n\n    if len(X_val) > 0:\n        try:\n            model.fit(",
+   "reasoning": "The model is trained and evaluated for early stopping exactly once without cross-validation or multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE on a log1p transformed target, which corresponds exactly to the required RMSLE metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts multiple temporal features, cyclical encodings (sin/cos), and day-of-week transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Arbitrary Data Truncation",
+   "description": "The training data is arbitrarily truncated to a fixed number of rows from the beginning of the dataset. For data ordered by time or subject, this discards massive amounts of information and severely biases the training set toward specific time periods or subjects.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if len(train_raw) > MAX_TRAIN_ROWS:\n        train_raw = train_raw.iloc[:MAX_TRAIN_ROWS].reset_index(drop=True)"
+  }
+ ],
+ "summary": "The solution appropriately formulates the regression task and applies solid feature engineering techniques, including cyclical temporal encodings. However, it critically fails by ignoring temporal order during validation splitting (introducing look-ahead bias) and by arbitrarily truncating the massive training dataset to the first 1,000,000 rows, which likely discards the vast majority of the temporal and building-specific variations present in the full dataset.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

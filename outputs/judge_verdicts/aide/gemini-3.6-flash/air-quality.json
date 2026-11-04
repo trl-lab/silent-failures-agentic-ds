@@ -1,0 +1,111 @@
+{
+ "task": "air-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series with a temporal component (datetime), but the agent uses standard shuffled K-Fold cross-validation, ignoring temporal order and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = np.sqrt(np.mean((y - oof_blend) ** 2))",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying if a metric like MAE would be more robust to the frequent outliers typically found in sensor data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Combined Train/Test Feature Engineering",
+   "description": "The agent concatenates the training and test sets to compute rolling statistics, group means, and shifting features. This severely leaks test set distributions and actual test values into the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_full = pd.concat([train_valid, test], ignore_index=True)\n...\ndf_full[f\"{col}_shift_{shift}\"] = df_full[col].shift(shift)\n...\ndf_full.groupby(g_col)[feat].transform(\"mean\")"
+  },
+  {
+   "name": "Look-ahead Bias via Lead Features",
+   "description": "The agent creates features using future values (e.g., negative shifts/leads) of the time series, which would fundamentally not be available at prediction time in a real-world scenario.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_full[f\"{col}_shift_{shift}\"] = df_full[col].shift(shift)  # where shift includes -3, -2, -1\ndf_full[f\"{col}_diff_lead1\"] = df_full[col].shift(-1) - df_full[col]"
+  },
+  {
+   "name": "Data Leakage via Imputation Before Cross-Validation",
+   "description": "Missing values are imputed on the entire training set prior to K-Fold cross-validation splitting. This leaks statistical information (the median) from the validation folds into the training folds during each CV iteration.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_imputed = pd.DataFrame(imputer.fit_transform(X), columns=features)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):"
+  }
+ ],
+ "summary": "The agent correctly cleans the data, engineers a rich set of domain-specific features, and successfully optimizes a multi-model ensemble. However, it severely mishandles the temporal nature of the dataset: it uses a shuffled K-Fold split rather than time-based validation, and introduces massive data leakage by computing lead features and group statistics on a combined train-test dataset. Additionally, static imputation is performed before the cross-validation split, causing internal leakage.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

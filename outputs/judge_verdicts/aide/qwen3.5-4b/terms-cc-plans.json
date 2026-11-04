@@ -1,0 +1,138 @@
+{
+ "task": "terms-cc-plans",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]\ny_train = train_df[target_col]\n...\ntrain_data = lgb.Dataset(X_train, label=y_train)",
+   "reasoning": "The agent performs no explicit data cleaning and relies entirely on LightGBM to handle missing values and outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using a 5-fold cross-validation setup.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model over 5 cross-validation folds and calculates the mean RMSE, avoiding a single point estimate.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = mean_squared_error(y_train.iloc[val_idx], preds_val, squared=False)",
+   "reasoning": "The agent evaluates the model exclusively on RMSE without verifying its robustness or supplementing it with other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard regression problem targeting the 'APR' column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]\n\n# Create feature matrix and target\nX_train = train_df[feature_cols]",
+   "reasoning": "The agent passes the raw dataset columns directly into the model without engineering any derived features, domain transformations, or interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "early_stopping_without_validation_set",
+   "description": "The agent uses an early stopping callback during model training but fails to provide a validation set, which will cause the training library to crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    params,\n    final_data,\n    num_boost_round=1000,\n    callbacks=[lgb.early_stopping(50, verbose=False), lgb.log_evaluation(0)],\n)"
+  }
+ ],
+ "summary": "The agent sets up a standard LightGBM regression pipeline with 5-fold cross-validation. However, it completely skips data cleaning and feature engineering, relying exclusively on the model to handle missing values and raw features. Furthermore, a critical bug exists where early stopping is requested on the final model fit without passing a validation set, which will result in an execution error.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

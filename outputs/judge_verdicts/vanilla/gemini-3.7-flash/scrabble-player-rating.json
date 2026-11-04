@@ -1,0 +1,145 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or manually peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(train_path)\ntest_df = pd.read_parquet(test_path)\n\ntrain_len = len(train_df)\ntest_len = len(test_df)\n\ntarget = 'rating'\ny_train = train_df[target].values\n\n# Combine train and test for non-leakage feature engineering\ncombined_df = pd.concat",
+   "reasoning": "The agent makes no explicit effort to clean the data, handle duplicates, or impute missing values for raw features, relying entirely on the tree models.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is limited to dropping ID and target columns, without data-driven selection before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputation is fit on the combined dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which evaluates the model multiple times.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "metric='mae',\n...\neval_metric='MAE',",
+   "reasoning": "The agent solely relies on MAE for model evaluation and early stopping, without verifying model behavior via secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates several derived features, such as game and player statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_test_preds + 0.5 * cb_test_preds",
+   "reasoning": "The agent uses a naive, unweighted 50/50 blend to ensemble the LightGBM and CatBoost predictions without tuning the weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature Leakage from Test Data",
+   "description": "Computing grouped feature statistics (e.g. player mean score) on a concatenated dataset of train and test leaks test set distributions and future information into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_df = pd.concat([train_df.drop(columns=[target], errors='ignore'), test_df], ignore_index=True)\n...\nplayer_stats = combined_df.groupby('nickname')['score'].agg("
+  },
+  {
+   "name": "No Validation Score Reported",
+   "description": "The agent implements cross-validation and early stopping but fails to compute or report any validation metric for the folds, making it impossible to evaluate generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X_tr):"
+  }
+ ],
+ "summary": "The solution implements a reasonable regression pipeline with LightGBM and CatBoost, but suffers from critical data leakage. Standard KFold allows the same players to appear in both train and validation sets, and grouping features on a combined train/test dataset leaks test distributions into training. Additionally, it lacks basic data cleaning (FM03), uses naive ensembling (FM12), relies on a single metric (FM15), and entirely fails to report validation scores.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

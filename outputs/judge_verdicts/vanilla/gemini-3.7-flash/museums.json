@@ -1,0 +1,142 @@
+{
+ "task": "museums",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_num_ratio = s_test.notnull().mean()\n    \n    if train_num_ratio > 0.6 and test_num_ratio > 0.6:",
+   "reasoning": "The agent uses the proportion of non-null values in the test set to decide whether a column should be cast to numeric, leaking test distributions into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by dropping an ID column, handling missing values, and converting data types.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalizing is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fill_val = X_train_cb[col].median()\n    if np.isnan(fill_val):\n        fill_val = 0\n    X_train_cb[col] = X_train_cb[col].fillna(fill_val)",
+   "reasoning": "The median for imputation is calculated on the entire training set before K-Fold cross-validation, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a cross-sectional dataset of museums and not a time series problem requiring temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses K-Fold cross-validation to create train/validation splits internally.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds in cross-validation, aggregating predictions rather than evaluating exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE via early stopping, which is the correct and specified metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a standard single-target regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = s_train.astype(np.float32)\n        X_test[col] = s_test.astype(np.float32)",
+   "reasoning": "The agent uses raw columns directly and only performs basic type conversions and imputation, with no derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.6 * lgb_preds + 0.4 * cb_preds",
+   "reasoning": "The agent ensembles predictions using arbitrary, hardcoded weights without performing any weight search or tuning.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No performance metric reported",
+   "description": "The agent sets up cross-validation and evaluates models on validation folds but fails to compute, print, or log any overall performance metric (e.g., RMSE) to assess model quality.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import mean_squared_error (imported but never used in the cross-validation loop)"
+  }
+ ],
+ "summary": "The agent's solution contains critical data leakage by explicitly peeking at the test set to determine feature types. It also suffers from cross-validation leakage by computing imputation medians prior to the CV split, lacks any meaningful feature engineering, uses a naive un-tuned ensemble, and completely fails to report any validation scores.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

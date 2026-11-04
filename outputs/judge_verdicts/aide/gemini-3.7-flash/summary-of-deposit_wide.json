@@ -1,0 +1,138 @@
+{
+ "task": "summary-of-deposit_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_df = pd.concat([train_df.drop(columns=[target_col]), test_df], axis=0)\n...\ngrp_mean = combined_df.groupby(cat)[num].transform(\"mean\")\n...\ncombined_df[cat_cols] = encoder.fit_transform(combined_df[cat_cols].astype(str))",
+   "reasoning": "The agent concatenates train and test data before computing frequency encodings, grouped statistics, and fitting the OrdinalEncoder, which leaks the test set's feature distribution into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs no explicit data cleaning or imputation on the original dataset, relying entirely on the tree-based models' internal handling of missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the specific dataset has a temporal order that should dictate the splitting strategy.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is purely used for making final predictions, not for model selection or evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The agent evaluates its models over 5 cross-validation folds, avoiding reliance on a single random split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_rmse = root_mean_squared_error(y, oof_lgb)",
+   "reasoning": "The agent reports and optimizes exclusively for RMSE, without examining other metrics like MAE or R-squared to better understand model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_df[f\"{cat}_{num}_mean\"] = grp_mean",
+   "reasoning": "The agent implements extensive feature engineering, including frequency encoding and grouped numerical statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(\n    loss_func, init_weights, method=\"SLSQP\", bounds=bounds, constraints=constraints\n)",
+   "reasoning": "The agent uses SLSQP to optimize the weights of the ensemble based on out-of-fold predictions, which is a sophisticated ensembling technique.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a strong modelling pipeline with cross-validation, extensive feature engineering, and an optimized ensemble. However, a critical data leakage occurs because the agent computes frequency encodings, grouped statistics, and fits the OrdinalEncoder on the concatenated train and test sets prior to splitting. Furthermore, the agent skips data cleaning and evaluates performance using only a single metric.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

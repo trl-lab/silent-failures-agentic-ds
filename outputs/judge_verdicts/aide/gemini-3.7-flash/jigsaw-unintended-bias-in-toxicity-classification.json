@@ -1,0 +1,142 @@
+{
+ "task": "jigsaw-unintended-bias-in-toxicity-classification",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "word_vec.fit(np.concatenate([train_texts, test_texts]))",
+   "reasoning": "The agent fits the TF-IDF vectorizers on the combined train and test text, leaking test data statistics (like term frequency and document frequency) into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with empty strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "While TF-IDF involves scaling (IDF), this is more accurately captured as fitting a transformer on test data (FM02) rather than applying a standard tabular scaler.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "max_features=150000\n...\nword_vec.fit(np.concatenate([train_texts, test_texts]))",
+   "reasoning": "The TF-IDF vectorizer applies feature selection (max_features, min_df) on the combined dataset, meaning test set term frequencies inappropriately influence which features are kept.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset (only fillna is used).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No temporal order is present or ignored in the splits.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LogisticRegression is an appropriate model for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, accounting for data variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "overall_auc = roc_auc_score(y_binary, oof_preds)",
+   "reasoning": "The agent only calculates overall ROC AUC, ignoring the specialized bias-weighted AUC metric (involving identity subgroups) that defines this specific competition task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_binary = (y_raw >= 0.5).astype(int)",
+   "reasoning": "The task is framed as a plain binary classification, ignoring the multi-target structure (toxicity subtypes) and identity subgroups essential for measuring unintended bias.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts word and character TF-IDF features, which is valid feature engineering for text data.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / n_splits",
+   "reasoning": "The agent uses a simple unweighted average of the cross-validation models without attempting any weighted blending or more sophisticated ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Out-of-Memory (OOM) Execution Crash",
+   "description": "The script creates excessively large data structures in memory (e.g., very wide sparse matrices or unbatched concatenations on large datasets) leading to process termination by the OS due to memory exhaustion.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "REPL child process died unexpectedly ... after Word TF-IDF shape: (1443899, 120000) and Char TF-IDF shape: (1443899, 100000)"
+  }
+ ],
+ "summary": "The agent constructs a standard TF-IDF and Logistic Regression pipeline but suffers a critical Out-of-Memory crash due to excessively large sparse matrices. Methodologically, it leaks test data by fitting the TF-IDF vectorizer on combined train and test text, and it completely ignores the complex subgroup-based bias metric that defines the core objective of the task.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

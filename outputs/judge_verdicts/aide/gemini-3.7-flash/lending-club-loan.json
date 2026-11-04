@@ -1,0 +1,142 @@
+{
+ "task": "lending-club-loan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect test data during manual EDA, though it does apply automated processing across the combined dataset.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by dropping IDs, parsing percentage strings, and mapping categorical variables.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is used in the pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputer is fit; LightGBM handles missing values natively.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "Lending Club data is inherently temporal (loans are issued over time), but the agent uses a randomized split, introducing look-ahead bias by allowing future macroeconomic states to predict past defaults.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classification model is appropriately used for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 folds, naturally evaluating multiple runs of the stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_val_fold, val_pred)",
+   "reasoning": "The agent only computes and reports the ROC-AUC score, without assessing other metrics like precision, recall, or calibration that are highly relevant for financial default prediction.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers several domain-relevant financial ratios (e.g., loan_to_income, installment_to_income).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (\n        model.predict(X_test_processed, num_iteration=model.best_iteration) / n_splits\n    )",
+   "reasoning": "The agent uses a naive unweighted average to combine predictions from the cross-validation folds instead of tuning combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unstable target mapping",
+   "description": "Using `pd.factorize` on the target column as a fallback assigns integer labels based purely on the order of appearance. In binary classification, this can arbitrarily flip the positive and negative classes depending on data shuffling, leading to inverted predictions and meaningless metric interpretations.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = pd.factorize(train_df[target_col])[0]"
+  }
+ ],
+ "summary": "The agent implements a generally sound LightGBM pipeline with robust categorical handling and sensible financial feature engineering. However, it critically fails to account for the temporal nature of Lending Club data by using a randomized CV split (introducing look-ahead bias). Furthermore, its fallback target mapping relies on an unstable factorization method which can arbitrarily invert the classification labels.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

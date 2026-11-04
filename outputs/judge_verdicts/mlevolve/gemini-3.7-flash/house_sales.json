@@ -1,0 +1,57 @@
+{
+ "task": "house_sales",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=num_folds, shuffle=True, random_state=random_state)",
+   "reasoning": "The dataset contains a temporal component (sale date), but the agent uses a random K-Fold split rather than a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_score = root_mean_squared_error(y_train, final_oof_predictions)",
+   "reasoning": "The agent only calculates and reports RMSE without evaluating other metrics like MAE, which could provide better insight into the model's robustness to outliers.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates submission IDs using an arbitrary range rather than preserving the actual 'id' column from the test dataset. This will cause the evaluation script to fail due to mismatched or missing IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_ids = np.arange(len(test_df))\n    submission_df = pd.DataFrame({\"id\": test_ids, \"price\": final_test_predictions})"
+  },
+  {
+   "name": "Incompatible sklearn import",
+   "description": "The agent imports a metric function that was only introduced in scikit-learn 1.4. In environments running older versions of scikit-learn, this will raise an ImportError and crash the pipeline.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "from sklearn.metrics import root_mean_squared_error"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated pipeline with robust feature engineering, leak-free out-of-fold target encoding, spatial aggregations, and a multi-model ensemble optimized via SLSQP. However, it introduces a critical bug by hardcoding the submission IDs instead of using the test set's actual IDs, which will cause evaluation to fail. Additionally, it ignores the temporal nature of the sales data by using a random CV split and relies exclusively on RMSE for evaluation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

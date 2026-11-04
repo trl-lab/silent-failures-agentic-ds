@@ -1,0 +1,152 @@
+{
+ "task": "cosmetic-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df.drop(columns=[\"outcomes\"])\ntrain_target = train_df[\"outcomes\"]",
+   "reasoning": "The agent passes the raw dataset directly into the model without any effort to handle missing values, duplicate rows, or inconsistencies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset features are not visible, so it is impossible to determine if there is a temporal sequence that is being ignored by the random KFold split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"objective\": \"multiclass\"",
+   "reasoning": "The agent correctly uses a multiclass objective for a multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance on out-of-fold samples.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "sum(cv_scores)/len(cv_scores)",
+   "reasoning": "The model is evaluated over 5 folds and the mean accuracy is computed, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(accuracy_score(y_val_fold, y_val_pred))",
+   "reasoning": "The agent relies entirely on accuracy for evaluation without verifying if the dataset is imbalanced or if a secondary metric might be needed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"objective\": \"multiclass\"",
+   "reasoning": "The agent appropriately frames the problem as multiclass classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df.drop(columns=[\"outcomes\"])",
+   "reasoning": "The agent simply drops the target and uses the raw columns as features, with no derived features or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "LightGBM Multiclass Prediction Shape Mismatch",
+   "description": "For multiclass tasks, LightGBM's predict method returns class probabilities of shape (n_samples, n_classes), not flat labels. The code incorrectly attempts to cast these probability arrays directly to integers via a list comprehension without using argmax, which will cause a TypeError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_val_pred = model.predict(X_val_fold)\ny_val_pred = [int(y) for y in y_val_pred]"
+  },
+  {
+   "name": "Missing Target Label Encoding",
+   "description": "LightGBM requires multiclass targets to be encoded strictly as integers from 0 to num_classes - 1. If the target column contains strings or non-contiguous integers, the model will crash with a fatal error (as evidenced by the process log).",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "train_target = train_df[\"outcomes\"]\n...\ntrain_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  },
+  {
+   "name": "Misleading CV Score Print",
+   "description": "The code prints the accuracy of only the final fold while labeling it as the '5-fold CV Accuracy', which is misleading before it subsequently prints the actual mean.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(\n    f\"5-fold CV Accuracy: {accuracy_score(train_target.iloc[val_idx], y_val_pred):.4f}\"\n)"
+  }
+ ],
+ "summary": "The agent sets up a basic 5-fold CV loop with LightGBM but skips all data cleaning and feature engineering. Crucially, the solution contains execution-halting bugs: it fails to encode the multiclass target properly for LightGBM and attempts to directly cast the model's output multiclass probabilities to integers without taking the argmax.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

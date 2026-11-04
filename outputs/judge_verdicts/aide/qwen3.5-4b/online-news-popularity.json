@@ -1,0 +1,138 @@
+{
+ "task": "online-news-popularity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling them with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\ncombined[feature_cols] = scaler.fit_transform(combined[feature_cols])",
+   "reasoning": "In the first half of the script, the scaler is explicitly fit on the combined dataframe containing both train and test sets before any splitting, causing data leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0), which does not require computing dataset statistics and therefore does not leak test data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent slices the data sequentially rather than randomly, so this specific temporal failure mode does not apply.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM regressor) is appropriately used for predicting the continuous 'shares' target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation set and uses it for evaluation and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=1000,\n    valid_sets=[train_data, val_data],",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated only once without cross-validation or multiple seed averaging.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(val_df[target], val_pred))\nprint(f\"Validation RMSE: {rmse:.4f}\")",
+   "reasoning": "The agent only evaluates the model using RMSE, without computing secondary metrics to give a fuller picture of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a straightforward regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target]",
+   "reasoning": "The agent simply uses the raw features as-is without introducing any derived variables, interaction terms, or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Arbitrary splitting of combined train and test sets",
+   "description": "The agent concatenates the provided training and test sets and then splits the combined dataset using a hardcoded 80/20 ratio. This implicitly assumes the test set represents exactly 20% of the total data; if not, test samples will leak into the training set or training rows will be misallocated.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_df, test_df], axis=0)\n\n# Handle any missing values\ncombined[feature_cols] = combined[feature_cols].fillna(0)\n\n# Create train/validation split (80/20)\ntrain_df = combined[: int(len(combined) * 0.8)]"
+  }
+ ],
+ "summary": "The agent implements a working LightGBM regressor but introduces critical data leakage flaws. Specifically, it scales the combined train and test data prior to splitting, leaking test distribution statistics into the training pipeline. Moreover, it concatenates the provided train and test sets only to split them with an arbitrary 80/20 slice, which risks leaking actual test samples into the training set if the original split ratio was not exactly 80/20. The solution also lacks any feature engineering and relies on a single metric and a single evaluation run.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

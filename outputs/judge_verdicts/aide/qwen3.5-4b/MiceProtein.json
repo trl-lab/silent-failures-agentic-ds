@@ -1,0 +1,162 @@
+{
+ "task": "MiceProtein",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or peeking at the test data in the provided code.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n...\nX_train = train_df[feature_cols].values",
+   "reasoning": "The agent makes no effort to impute missing values, relying entirely on LightGBM's default handling without an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed, let alone before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly chooses a multiclass classification objective for LightGBM.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold StratifiedKFold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 different cross-validation folds rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_acc = accuracy_score(y_val, np.round(val_pred).astype(int))",
+   "reasoning": "The agent relies entirely on accuracy to evaluate the model, without checking if the classes are balanced or if another metric would be more informative.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent uses the raw numeric features without creating any derived attributes or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid LightGBM Multiclass Metric",
+   "description": "LightGBM does not support 'accuracy' as a valid metric string for the multiclass objective, which causes a fatal error during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"metric\": \"accuracy\""
+  },
+  {
+   "name": "Unencoded Target Variable",
+   "description": "The categorical/string target variable is not label-encoded into integers. LightGBM's multiclass objective requires integer labels starting from 0 to num_classes-1.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"class\"\n...\ny_train = train_df[target_col].values"
+  },
+  {
+   "name": "Incorrect Multiclass Prediction Processing",
+   "description": "LightGBM multiclass predictions return a 2D array of class probabilities. Using np.round instead of np.argmax produces an invalid format that will cause accuracy_score to fail.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "np.round(val_pred).astype(int)"
+  },
+  {
+   "name": "Discarded Categorical Features",
+   "description": "The agent spends effort label-encoding several categorical columns but then explicitly excludes them from the feature columns used for training, discarding useful information.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if col not in [\"Mouse ID\", \"Genotype\", \"Treatment type\", \"Behavior\", \"class\"]"
+  },
+  {
+   "name": "Misleading CV Score Aggregation",
+   "description": "The agent reports the maximum cross-validation score across folds instead of the mean, giving an overly optimistic estimate of model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "best_score = max(best_score, val_acc)"
+  }
+ ],
+ "summary": "The agent correctly sets up a 5-fold cross-validation scheme but makes multiple critical execution errors that prevent the code from running successfully. It requests an invalid metric for LightGBM, fails to encode the string target variable, and incorrectly processes 2D multiclass probabilities as 1D arrays using np.round. Additionally, it exhibits logical flaws by discarding explicitly encoded categorical features and tracking the maximum CV score instead of the mean.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

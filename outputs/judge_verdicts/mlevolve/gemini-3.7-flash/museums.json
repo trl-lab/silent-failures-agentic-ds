@@ -1,0 +1,157 @@
+{
+ "task": "museums",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kmeans = MiniBatchKMeans(n_clusters=12, random_state=42, batch_size=1024, n_init=\"auto\")\n        geo_df[\"geo_cluster\"] = kmeans.fit_predict(coords)",
+   "reasoning": "The agent fits a K-Means clustering model on coordinates from the combined dataset (train + test), leaking test set spatial distributions into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent thoroughly cleans text and numeric data and explicitly handles missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied inside the cross-validation loop on the training splits only.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting (TruncatedSVD is correctly fit strictly on train data).",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = s.median()\n    median_val = 0.0 if pd.isna(median_val) else float(median_val)\n    imputed_s = s.fillna(median_val)",
+   "reasoning": "The agent computes the median for numeric imputation on the combined train and test dataset, leaking test missing-value statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The task is not explicitly a time series forecasting problem, so random stratified cross-validation is acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for the continuous revenue target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network includes Dropout, LayerNorm/BatchNorm, and weight decay in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final out-of-sample predictions, not for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds, which provides an averaged evaluation over multiple runs rather than a single point estimate.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse_lgb = root_mean_squared_error(y_val_f, oof_lgb[val_idx])",
+   "reasoning": "The agent evaluates the models using only RMSE, without reporting secondary metrics (like MAE or R2) to help understand the distribution of errors on a likely skewed target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and domain-relevant feature engineering, including spatial clustering, text SVD, and financial aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses sophisticated ensembling techniques, including Ridge stacking and SLSQP bounded non-negative blending.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unscaled Target Variable for Neural Network",
+   "description": "The target variable is passed directly to the neural network without scaling or log-transformation. For a regression task predicting revenue, the target can have a massive range, which often causes exploding gradients or poor convergence when using an MSE loss.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_ds = TabularTorchDataset(X_tr_scaled, y_train_f)\n...\ncriterion = nn.MSELoss()"
+  },
+  {
+   "name": "Frequency Encoding Leakage",
+   "description": "Categorical frequency encoding is computed on the entire combined dataset (train + test) before splitting, leaking test set distribution statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = val_series.value_counts(normalize=True)\n    cat_features[f\"{col}_freq\"] = val_series.map(freq).astype(float)"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated solution with extensive feature engineering and advanced ensembling, but suffers from data leakage by computing imputations, clustering models, and frequency encodings on the combined train and test data. Additionally, it fails to scale or log-transform the target variable for the neural network, which is a critical flaw for regression tasks with potentially heavily skewed targets like revenue.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

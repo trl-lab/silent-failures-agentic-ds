@@ -1,0 +1,145 @@
+{
+ "task": "predict-energy-behavior-of-prosumers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing data, such as using county-level fallbacks for weather and filling NaNs in client capacity.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global imputation estimators are fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regressors are appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly performs a time-based train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(params, ...)",
+   "reasoning": "The agent trains stochastic LightGBM models (using bagging and feature fractions) with a single fixed seed and evaluates them once, rather than averaging over multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for MAE, which is the official and appropriate metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is well-formulated, specifically splitting into separate models for production and consumption regimes.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and domain-specific feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a grid search to find the optimal blending weights, avoiding naive ensembling.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Assuming Contiguous Time Series for Lags",
+   "description": "The agent computes lag features by shifting rows (e.g., `target[:-24]`) within groups instead of joining on explicit datetime offsets. If the time series contains missing hours, a 24-row shift will not correspond to a 24-hour lag, misaligning the features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_feat.loc[idx[24:], \"target_lag_24h\"] = target[:-24]"
+  },
+  {
+   "name": "Execution Timeout",
+   "description": "The script takes too long to execute and times out. This is likely due to training multiple heavy LightGBM models (8000 estimators, large num_leaves) twice (for validation and full retraining).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TIMEOUT after 7200s"
+  }
+ ],
+ "summary": "The agent provides a highly structured and domain-aware solution, including time-based splitting, extensive feature engineering, and regime-specific models (production vs consumption). However, it calculates lag features using naive row-shifting which breaks if data has missing timestamps, and the overall script is too computationally heavy, leading to a timeout.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "miga-issued-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].astype(str).fillna(\"Missing\")",
+   "reasoning": "The agent explicitly handles missing values in categorical columns by filling them with a constant.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before or after splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied to the dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the dataset; missing values are handled via constant fill and natively by LightGBM.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Despite extracting temporal features from date columns, the agent uses a random split instead of a time-based split, which risks look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, satisfying the need for a train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent's use of 5-fold cross-validation inherently evaluates the stochastic model across multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent only uses RMSE to evaluate performance and does not verify with other metrics like MAE, which might be more robust to outliers in monetary amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as a standard regression problem on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates derived features such as datetime components, elapsed days, and frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += t_pred / kf.n_splits",
+   "reasoning": "The agent uses a simple unweighted average to combine predictions from multiple cross-validation folds without exploring weighted blending or stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage during feature engineering",
+   "description": "The agent computes global statistics (like value counts for frequency encoding and global minimums for date differences) on the combined train and test dataset, leaking test set distributions into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts()\n    df_all[f\"{col}_freq\"] = df_all[col].map(freq)"
+  }
+ ],
+ "summary": "The agent implements a solid LightGBM pipeline with cross-validation and target transformations but commits a critical data leakage error by computing frequency encodings and global date minimums on the combined train/test dataset. Additionally, the cross-validation strategy ignores the temporal nature of the dataset, and the model's fold predictions are combined using a naive unweighted average evaluated solely on RMSE.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

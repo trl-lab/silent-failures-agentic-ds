@@ -1,0 +1,142 @@
+{
+ "task": "prison-boundaries",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis or fit statistical transformers on test data; it only uses test categories to align categorical levels, which does not leak target statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by handling missing values and converting types in the preprocess function.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any statistical scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies strictly on constants (e.g., 0, -1, 'missing'), which does not leak distribution statistics from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset represents spatial cross-sectional data (prison boundaries), so random splitting is appropriate and temporal ordering is not required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LightGBM and CatBoost) for the continuous target CAPACITY.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly implements a 5-fold cross-validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, not a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is the explicitly required metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard single-target regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts several derived features, including spatial compactness, log-transforms, and date parts.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent uses a naive equal-weight average to combine the models without tuning the blend ratio or using stacking, despite having cross-validation setup that would easily support out-of-fold weight optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation score reporting",
+   "description": "The agent performs cross-validation but completely fails to calculate, store, or report the validation metric (e.g., out-of-fold RMSE). While the splits are used for early stopping, the user is left completely blind to the model's expected generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_lgb.fit(\n        X_train_f, y_train_f,\n        eval_set=[(X_val_f, y_val_f)],\n        callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)]\n    )\n    lgb_preds += model_lgb.predict(X_test) / n_splits"
+  }
+ ],
+ "summary": "The agent provides a structurally sound solution with reasonable feature engineering and cross-validation for model training. However, it relies on a naive equal-weight ensemble without tuning its blend weights, and it entirely neglects to calculate or report any validation scores, making it impossible to verify the model's actual performance.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

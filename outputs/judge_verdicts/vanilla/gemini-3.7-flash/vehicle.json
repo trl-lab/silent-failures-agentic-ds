@@ -1,0 +1,98 @@
+{
+ "task": "vehicle",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train.iloc[val_idx], y_train[val_idx]",
+   "reasoning": "The agent splits the data into cross-validation folds and extracts validation sets, but never actually generates predictions on them or computes a validation metric to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_preds = (\n        0.25 * lgb.predict_proba(X_test) +\n        0.25 * xgb.predict_proba(X_test) +\n        0.25 * cat.predict_proba(X_test) +\n        0.15 * et.predict_proba(X_test_scaled) +\n        0.10 * rf.predict_proba(X_test_scaled)\n    )",
+   "reasoning": "The agent combines predictions from multiple models using arbitrary, hardcoded weights without performing any tuning or optimization of the blend ratios.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage across cross-validation folds",
+   "description": "The agent applies transformations like imputation and scaling to the entire training dataset before splitting it into cross-validation folds, causing statistical information from the validation folds to leak into the training data used for each fold.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train)):"
+  }
+ ],
+ "summary": "The agent successfully implements a robust feature engineering pipeline and trains a diverse set of tree-based models. However, it completely fails to compute any validation metrics, defining validation folds but never evaluating on them. Additionally, the final ensemble relies on arbitrary manual weights instead of an optimized blending strategy, and there is data leakage across the internal cross-validation splits due to scaling and imputing prior to splitting.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

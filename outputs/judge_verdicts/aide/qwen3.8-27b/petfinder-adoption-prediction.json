@@ -1,0 +1,141 @@
+{
+ "task": "petfinder-adoption-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[c] = pd.to_numeric(df[c], errors=\"coerce\").fillna(0.0)",
+   "reasoning": "The agent explicitly handles missing values by filling them with constants.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[c] = df[c].fillna(-1).astype(int)",
+   "reasoning": "Imputation uses hardcoded constants (0.0 and -1) rather than dataset statistics, so no leakage occurs before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "Although the agent uses a regression model for a classification task, this is an intentional and highly effective formulation for ordinal classification tasks evaluated by QWK, as evidenced by the subsequent rounding and clipping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold stratified cross-validation for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for tr_idx, va_idx in skf.split(X, y):",
+   "reasoning": "The agent evaluates the stochastic model across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_qwk = qwk(y.values, oof)",
+   "reasoning": "The agent optimizes for MSE (l2) as a surrogate and reports QWK, which is the exact appropriate metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred = np.clip(np.round(y_pred), 0, 4).astype(int)",
+   "reasoning": "The agent correctly frames the ordinal classification problem using a regression surrogate, which captures the ordinal signal perfectly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"Desc_word_count\"] = (\n        df[\"Description\"].fillna(\"\").astype(str).str.split().str.len()\n    )",
+   "reasoning": "The agent adds multiple derived features such as string lengths, word counts, and binary flags.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect custom metric implementation",
+   "description": "The custom metric function completely omits calculating the observed confusion matrix and only relies on the marginal distributions of the true and predicted labels. It returns a value representing expected disagreement, which renders the evaluation completely invalid and meaningless.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "s = np.outer(t, p)\n    if s.sum() == 0:\n        return 0.0\n\n    return 1.0 - (s * h).sum() / s.sum()"
+  },
+  {
+   "name": "Invalid submission format",
+   "description": "The agent generates a dummy identifier column using a range of integers instead of preserving the original test set identifiers. This will cause the submission to be rejected by the scoring platform.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test), dtype=int)"
+  }
+ ],
+ "summary": "The agent structures a generally sound pipeline with 5-fold cross-validation, basic feature engineering, and a smart ordinal regression formulation using LightGBM. However, it critically fails in implementing the QWK evaluation metric, making its internal cross-validation score meaningless. Additionally, the agent creates a dummy ID column for the final submission instead of using the required test set identifiers, which would lead to a rejected submission.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

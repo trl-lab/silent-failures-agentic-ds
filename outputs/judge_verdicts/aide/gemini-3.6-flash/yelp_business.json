@@ -1,0 +1,147 @@
+{
+ "task": "yelp_business",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_matrix = tfidf.fit_transform(text_series)",
+   "reasoning": "The agent concatenates train and test into full_df and fits the TF-IDF vectorizer on the entire corpus before splitting, leaking test vocabulary and document frequencies.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values for text and numeric columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit use of scaling/normalizing algorithms (like StandardScaler) before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=50, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_matrix)",
+   "reasoning": "The agent applies TruncatedSVD (PCA equivalent) on the full combined dataset, leaking test information into the selected basis components.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": ".fillna(full_df[col].median() if not full_df[col].isnull().all() else 0)",
+   "reasoning": "The agent computes the median for imputation on the full combined dataset, leaking test missing-value statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no temporal feature being used or ignored for splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classification models (LogisticRegression, XGBClassifier) for predicting stars.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated over 5 cross-validation folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "acc = accuracy_score(y_train, oof_pred_labels)\nprint(f\"5-Fold CV Accuracy: {acc:.5f}\")",
+   "reasoning": "The agent evaluates the model solely using accuracy, without verifying whether class imbalances exist or analyzing performance per class.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (TF-IDF, SVD, spatial aggregations, frequency encodings).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated 2-level stacking approach, using OOF predictions from LogisticRegression as features for XGBoost.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via global aggregations",
+   "description": "The agent computes group-wise statistics (e.g., means) or frequency encodings on the entire combined dataset (train + test) before splitting, leaking the test data distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "city_lat_mean = full_df.groupby(\"city\")[\"latitude\"].transform(\"mean\")  ... freq = full_df[col].value_counts(normalize=True).to_dict()"
+  },
+  {
+   "name": "Environment-specific multiprocessing crash",
+   "description": "The script crashes on macOS when using multiprocessing (e.g., n_jobs=-1 in XGBoost) due to a known issue with Metal Performance Shaders and fork(), causing the REPL to die.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "objc[22793]: +[MPSGraphObject initialize] may have been in progress in another thread when fork() was called."
+  }
+ ],
+ "summary": "The agent demonstrates a sophisticated modeling approach with robust stacking cross-validation and extensive feature engineering. However, the solution is fundamentally compromised by critical data leakage: all data imputation, feature transformations (TF-IDF, SVD), target/frequency encodings, and spatial aggregations are computed globally on the combined train and test set before splitting. Additionally, the execution fails due to a macOS-specific multiprocessing crash with XGBoost.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

@@ -1,0 +1,108 @@
+{
+ "task": "aijob_ai-ml-ds-salaries",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_all[\"exp_level_num\"] = (...).fillna(2)",
+   "reasoning": "The agent makes explicit efforts to handle missing values through fillna() and global mean imputation for encodings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset may contain a 'work_year' column, but it is not explicitly referenced in the code, so it is unclear if temporal splitting was strictly required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y_log, oof_preds)\nprint(f\"Validation RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent reports only one metric (RMSE on the log-transformed target, which is effectively RMSLE) and does not verify its alignment with the task's true evaluation metric (original-scale RMSE).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target transformation mismatch with evaluation metric",
+   "description": "The agent log-transforms the target variable and trains the model to optimize MSE on this log scale. While predictions are transformed back correctly, optimizing log-scale MSE is mathematically equivalent to optimizing MSLE. Since the task evaluates using RMSE on the original scale, this objective function mismatch penalizes errors differently and will likely yield sub-optimal performance on the target metric.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_log = np.log1p(train_df[target_col].values)\n...\ncv_rmse = root_mean_squared_error(y_log, oof_preds)"
+  },
+  {
+   "name": "Data Leakage: Encoding before splitting",
+   "description": "The agent performs frequency encoding on the concatenated train and test dataset. This leaks the distribution of categorical values in the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat(...)\n...\nfor col in cat_cols:\n    freq = df_all[col].value_counts()\n    df_all[f\"{col}_freq\"] = df_all[col].map(freq)"
+  }
+ ],
+ "summary": "The agent successfully implements domain-specific feature engineering, out-of-fold target encoding, and a robust K-Fold cross-validation strategy. However, it introduces data leakage by computing frequency encodings across the combined train and test sets. Crucially, the agent optimizes and evaluates its model on a log-transformed target (effectively minimizing MSLE) without verifying against the task's true metric (original-scale RMSE), which will likely harm final model quality.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

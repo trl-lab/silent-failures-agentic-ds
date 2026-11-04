@@ -1,0 +1,146 @@
+{
+ "task": "industry-payments-project",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "combined[col].astype(str).fillna(\"__MISSING__\")",
+   "reasoning": "The agent handles missing categorical values but makes no explicit effort to clean numerical missing values, duplicates, or outliers, relying entirely on the tree models to natively handle numerical NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date/time columns which the agent explicitly extracts features from, yet it uses a random cross-validation split instead of a time-based split, potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor, LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The held-out test set is only used for generating the final submission, not for model evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, inherently averaging the stochastic models across 5 folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cb_cv_rmse = np.sqrt(mean_squared_error(y, cb_oof))",
+   "reasoning": "The agent relies entirely on RMSE for evaluation and blending without checking secondary metrics like MAE which might be more robust to outliers in payment data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (date extraction, frequency encoding, group aggregates, and out-of-fold target encoding).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes blending weights using Nelder-Mead instead of a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via global feature engineering",
+   "description": "Applying dataset-wide transformations like frequency encoding or group aggregations on the combined train and test dataset leaks the distribution of the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(dropna=False)\n...\ngrp_mean = combined.groupby(cat)[num].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline using CatBoost and LightGBM with optimized ensembling and strict out-of-fold target encoding. However, it makes critical errors by computing frequency encodings and group aggregates on a combined train/test dataframe (causing data leakage) and using a randomized split on temporal data instead of a time-based split.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "meta-critic_whisky",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking occurs during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train.drop(columns=[target])",
+   "reasoning": "The agent makes no effort to explicitly clean the data, relying entirely on LightGBM to handle missing values and ignoring potential anomalies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross-validation to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which averages out variance over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores = cross_val_score(\n    model, X_train, y_train, cv=5, scoring=\"neg_mean_squared_error\", n_jobs=-1\n)",
+   "reasoning": "The agent only calculates and reports RMSE, without using any supplementary metrics (like MAE or R2) to robustly verify the model's behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train.drop(columns=[target])",
+   "reasoning": "The agent uses the raw columns directly with no derived features, transformations, or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Early stopping without validation set",
+   "description": "The agent passes an early stopping callback to the `fit` method but fails to provide an `eval_set`. LightGBM requires an evaluation dataset to monitor metrics for early stopping, which will cause a ValueError and crash the script at runtime.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "callbacks = [lgb.early_stopping(50), lgb.log_evaluation(-1)]\n...\nmodel.fit(X_train, y_train, callbacks=callbacks)"
+  },
+  {
+   "name": "Feature mismatch between train and test",
+   "description": "If the target is not in the test set, `X_test` points directly to the `test` dataframe. Later, adding the 'id' column to `test` mutates `X_test` as well, adding a column that wasn't in `X_train`. This causes a schema mismatch when predicting.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "X_test = test.drop(columns=[target]) if target in test.columns else test\n\n# Handle ID column for submission\ntest[\"id\"] = test.index"
+  }
+ ],
+ "summary": "The agent establishes a basic LightGBM pipeline with proper cross-validation but entirely skips data cleaning and feature engineering. Most critically, the code contains a fatal execution error because it attempts to use early stopping during final model training without providing the required evaluation set.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

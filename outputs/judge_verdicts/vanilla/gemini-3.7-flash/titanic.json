@@ -1,0 +1,145 @@
+{
+ "task": "titanic",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or use test data statistics before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values for Age, Fare, Embarked, and Cabin (Deck).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation for Age and Fare uses medians calculated exclusively from the training dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train.iloc[val_idx], y_train[val_idx]\n    \n    lgb = LGBMClassifier(...)\n    lgb.fit(X_tr, y_tr)\n    ...\n    fold_pred = (lgb.predict_proba(X_test)[:, 1] ...",
+   "reasoning": "The agent sets up cross-validation and creates validation splits (X_va, y_va), but never predicts on them or computes any validation score to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent runs a 5-fold cross-validation loop and averages predictions, so it does not rely on a single evaluation of a stochastic model (though it fails to evaluate at all).",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate or report any metrics, so it does not rely on only one.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, deriving Titles, FamilySize, Deck, etc.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_pred = (lgb.predict_proba(X_test)[:, 1] + \n                 cb.predict_proba(X_test)[:, 1] + \n                 rf.predict_proba(X_test)[:, 1]) / 3.0",
+   "reasoning": "The agent combines predictions using a naive, unweighted average across three different model types without tuning their blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent label encoding across datasets",
+   "description": "Encoding categorical variables based on the unique values of the specific dataset being processed (e.g. train vs test independently) leads to mismatched integer representations if the categories appear in a different order or differ in presence.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "deck_map = {d: i for i, d in enumerate(df['Deck'].unique())}\n    df['Deck'] = df['Deck'].map(deck_map).fillna(0).astype(int)"
+  },
+  {
+   "name": "Incorrect submission ID formatting",
+   "description": "Generating generic sequential IDs from scratch for the submission file instead of using the actual identifier column from the test dataset, resulting in an invalid submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(final_preds))"
+  }
+ ],
+ "summary": "The agent's solution features decent feature engineering and a robust multi-model setup, but it entirely fails to evaluate model performance (creating validation sets but never scoring them). Furthermore, there are critical execution flaws: the target encoding for categorical variables is misaligned between train and test data, and the submission file uses generic IDs instead of the required test dataset identifiers.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

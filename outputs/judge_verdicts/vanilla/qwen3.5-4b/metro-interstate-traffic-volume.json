@@ -1,0 +1,152 @@
+{
+ "task": "metro-interstate-traffic-volume",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly fit only on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform a random split on the time series data; no split is performed at all.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_combined, y_train)\n\n# Generate Predictions\npredictions = model.predict(X_test_combined)",
+   "reasoning": "The model is trained on the full training set and generates test predictions without creating a validation set or computing any validation metrics to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so it does not report a single score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to engineer an 'hour' feature from the datetime column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Syntax Error / Indentation Error",
+   "description": "The code contains an empty `if` block with only comments and no indented code, which raises an IndentationError and prevents the script from running entirely.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if 'hour' in X_train.columns:\n    # Re-run selection to include new column properly if it became numeric\n    # In the loop above we ensured it exists.\n    # We will use the updated lists below based on dynamic check\n    \n# Ensure numeric columns list is correct"
+  },
+  {
+   "name": "One-Hot Encoding High-Cardinality Datetime Features",
+   "description": "The agent applies one-hot encoding to original datetime strings because it fails to drop or appropriately convert the 'date_time' column, which can lead to extreme memory explosion (OOM) or severe overfitting, especially with `sparse_output=False`.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)\nX_train_cat = encoder.fit_transform(X_train[final_cat_cols])"
+  },
+  {
+   "name": "Unused Derived Features",
+   "description": "The agent engineers new features but iterates over the original `feature_columns` list (which does not include the new feature) when building the final arrays, rendering the feature engineering completely ineffective.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in feature_columns:\n    dtype = X_train[col].dtype"
+  }
+ ],
+ "summary": "The agent attempts to load data, engineer an hour feature, and train a LightGBM regression model. However, the code contains a fatal IndentationError due to an empty if-block, preventing execution. Furthermore, it fails to evaluate the model using a validation set (FM06), attempts to one-hot encode the raw datetime strings as categorical variables (likely causing an OOM error), and forgets to include its newly engineered 'hour' feature in the final training arrays.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

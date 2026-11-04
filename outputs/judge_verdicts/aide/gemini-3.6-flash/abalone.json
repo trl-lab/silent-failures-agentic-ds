@@ -1,0 +1,137 @@
+{
+ "task": "abalone",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X = X.apply(pd.to_numeric, errors=\"coerce\").fillna(0)",
+   "reasoning": "The agent explicitly handles missing values by filling them with 0, although simplistic, it constitutes an effort.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No sklearn scaler is used on the combined dataset before splitting (though manual centering is performed, which is captured as a separate leakage).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X = X.apply(pd.to_numeric, errors=\"coerce\").fillna(0)\nX_test = X_test.apply(pd.to_numeric, errors=\"coerce\").fillna(0)",
+   "reasoning": "Imputation (fillna) is applied after splitting the dataset back into train and test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly employs a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The agent evaluates the models over 5 cross-validation folds, which inherently accounts for variance in data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"5-Fold CV RMSE Score: {cv_rmse:.5f}\")",
+   "reasoning": "The agent evaluates and reports only RMSE, without verifying if it's the most appropriate metric or complementing it with others like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def create_features(data_df):",
+   "reasoning": "The agent performs extensive and domain-relevant feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_pred_ensemble = (\n        (val_pred_lgb * 0.4) + (val_pred_xgb * 0.3) + (val_pred_cb * 0.3)\n    )",
+   "reasoning": "The agent uses a hardcoded weighted average for ensembling without any tuning or optimization of the combination weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage through grouped statistics before splitting",
+   "description": "Calculating grouped statistics (like mean or standard deviation) on a combined dataset of train and test samples leaks information from the test distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_df = pd.concat([X_train_raw, X_test_raw], axis=0, ignore_index=True)\ncombined_df = create_features(combined_df)\n\n# Inside create_features:\ngrouped = df.groupby(sex_col)[agg_cols].transform\nfor col_name in agg_cols:\n    df[f\"{sex_col}_{col_name}_mean\"] = grouped(\"mean\")[col_name]"
+  }
+ ],
+ "summary": "The agent demonstrates good modeling practices by using 5-fold cross-validation, multiple robust gradient boosting models, and extensive feature engineering. However, a critical data leakage occurs because grouped statistical features are calculated on the combined train and test dataset before splitting. Additionally, the ensembling weights are arbitrarily hardcoded without any tuning.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

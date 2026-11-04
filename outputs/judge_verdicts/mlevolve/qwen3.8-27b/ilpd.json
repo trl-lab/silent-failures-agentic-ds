@@ -1,0 +1,148 @@
+{
+ "task": "ilpd",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test data during exploratory data analysis or to inform preprocessing decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with the median computed from the training set.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before the train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied after the train/test split, fitting only on the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification model (LightGBM with 'binary' objective) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a train/validation split using train_test_split and validates the model on the holdout set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    lgb_params,\n    train_data,\n    ...\n)",
+   "reasoning": "The agent trains a stochastic LightGBM model only once and evaluates it on a single validation split, without using cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "val_auc = roc_auc_score(y_val, val_probs)",
+   "reasoning": "The agent evaluates only ROC-AUC; while appropriate for the task, no other metrics (like F1-score or a confusion matrix) are checked to provide a comprehensive view of performance on the imbalanced data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification on the 'Class' target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive domain-informed feature engineering, including interactions, ratios, and log transforms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "test_set_dependent_features",
+   "description": "Features are computed using dataset-level statistics (like rank or max) on the test set itself, meaning a sample's features depend on the other samples present in the batch. This breaks the i.i.d. assumption, causes data leakage between test samples, and invalidates single-sample inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[\"bilirubin_rank\"] = df[\"Total Bilirubin\"].rank(pct=True)\n...\ndf[\"gender_encoded\"] = (df[\"Gender\"] == df[\"Gender\"].max()).astype(int)"
+  },
+  {
+   "name": "hardcoded_submission_id",
+   "description": "The submission file generates synthetic sequential IDs instead of preserving the actual identifier column from the test dataset, causing alignment or validation failures in evaluation platforms.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": range(len(test_probs)), \"Class\": test_probs})"
+  },
+  {
+   "name": "fragile_column_mapping",
+   "description": "The logic to map columns slices a fixed-length canonical names list to match the dataframe's column count. If the dataframe contains more columns than the canonical list (e.g. an ID column), it assigns a shorter list of names to a larger number of columns, raising a ValueError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df.columns = canonical_names[:len(current_cols)]"
+  }
+ ],
+ "summary": "The agent correctly splits the data before applying imputation and performs extensive feature engineering. However, the solution contains critical flaws: it computes dataset-dependent features (like rank) on the test set, hardcodes the submission ID column, and uses a fragile column mapping logic that likely caused an execution failure. Furthermore, it evaluates the stochastic model only once.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

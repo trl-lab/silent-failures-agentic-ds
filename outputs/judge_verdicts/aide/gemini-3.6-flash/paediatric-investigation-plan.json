@@ -1,0 +1,141 @@
+{
+ "task": "paediatric-investigation-plan",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_le = LabelEncoder()\n        combined = pd.concat([tr_s, te_s], axis=0)\n        cat_le.fit(combined)",
+   "reasoning": "The agent fits a LabelEncoder on the combined train and test sets, leaking test set categories into the training preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using fillna() for numeric, categorical, and text features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scaling or normalization is performed on the dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "TF-IDF and SVD are fit only on the training text, not on the combined train/test set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is done with constant values (e.g., -999, 'missing'), which does not compute or leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is not a time series forecasting problem, so random stratified splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models (Logistic Regression, MultinomialNB, LightGBM) for the multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent evaluates the cross-validation setup exactly once using a single random seed, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y, oof_preds)",
+   "reasoning": "The agent only computes and reports accuracy, without verifying performance across other relevant metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multiclass classification problem is framed correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date features, frequency encodings, and text embeddings via TF-IDF/SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses stacking (training LightGBM on meta-features from LR and NB), which is a sophisticated ensembling method rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage within Cross-Validation",
+   "description": "Applying text vectorization (e.g., TF-IDF) and dimensionality reduction (e.g., SVD) to the entire training dataset before splitting it into cross-validation folds. This leaks vocabulary and distribution information from the validation folds into the training folds, making the CV scores overly optimistic.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_text_word_tr = word_vec.fit_transform(train_text)\n...\nword_svd_tr = svd_word.fit_transform(X_text_word_tr)\n...\nfor tr_idx, val_idx in skf.split(train_features, y):\n    X_tr_fold, y_tr_fold = X_text_word_tr[tr_idx], y[tr_idx]"
+  }
+ ],
+ "summary": "The agent provides a comprehensive pipeline with date extraction, text processing, and a stacking ensemble. However, the solution suffers from significant data leakage because TF-IDF and SVD transformers are fitted on the entire training set prior to cross-validation splits. Furthermore, a LabelEncoder is fitted directly on the test set combined with the training set, and evaluation is limited to a single accuracy score from a single CV seed.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

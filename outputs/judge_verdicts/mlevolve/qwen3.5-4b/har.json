@@ -1,0 +1,113 @@
+{
+ "task": "har",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df[col] = train_df[col].fillna(train_df[col].median())",
+   "reasoning": "Missing values are imputed using the median of the entire train_df before it is split into training and validation sets, causing data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = HARClassifier(input_dim=561, num_classes=6, dropout_rate=0.3)",
+   "reasoning": "The deep learning model is initialized and trained only once without using multiple random seeds to average out the variance of the stochastic training process.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_acc = val_correct / val_total",
+   "reasoning": "The agent evaluates the model using only accuracy and does not verify if the classes are balanced or use supplementary metrics like F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [\"id\", \"class\"]]",
+   "reasoning": "The agent uses the raw features as-is without attempting to create any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignored Test Set for Inference",
+   "description": "The agent generates final submission predictions on an internal validation holdout set rather than the actual provided test dataset. It also generates dummy IDs that reset every batch, completely ignoring the test set IDs and resulting in an invalid submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test_scaled = scaler.transform(X_test_split)\n...\ntest_dataset = TensorDataset(\n    torch.tensor(X_test_scaled, dtype=torch.float32),\n...\ntest_ids.extend(range(len(predicted)))"
+  },
+  {
+   "name": "Missing Preprocessing on Test Data",
+   "description": "Data cleaning steps such as missing value imputation and outlier clipping are applied only to the training dataframe. The test set is completely skipped, meaning any missing values in the test set would cause inference to fail or produce NaNs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in train_df.columns:\n    if train_df[col].isnull().any():\n        train_df[col] = train_df[col].fillna(train_df[col].median())"
+  }
+ ],
+ "summary": "The agent builds a deep learning classifier but makes critical errors in generating the submission. It completely ignores the actual test dataset during inference, instead predicting on an internal validation split and generating malformed IDs, which invalidates the submission. Additionally, it leaks validation statistics by imputing missing values before splitting, fails to apply preprocessing to the real test data, and evaluates the stochastic model only once.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

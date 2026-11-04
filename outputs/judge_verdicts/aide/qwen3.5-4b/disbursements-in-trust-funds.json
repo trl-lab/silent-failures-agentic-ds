@@ -1,0 +1,138 @@
+{
+ "task": "disbursements-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or pre-split exploration of the test data in the solution.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_features = train_features.fillna(train_features.median())",
+   "reasoning": "The agent explicitly handles missing values by imputing with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_features_scaled = scaler.fit_transform(train_features[numeric_features])\n\n# Split training data into train and validation sets\nX_train, X_val, y_train, y_val = train_test_split(\n    train_features_scaled,",
+   "reasoning": "The scaler is fit on the entire training set before splitting off the validation set, causing data leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_features = train_features.fillna(train_features.median())\n...\nX_train, X_val, y_train, y_val = train_test_split(",
+   "reasoning": "Missing values are imputed using the median of the entire training set before splitting, leaking validation set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset involves a time series, though standard random splitting is used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\n    \"objective\": \"regression\",",
+   "reasoning": "The agent correctly uses a regression objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(",
+   "reasoning": "The agent splits the data into training and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=1000,",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated only once, without multiple runs or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = mean_squared_error(y_val, val_predictions)\nprint(f\"Validation RMSE: {val_rmse:.4f}\")",
+   "reasoning": "The agent only computes and reports RMSE, without using any secondary metrics to verify model behaviour.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses raw numeric features without deriving any new features, domain-informed transforms, or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Silently dropping non-numeric features",
+   "description": "The agent extracts numeric features for scaling and then passes only the scaled numeric array to the train/validation split and model, silently discarding any categorical, text, or date columns present in the dataset.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features_scaled = scaler.fit_transform(train_features[numeric_features])\n\n# Split training data into train and validation sets\nX_train, X_val, y_train, y_val = train_test_split(\n    train_features_scaled,"
+  }
+ ],
+ "summary": "The solution implements a basic LightGBM regression model but suffers from data leakage due to imputing and scaling the entire training dataset before splitting it into train and validation sets. It also completely lacks feature engineering and silently discards all non-numeric features by only passing the scaled numeric array to the model. Furthermore, the evaluation is based on a single split and run without cross-validation.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

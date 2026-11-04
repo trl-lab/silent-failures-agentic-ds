@@ -1,0 +1,138 @@
+{
+ "task": "seoul-bike-sharing-demand",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no peeking at test data occurred.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Load data\ntrain_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\n# Feature engineering",
+   "reasoning": "The agent proceeds directly from loading data to feature engineering without any explicit data cleaning or handling of missing values, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a clear temporal component (bike rentals by date/hour), but the agent uses standard shuffled KFold, which introduces look-ahead bias by allowing future data to leak into the training sets of past data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM Regressor is an appropriate model type for this continuous target regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, which averages results over multiple splits rather than relying on a single point evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "mse = mean_squared_error(y_val_fold, val_pred)\n    cv_scores.append(np.sqrt(mse))  # RMSE",
+   "reasoning": "The agent only uses RMSE for evaluation and does not calculate or verify against other metrics (like MAE or R2) to check robustness against outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as a regression problem targeting the continuous Rented Bike Count variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively performs feature engineering by extracting multiple temporal components from the date column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test prediction uses only the last fold's model",
+   "description": "The agent instantiates a single model object outside the cross-validation loop, fits it repeatedly within the loop, and predicts on the test set after the loop completes. As a result, the test predictions are generated solely by the model trained on the final fold, discarding the earlier models and losing the ensembling benefits of cross-validation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(...)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):\n    ...\n    model.fit(...)\n...\n# Predict on test data\ntest_pred = model.predict(X_test)"
+  }
+ ],
+ "summary": "The agent provides a LightGBM regression solution with appropriate temporal feature engineering and a 5-fold cross-validation setup. However, it severely fails to account for the temporal nature of the dataset by using a shuffled KFold split, introducing significant look-ahead bias. Additionally, it skips preliminary data cleaning and contains a logical bug where test set predictions are generated using only the model trained on the final CV fold.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

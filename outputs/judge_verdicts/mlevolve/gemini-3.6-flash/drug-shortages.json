@@ -1,0 +1,101 @@
+{
+ "task": "drug-shortages",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if (\n            tr_num_df[col].isna().sum() > 0\n            or va_num_df[col].isna().sum() > 0\n            or te_num_df[col].isna().sum() > 0\n        ):",
+   "reasoning": "The agent peeks at the test data by checking if missing values exist in the test set to decide whether to create a missing value indicator feature.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMClassifier(\n        n_estimators=1000,\n        ...\n        random_state=42,\n    )\n    lgb_model.fit(...)",
+   "reasoning": "The agent trains multiple stochastic models (LGBM, XGBoost, CatBoost, Neural Network) exactly once with a fixed random seed and evaluates them, without using multiple seeds or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "def loss_func(weights):\n        ...\n        return -accuracy_score(y_va, preds)",
+   "reasoning": "The agent evaluates and optimizes the ensemble exclusively using accuracy. For potentially imbalanced tasks like predicting drug shortages, this is highly inappropriate and likely caused the model to trivially predict the majority class for all samples.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Non-differentiable objective function for continuous optimizer",
+   "description": "The agent uses Nelder-Mead (a continuous optimization method) to optimize ensemble weights based on accuracy (a piecewise constant step function). Because accuracy provides zero gradient almost everywhere, the optimizer cannot find a meaningful descent direction and will prematurely terminate or fail to improve the weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preds = np.argmax(blend_va, axis=1)\n        return -accuracy_score(y_va, preds)\n\n    res = minimize(\n        loss_func, init_weights, method=\"Nelder-Mead\", options={\"maxiter\": 300}\n    )"
+  }
+ ],
+ "summary": "The agent built a well-structured pipeline featuring rigorous data processing, target encoding, and a diverse model ensemble. However, it failed to account for model variance by evaluating stochastic models only once (FM14) and leaked minor test statistics during preprocessing design (FM02). Critically, it optimized ensemble weights using Nelder-Mead on accuracy, which is both mathematically flawed for a step function and highly susceptible to class imbalance (FM15), ultimately resulting in degenerate constant predictions.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "tmdb-box-office-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or peeking at test data distributions in the provided script.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data, parsing JSON fields, handling date strings, and imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection using test data statistics is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit an imputer on the combined train/test dataset; train and test are processed separately.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Box office forecasting is inherently temporal; using a randomized K-fold split ignores release dates and introduces look-ahead bias by allowing the model to train on future movies.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the continuous revenue target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with a proper validation set for each fold.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, avoiding a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmsle = root_mean_squared_error(y_train, oof_predictions)",
+   "reasoning": "The agent evaluates and reports only a single metric (RMSLE) without considering other informative regression metrics like MAE or R\u00b2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a log-transformed regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (date extraction, JSON parsing, count features, text lengths, and categorical indicators).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The 'ensembling' is standard K-fold bagging (averaging fold predictions), which does not require complex tuning or stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Set Statistic Imputation",
+   "description": "The agent imputes missing values in the test set using the test set's own statistics (e.g., median) rather than the training set's statistics. This assumes batch processing at inference time and breaks down for single-sample predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feat[\"runtime\"] = pd.to_numeric(df[\"runtime\"], errors=\"coerce\").fillna(df[\"runtime\"].median())"
+  },
+  {
+   "name": "Validation Leakage in Feature Extraction",
+   "description": "Frequency-based features (e.g., extracting the top 20 most frequent genres or directors) are computed using the entire training dataset before applying K-fold cross-validation. This leaks the distribution of the validation folds into the feature generation process for the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "top_genres = pd.Series(all_genres).value_counts().head(20).index.tolist()\n    for g in top_genres:\n...\n    for fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):"
+  }
+ ],
+ "summary": "The agent provides a strong solution with good feature engineering and reasonable model choices. However, it introduces look-ahead bias by using randomized cross-validation on a temporal dataset and improperly imputes missing test features using test-set statistics instead of training-set statistics.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

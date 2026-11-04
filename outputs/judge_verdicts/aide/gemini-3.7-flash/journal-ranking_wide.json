@@ -1,0 +1,130 @@
+{
+ "task": "journal-ranking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data by parsing numerical values with commas and percentage signs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No traditional scaling (e.g., StandardScaler) is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(texts)\n    ...\n    svd = TruncatedSVD(n_components=n_components, random_state=42)\n    svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD (equivalent to PCA for sparse matrices) are fit on the combined train and test dataset, leaking test set vocabulary, document frequencies, and variance components into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fit on the full dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM regressor) is appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 cross-validation folds, which sufficiently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"5-Fold CV RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent only computes and reports RMSE, without verifying if it's the most robust metric for the target distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated appropriately as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent applies TF-IDF and SVD to extract features from text columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (\n        model.predict(X_test, num_iteration=model.best_iteration) / kf.n_splits\n    )",
+   "reasoning": "The agent combines the predictions of the 5 folds using a naive unweighted average without attempting any weighting optimization.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent constructs a solid pipeline involving string parsing, text vectorization (TF-IDF), dimensionality reduction (SVD), and a 5-fold CV LightGBM model. However, a critical data leakage occurs because TF-IDF and TruncatedSVD are fit on the combined train and test datasets, allowing test set information to influence the training features. Minor issues include relying solely on RMSE for evaluation and using a naive equal-weight average to ensemble the cross-validation folds.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

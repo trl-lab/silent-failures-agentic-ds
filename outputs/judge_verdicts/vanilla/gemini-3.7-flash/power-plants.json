@@ -1,0 +1,149 @@
+{
+ "task": "power-plants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so there is no peeking at test data in that manner.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values in categorical columns and relies on the gradient boosting models' native handling for missing numerical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the data; categorical missing values are filled with a constant string.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the task requires chronological splitting, although 'RUN_DATE' is present in the features.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for predicting the continuous NAMPLT_CAP target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does perform a KFold cross-validation split, even though they do not compute a validation metric.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 different cross-validation folds, which inherently involves multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics, so they are not relying on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates derived features such as parsing dates into year/month components and applying frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent combines predictions from LightGBM and CatBoost using a hardcoded equal-weight average without any tuning or validation of the optimal blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Preprocessing on Combined Data",
+   "description": "The agent computes dataset-wide statistics (such as frequency encoding) and fits categorical encoders on the combined training and test sets. This leaks information about the test set distribution and categories into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].astype(str).value_counts()\n    combined_df[f'{col}_FREQ'] = combined_df[col].astype(str).map(freq)\n...\nencoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)\ncombined_df[cat_cols] = encoder.fit_transform(combined_df[cat_cols])"
+  },
+  {
+   "name": "No Validation Metric Computed",
+   "description": "The script sets up a validation split and trains models on the folds, but it never calculates or prints a validation metric (e.g., RMSE) to evaluate the model's performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train, y)):"
+  }
+ ],
+ "summary": "The agent implements a generally sound cross-validation pipeline with two gradient boosting models, but crucially fails to calculate any validation metric to gauge performance. Furthermore, there is data leakage introduced by applying frequency and ordinal encoding on the concatenated train and test datasets prior to splitting, and the final ensembling step uses a naive, untuned equal-weight average.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

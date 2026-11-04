@@ -1,0 +1,145 @@
+{
+ "task": "ifc-investment-service-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent performs absolutely no data cleaning, relying entirely on LightGBM's default handling of missing values and ignoring potential duplicates or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Without inspecting the dataset, it is unclear if there is a temporal component that requires chronological splitting, although project data often has one.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM with regression objective) is correctly chosen for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the stochastic model multiple times across different data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"5-fold Cross-Validation RMSE: {np.sqrt(np.mean(cv_scores)):.4f}\")",
+   "reasoning": "The agent calculates and reports only the RMSE without examining other metrics like MAE which might be more robust to outliers in investment amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns as features directly without engineering any derived features or explicitly encoding categorical variables.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Early stopping without validation set",
+   "description": "The agent passes an early stopping callback to the model training function when training the final model on the full dataset, but does not provide any validation sets. This will cause an execution error, as early stopping requires a validation metric to monitor.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.train(params, train_data, num_boost_round=1000, callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)])"
+  },
+  {
+   "name": "Unprocessed categorical features causing execution error",
+   "description": "The agent passes the raw dataframe directly to LightGBM. If the dataset contains object/string columns (which is highly likely for project data), LightGBM will throw a ValueError because it requires string columns to be explicitly converted to the 'category' dtype.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()\n...\ntrain_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  }
+ ],
+ "summary": "The agent provides a minimal LightGBM solution with 5-fold cross-validation but completely skips data cleaning and feature engineering. Crucially, the code contains fatal execution errors: it attempts to use early stopping without a validation set during the final model retraining, and it passes raw data to LightGBM without handling potential string/object categorical features.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

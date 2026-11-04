@@ -1,0 +1,156 @@
+{
+ "task": "random-acts-of-pizza",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_features = train[common_cols].copy()\ntest_features = test[common_cols].copy()",
+   "reasoning": "Test data is only used to determine common columns, without leaking distribution statistics into the training process.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = train_final[col].median()\ntrain_final[col] = train_final[col].fillna(median_val)",
+   "reasoning": "The agent explicitly handles missing values by imputing the median for numeric features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before the train/test split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_final, val_final, y_train, y_val = train_test_split(...)\n...\nmedian_val = train_final[col].median()\ntrain_final[col] = train_final[col].fillna(median_val)",
+   "reasoning": "Imputation statistics (like median) are correctly calculated exclusively on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While timestamps exist, Random Acts of Pizza is generally treated as an IID classification task rather than a strict time series.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "criterion = nn.BCEWithLogitsLoss()",
+   "reasoning": "The agent uses a binary classification loss function, which matches the task type.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "layers.append(nn.Dropout(dropout))\n...\noptimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)",
+   "reasoning": "The neural network includes dropout layers and weight decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_final, val_final, y_train, y_val = train_test_split(...)",
+   "reasoning": "The agent splits the data into training and validation sets to evaluate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for epoch in range(n_epochs):\n...\nfinal_score = roc_auc_score(y_val.values, val_probs)",
+   "reasoning": "The model utilizes stochastic initialization and training (Neural Network), but it is trained and evaluated exactly once rather than averaged over multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_score = roc_auc_score(y_val.values, val_probs)",
+   "reasoning": "The agent reports only the ROC-AUC score and does not evaluate other metrics like accuracy or log-loss to provide a full picture.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"requester_received_pizza\"",
+   "reasoning": "The agent correctly formulates the problem as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features[f\"{col}_word_count\"] = train_features[col].astype(str).str.split().str.len()",
+   "reasoning": "The agent engineers multiple textual, temporal, and interaction features.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing feature scaling for Neural Network",
+   "description": "The agent trains a deep neural network on tabular data without applying any standard scaling or normalisation (e.g., StandardScaler) to the numeric features. Passing large, unscaled values directly into unscaled linear layers typically causes exploding gradients and NaN outputs, which leads to execution failure during metric calculation (ValueError: Input contains NaN).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_final.values.astype(np.float32)\n...\nmodel = TabularNet(...)"
+  },
+  {
+   "name": "Hardcoded ID column name",
+   "description": "The agent hardcodes the ID column name as 'id'. Since the actual dataset uses a different ID column name (e.g., 'request_id'), the agent fails to find it and defaults to generating a dummy sequence of integers for the submission file. This will cause the submission to fail evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "id_col = \"id\" if \"id\" in train.columns else None\n...\ntest_ids = pd.Series(range(len(test)))"
+  },
+  {
+   "name": "Incorrect datetime parsing unit",
+   "description": "The agent applies `pd.to_datetime` to numeric Unix timestamp columns without specifying the unit (e.g., `unit='s'`). By default, pandas interprets numeric values as nanoseconds, converting valid timestamps into dates clustering around 1970. This results in useless extracted temporal features and destroys the original timestamp values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features[col] = pd.to_datetime(train_features[col])\n...\ntrain_features[f\"{col}_hour\"] = train_features[col].dt.hour"
+  }
+ ],
+ "summary": "The agent implements an extensive preprocessing pipeline and a TabularNet model for the classification task. However, it fails to scale the numeric features before feeding them to the neural network, triggering exploding gradients that cause execution failure. Furthermore, the agent hardcodes the ID column as 'id' (breaking the submission file format) and improperly parses Unix timestamps by defaulting to nanoseconds, corrupting the temporal features.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

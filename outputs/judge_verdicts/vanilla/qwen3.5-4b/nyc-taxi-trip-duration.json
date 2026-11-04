@@ -1,0 +1,159 @@
+{
+ "task": "nyc-taxi-trip-duration",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "numeric_imputer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly uses a SimpleImputer to handle missing numerical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit the imputer on the combined train and test dataset prior to splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any internal validation split, so it does not incorrectly split time-series data randomly.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(objective='regression', ...)",
+   "reasoning": "The agent correctly uses a regression model for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(train_dataset, ...)",
+   "reasoning": "The agent trains the model on the full training set and predicts on the test set without ever creating a validation split or performing cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(... subsample=1.0, colsample_bytree=0.8)",
+   "reasoning": "The agent trains the stochastic LightGBM model only once and makes predictions directly, without averaging multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Because there is no validation set, the agent does not evaluate the model using any metric, let alone verifying multiple metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "TARGET = 'trip_duration'",
+   "reasoning": "The agent correctly formulates the problem as a regression task predicting trip duration.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_raw[col] = pd.to_datetime(X_train_raw[col]).astype(int)",
+   "reasoning": "The agent merely converts datetime columns to integer timestamps, completely failing to extract useful date parts (like hour or day) despite defining a function to do so.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution errors due to undefined variables and invalid methods",
+   "description": "The code contains fatal syntax and runtime errors, such as referencing undefined variables and calling non-existent methods on objects (e.g. calling .concatenate() on a pandas DataFrame).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if TRAIN_FEATURES is False:\n... X_train_full[numeric_final].concatenate(X_train_full[object_final])"
+  },
+  {
+   "name": "Independent transformer fitting on test data",
+   "description": "The agent calls `fit_transform` on the test set instead of `transform`. This causes the test set to be imputed and encoded using its own statistics and categories, leading to data leakage and mismatched feature shapes between train and test sets.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test_processed = preprocessor.fit_transform(X_test_full)"
+  },
+  {
+   "name": "Target transformation mismatch",
+   "description": "The agent applies an inverse transformation (e.g., exponentiation) to the model predictions, but never applied the corresponding transformation (e.g., logarithm) to the target variable during training. This results in exponentially inflated and incorrect predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train_np = train_df[TARGET].values.astype(float)\n... y_pred = np.exp(y_pred_proba) - 1"
+  },
+  {
+   "name": "Invalid LightGBM API usage",
+   "description": "The agent passes an `lgb.Dataset` object into the scikit-learn API `LGBMRegressor.fit()`, which expects raw arrays or DataFrames for `X` and `y`, resulting in a type error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_dataset = lgb.Dataset(X_train_processed_np, label=y_train_np)\nlgb_model.fit(train_dataset, ...)"
+  }
+ ],
+ "summary": "The agent's solution is plagued by fatal runtime errors, including referencing undefined variables and calling invalid methods. Additionally, it fails to perform any validation split (FM06), fits preprocessing transformers independently on the test set causing mismatched shapes and leakage, and incorrectly applies an inverse log transform to predictions without ever logging the target variable during training.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

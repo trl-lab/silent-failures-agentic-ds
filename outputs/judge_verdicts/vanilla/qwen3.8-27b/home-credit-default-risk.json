@@ -1,0 +1,138 @@
+{
+ "task": "home-credit-default-risk",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis or preprocessing steps use information from the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by replacing infinite values with NaNs, coercing types, and relying on CatBoost's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Constant columns are dropped based solely on the training data (X_full), without leaking test set information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted; missing values are handled via stateless replacement (e.g., constant string for categoricals) or left to the model.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no temporal structure to the dataset requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A CatBoostClassifier is correctly used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly splits the data into training and validation sets using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(\n        **base_params,\n        eval_metric=\"AUC\",\n        early_stopping_rounds=100,\n    )\n    model.fit(\n        X_train,\n        y_train,",
+   "reasoning": "The stochastic CatBoost model is trained and evaluated exactly once on a single split, without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val, val_proba)\n    else:\n        val_auc = 0.5\n    print(f\"Validation AUC: {val_auc:.6f}\")",
+   "reasoning": "The agent reports only the ROC AUC score, omitting other metrics like log loss, precision, or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def prepare_features(train_df: pd.DataFrame, test_df: pd.DataFrame):\n    y_full = train_df[TARGET].copy()\n    X_full = train_df.drop(columns=[TARGET]).copy()",
+   "reasoning": "The agent uses raw columns directly without engineering derived features, which are typically essential for strong performance on the home-credit dataset.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid submission format (wrong ID column)",
+   "description": "The agent drops the ID column from the test set during preprocessing and generates the submission file using a sequential range of integers, which will fail to score or be rejected by the platform.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame(\n        {\n            \"id\": np.arange(len(test_proba), dtype=int),\n            \"TARGET\": test_proba,\n        }\n    )"
+  }
+ ],
+ "summary": "The agent successfully establishes a functional CatBoost pipeline with appropriate validation and categorical handling. However, it fails to engineer any features, which limits model performance, and critically drops the test set ID column during preprocessing, resulting in an invalid submission file populated with arbitrary sequential integers.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

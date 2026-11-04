@@ -1,0 +1,148 @@
+{
+ "task": "playground-series-s6e2",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data distribution.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Load data\ntrain = pd.read_parquet(\"./input/train.parquet\")\ntest = pd.read_parquet(\"./input/test.parquet\")\n\n# Define features and target",
+   "reasoning": "The agent directly encodes features and trains the model without checking for or handling missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting or otherwise.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification model (LightGBM with objective='binary') for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into 5 folds for cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 separate folds, accounting for variance across different splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_val_fold, y_pred)",
+   "reasoning": "The agent relies entirely on the ROC AUC score without verifying other metrics like accuracy, precision, or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train.columns if c not in [id_col, target_col]]",
+   "reasoning": "The agent uses raw columns directly (only applying basic label encoding) without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target column referenced in test set",
+   "description": "The agent attempts to map the target column in the test dataset. In standard predictive modelling tasks (especially Kaggle competitions), the test dataset does not contain the target column, which will raise a KeyError and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test[target_col] = test[target_col].map({\"Presence\": 1, \"Absence\": 0})"
+  },
+  {
+   "name": "Maximum CV score reported instead of mean",
+   "description": "The agent tracks and reports the maximum validation score across all cross-validation folds instead of calculating the average, leading to an overly optimistic and misleading evaluation metric.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_auc > best_score:\n        best_score = fold_auc"
+  },
+  {
+   "name": "Early stopping without validation set",
+   "description": "The agent uses an early stopping callback during the final model training on the full training dataset, but does not provide a validation set (`valid_sets`). This will either cause an execution error or render early stopping completely non-functional.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_final = lgb.train(\n    params,\n    train_data_final,\n    num_boost_round=1000,\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM model with 5-fold cross-validation but suffers from a few critical flaws. Notably, the script attempts to process the target column in the test set (which will likely cause a KeyError) and uses early stopping on the final model without providing a required validation set. Furthermore, it misleadingly reports the maximum fold score rather than the mean CV score, and completely ignores data cleaning and feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

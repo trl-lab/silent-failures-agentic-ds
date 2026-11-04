@@ -1,0 +1,136 @@
+{
+ "task": "financial-management",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The script does not interactively peek at test data during EDA, though it does inappropriately use test data for some transformations (noted in other failure modes).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes a significant effort to clean data, including parsing complex string formatting, handling numeric conversions, and imputing missing categorical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is fitted on the combined dataset; continuous variables are not scaled before the script truncates.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "constant_cols = [col for col in df_all.columns if df_all[col].nunique(dropna=False) <= 1]\nif constant_cols:\n    df_all.drop(columns=constant_cols, inplace=True)",
+   "reasoning": "The agent identifies and drops constant columns using the combined dataset (train and test), which is a form of variance-based feature selection that leaks test set information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string ('missing') or 0 without fitting an imputer on the combined dataset's statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imports (Ridge, LGBMRegressor, etc.) are appropriate for a regression task, though the model is never instantiated due to a syntax error.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code terminates with a syntax error before any validation strategy or model training can be implemented.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code truncates before any evaluation metrics are used.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The target variable is correctly extracted and formatted as a continuous numeric value.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively engineers features, including extracting date parts, computing numeric interactions (differences and ratios), and frequency encoding.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM14": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Syntax Error / Truncated Code",
+   "description": "The script terminates abruptly with an unclosed bracket, resulting in a SyntaxError that completely prevents execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "num_cols = ["
+  },
+  {
+   "name": "Data Leakage via Frequency Encoding Before Splitting",
+   "description": "The frequency of categorical variables is calculated on the combined dataset (train + test). This leaks the distribution of the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts(normalize=True).to_dict()\ndf_all[f'{col}_freq'] = df_all[col].map(freq).astype(np.float32)"
+  }
+ ],
+ "summary": "The agent implements robust data cleaning and extensive feature engineering logic, but the script ultimately fails due to a critical syntax error (truncated code). Additionally, there is moderate data leakage because frequency encoding and constant-column dropping are applied to the combined train and test datasets before splitting.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": false
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

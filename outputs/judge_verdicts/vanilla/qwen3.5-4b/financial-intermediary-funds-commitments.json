@@ -1,0 +1,152 @@
+{
+ "task": "financial-intermediary-funds-commitments",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data before setting up the processing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent includes logic to impute missing values for both numeric and categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit an imputer on the full dataset before splitting; train and test are handled separately.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the pre-defined train and test sets and does not perform any temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses CatBoostRegressor and Ridge, which are appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_model, y_train.values)\n    except Exception as e:\n...\npredictions = model.predict(X_test_model)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without establishing any internal validation split or computing a validation score.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "model = cb.CatBoostRegressor(\n        iterations=100,\n...\n        seed=42\n    )",
+   "reasoning": "The agent trains a stochastic model exactly once without ensembling or averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute or report any evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_clean = X_train_full.copy()",
+   "reasoning": "The agent uses the raw columns with only basic imputation and does not engineer any derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Crash: computing mean of string columns",
+   "description": "The agent attempts to compute the mean of categorical columns, which contain strings. This raises a TypeError and causes the script to crash immediately before model training even begins.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in cat_cols:\n        train_mean = X_train_clean[col].mean()"
+  },
+  {
+   "name": "Test data statistics leakage",
+   "description": "The agent computes statistics directly on the test set to impute missing values in the test set, rather than using the statistics learned from the training set, causing transductive data leakage.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_median = X_test_clean[col].median()\n        X_test_clean[col] = X_test_clean[col].fillna(test_median)"
+  },
+  {
+   "name": "Mismatched sample counts in fallback fit",
+   "description": "In the fallback block, the agent drops duplicates from the training feature matrix but not from the target array, which will cause a ValueError during fitting due to inconsistent sample sizes.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_pipeline.fit(X_train_clean.drop_duplicates(), y_train.values)"
+  }
+ ],
+ "summary": "The agent's solution completely fails to execute due to attempting to compute the mean of categorical string columns, resulting in a TypeError. Additionally, it suffers from severe methodological flaws: there is no internal validation split to evaluate model performance, test set statistics are improperly used to impute missing values in the test set, and a severe fallback bug guarantees a crash if CatBoost fails by passing arrays of mismatched lengths to the fallback model.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

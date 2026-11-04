@@ -1,0 +1,145 @@
+{
+ "task": "credit-g",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[feature_cols].copy()\n    X_test = test_df[feature_cols].copy()",
+   "reasoning": "The agent makes no explicit effort to handle missing values, duplicates, or outliers, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LightGBMClassifier) for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Stratified 5-Fold Cross Validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the stochastic model across multiple distinct runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)\n    print(f\"5-Fold CV ROC-AUC Score: {cv_auc:.5f}\")",
+   "reasoning": "The agent only computes and reports the ROC-AUC score, without checking other metrics to verify robustness or appropriateness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != target_col]",
+   "reasoning": "The agent uses raw features directly without attempting to create any derived features or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / n_splits",
+   "reasoning": "The agent simply averages the predictions of the 5 cross-validation folds with equal weights, lacking any tuning of the combination.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overoptimistic OOF evaluation due to early stopping leakage",
+   "description": "The agent uses the same validation fold for both early stopping and computing the out-of-fold predictions. This causes the OOF score to be optimistically biased, as the model's number of iterations was tuned on the exact data used for evaluation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_val, y_val)],\n            callbacks=[\n                lgb.early_stopping(stopping_rounds=50, verbose=False),\n...\nval_preds = model.predict_proba(X_val)[:, 1]\n        oof_preds[val_idx] = val_preds"
+  },
+  {
+   "name": "Unsafe categorical encoding",
+   "description": "Converting columns to pandas 'category' dtype separately for the train and test sets can lead to misaligned category codes if the sets contain different unique values, which silently corrupts model predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype(\"category\")\n        X_test[col] = X_test[col].astype(\"category\")"
+  }
+ ],
+ "summary": "The agent successfully implements a LightGBM baseline with 5-fold cross-validation. However, it fails to perform basic data cleaning or feature engineering, uses a naive ensembling strategy, and introduces a critical bug by casting categorical columns independently in the train and test sets, which can misalign internal category codes.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

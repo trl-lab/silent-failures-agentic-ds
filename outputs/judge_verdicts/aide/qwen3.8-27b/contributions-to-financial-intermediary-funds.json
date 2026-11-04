@@ -1,0 +1,142 @@
+{
+ "task": "contributions-to-financial-intermediary-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or use test data prior to defining the train/test split.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train.drop(columns=[target_col]).copy()",
+   "reasoning": "The agent performs no explicit data cleaning (such as imputation or outlier removal) on the features, relying entirely on LightGBM's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed; missing values are left for the model to handle.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Financial contributions often have temporal components, but without seeing the dataset schema, it cannot be definitively determined if a time-based split was required over the random KFold used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for a continuous target variable.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly loops over multiple seeds and averages the predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = float(np.sqrt(mean_squared_error(y_val, oof_predictions[val_idx])))",
+   "reasoning": "The agent evaluates the model using only RMSE, without checking if other metrics (like MAE) would be more robust to potential outliers in the financial target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as standard regression on the continuous USD amount target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train.drop(columns=[target_col]).copy()",
+   "reasoning": "The agent uses the raw columns as-is (with basic categorical typing) without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "pred_test /= len(seeds)",
+   "reasoning": "The agent uses a naive, unweighted average to ensemble the predictions from different random seeds.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring skewed target distribution",
+   "description": "The agent applies a regression model directly to a financial monetary amount without applying a log transformation (e.g. log1p). Financial amounts are typically heavily right-skewed, which can lead to sub-optimal performance and high sensitivity to outliers when optimising for RMSE.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train = train[target_col].astype(float)"
+  }
+ ],
+ "summary": "The agent implements a robust 5-fold cross-validation scheme with seed averaging using LightGBM, which natively handles missing values and categorical features. However, the solution lacks any feature engineering and relies on naive unweighted averaging for its ensemble. Crucially, it models a financial monetary target directly with RMSE without applying a log transformation, which is likely to make the model highly sensitive to outliers.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

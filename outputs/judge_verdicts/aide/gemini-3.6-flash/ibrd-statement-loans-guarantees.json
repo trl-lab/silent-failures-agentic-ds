@@ -1,0 +1,141 @@
+{
+ "task": "ibrd-statement-loans-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[c].value_counts(normalize=True).to_dict()\n    df_all[f\"{c}_freq\"] = df_all[c].map(freq).fillna(0)",
+   "reasoning": "The agent computes frequency encoding on the combined train and test dataset, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = xgb.XGBRegressor(...)",
+   "reasoning": "The agent makes no explicit effort to impute missing values in numerical columns, relying entirely on XGBoost's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal components (parsed date columns), but the agent uses a random K-Fold split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "XGBRegressor is appropriate for this continuous regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, which inherently averages over multiple data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))\nprint(f\"Validation RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent evaluates the model solely using RMSE without verifying if other metrics (e.g., MAE) might be more informative or robust.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly formulated as predicting the original principal amount using regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including date parts, date differences, and aggregated financial metrics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += np.expm1(test_pred_log) / kf.n_splits",
+   "reasoning": "The agent uses a simple unweighted average to combine test predictions from the different folds without any blend-ratio optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage via Early Stopping",
+   "description": "The validation set used to evaluate the model's out-of-fold performance is also passed as the evaluation set for early stopping. This can lead to an overoptimistic validation score because the number of trees is tuned on the same data used for evaluation.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)"
+  }
+ ],
+ "summary": "The solution implements a reasonable XGBoost baseline with domain-informed feature engineering and cross-validation. However, it suffers from data leakage by computing frequency encodings across the combined train and test sets, and by using a random split on temporal data. Furthermore, the agent relies entirely on the model to handle missing values without explicit cleaning and utilizes naive unweighted ensembling.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,133 @@
+{
+ "task": "electricity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data during exploratory data analysis.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(train_path)\ntest = pd.read_parquet(test_path)",
+   "reasoning": "The agent does not perform any data cleaning, outlier handling, or missing value imputation before training models.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "period_std = df_feat.groupby(\"Period\")[col].transform(\"std\").fillna(1e-5)\ndf_feat[f\"{col}_period_z\"] = (df_feat[col] - period_mean) / (period_std + 1e-5)",
+   "reasoning": "The agent computes z-score normalizations and group means on the combined train and test dataset before splitting, causing test data statistics to leak into the training features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on the dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The electricity dataset has a strong temporal component, but the agent uses randomized stratified k-fold cross-validation, which ignores temporal order and introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates using 5-fold cross-validation, which inherently averages over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y, oof_class_preds)\nprint(f\"Validation Accuracy: {acc:.5f}\")",
+   "reasoning": "The agent evaluates the models using only accuracy, without checking if it is appropriate for the class distribution or balancing it with other metrics like F1-score or AUC.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, creating differences, ratios, and cyclical temporal features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "val_blend = 0.50 * val_probs_lgb + 0.30 * val_probs_hgb + 0.20 * val_probs_et",
+   "reasoning": "The agent combines models using hardcoded, arbitrary weights without any tuning or optimization of the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent's solution has two critical flaws: it calculates grouped statistics and z-scores on the combined train and test sets prior to splitting (causing data leakage), and it ignores the temporal nature of the dataset by using a randomized cross-validation strategy (causing look-ahead bias). Additionally, it relies on arbitrary hardcoded ensembling weights, lacks basic data cleaning, and evaluates performance using only accuracy.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

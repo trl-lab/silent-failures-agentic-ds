@@ -1,0 +1,146 @@
+{
+ "task": "avito-demand-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or to fit transformers before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with constants or zeros.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Features are scaled using the mean and standard deviation computed only on the training split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation uses constant values rather than full-dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=2, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a clear temporal component (activation_date) that is ignored in favor of a random shuffled split, potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models used are appropriate for regression.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network includes dropout layers and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is created and used.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not reused to tune model variants.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = BimodalMoENet(\n    input_dim=input_dim...",
+   "reasoning": "Both the neural network and LightGBM models are trained and evaluated only once, without averaging across multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_rmse = np.sqrt(mean_squared_error(val_target, lgb_val_pred))",
+   "reasoning": "The agent evaluates the models solely on RMSE without considering other metrics like MAE or R-squared to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression formulation is appropriate for predicting deal probability.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers numerous text, date, and categorical interaction features.",
+   "applicable": true
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage",
+   "description": "Target encoding is calculated on the training set and applied directly to the same training set without using out-of-fold (OOF) predictions. This causes extreme target leakage and overfitting, particularly for high-cardinality features like user IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "user_agg = df.groupby(\"user_id\")[\"deal_probability\"].agg([\"mean\", \"count\"])\n...\ntarget_enc_maps[\"user_id\"] = user_smooth.to_dict()\n...\ndf[\"user_id_target_enc\"] = (\n    df[\"user_id\"].map(target_enc_maps.get(\"user_id\", {})).fillna(global_mean)\n)"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated solution with advanced modeling techniques (MoE neural network and LightGBM) and extensive feature engineering. However, the data preparation suffers from critical target leakage due to in-fold target encoding of high-cardinality features like `user_id`. Additionally, the random train/validation split fails to account for both temporal order and user grouping, which will lead to overly optimistic validation scores.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

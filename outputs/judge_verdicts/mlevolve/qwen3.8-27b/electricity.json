@@ -1,0 +1,138 @@
+{
+ "task": "electricity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test data during exploratory analysis or for fitting preprocessors.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[features]\ny = train[target]",
+   "reasoning": "The agent makes no explicit effort to clean the data, handle missing values, or address outliers, relying entirely on LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "split_idx = int(len(train) * 0.8)\nX_train, X_val = X.iloc[:split_idx], X.iloc[split_idx:]",
+   "reasoning": "The agent attempts to sort by date and uses a sequential split, correctly respecting the temporal order of the time-series data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(",
+   "reasoning": "The agent correctly uses a classifier for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_val, y_val)],",
+   "reasoning": "The agent uses a 20% holdout validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_preds = model.predict(X_val)\nval_accuracy = accuracy_score(y_val, val_preds)",
+   "reasoning": "The model is trained and evaluated exactly once without multiple seeds or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_val, val_preds)",
+   "reasoning": "The agent only computes and reports accuracy without checking other metrics like ROC AUC, F1, or Log Loss to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is framed correctly as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = [col for col in train.columns if col != target]",
+   "reasoning": "The agent uses raw columns as-is and creates no derived features, ignoring domain-informed transforms (e.g. time-series lags or rolling statistics).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded ID generation in submission",
+   "description": "The agent generates the submission 'id' column using `range(len(test_preds))` rather than extracting the actual identifiers from the test set, which can lead to misaligned submissions if the test set has an existing ID column or is not 0-indexed.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "'id': range(len(test_preds)),"
+  }
+ ],
+ "summary": "The agent provides a basic, functioning LightGBM pipeline with a correct temporal validation split. However, it fails to perform any data cleaning or feature engineering (especially important for time-series data like electricity prices). Additionally, it evaluates the model using only a single run and a single metric (accuracy), and hardcodes the submission IDs instead of preserving them from the test set.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

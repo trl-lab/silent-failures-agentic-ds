@@ -1,0 +1,145 @@
+{
+ "task": "local-government-renewable-action",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent aligns columns using test.columns, but does not peek at test data distributions or statistics during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].fillna(train_df[feature_cols].mean())",
+   "reasoning": "The agent explicitly handles missing values by imputing them with the mean.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is performed after the train/validation split, not on the full dataset beforehand.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_val_split_idx = int(len(train) * 0.8)\ntrain_df = train.iloc[:train_val_split_idx]",
+   "reasoning": "The agent performs a sequential split rather than a random split, which avoids random leakage if the data does have a temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\"objective\": \"regression\", \"metric\": \"rmse\", \"verbose\": -1}",
+   "reasoning": "The agent correctly uses a regression objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = train.iloc[:train_val_split_idx]\nval_df = train.iloc[train_val_split_idx:]",
+   "reasoning": "The agent explicitly creates an 80/20 train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_set,\n    num_boost_round=num_boost_round,\n    valid_sets=[val_set],\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)",
+   "reasoning": "The LightGBM model is trained and evaluated exactly once without cross-validation or multiple random seeds to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = mean_squared_error(y_val, y_val_pred, squared=False)",
+   "reasoning": "The agent evaluates performance solely on RMSE, without computing additional metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a straightforward regression task on the target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in feature_cols if c in test.columns]",
+   "reasoning": "The agent uses raw columns as-is and does not perform any domain-specific feature engineering or interaction generation.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "imputation_leakage_from_eval_sets",
+   "description": "The agent computes imputation statistics (like the mean) directly on the validation and test sets instead of using the training set's statistics. This leaks test distribution information and invalidates the pipeline for scoring isolated new samples.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_val = val_df[feature_cols].fillna(val_df[feature_cols].mean())\n...\nX_test = test[feature_cols].fillna(test[feature_cols].mean())"
+  },
+  {
+   "name": "unhandled_categorical_features",
+   "description": "The solution passes all available columns directly into the model without explicitly checking for or encoding categorical (string) variables. If the dataset contains non-numeric columns, this will trigger a runtime error during model training.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "X_train = train_df[feature_cols].fillna(train_df[feature_cols].mean())\n...\ntrain_set = lgb.Dataset(X_train, label=y_train)"
+  }
+ ],
+ "summary": "The agent successfully establishes a sequential train/validation split and correctly sets up a LightGBM regressor. However, the solution suffers from data leakage because it imputes missing values in the validation and test sets using their own respective means rather than the training set mean. Furthermore, the agent skips feature engineering, relies on a single stochastic evaluation with one metric, and blindly passes raw columns to the model without ensuring categorical string features are encoded.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

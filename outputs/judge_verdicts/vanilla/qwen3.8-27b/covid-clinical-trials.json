@@ -1,0 +1,146 @@
+{
+ "task": "covid-clinical-trials",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via imputation and label mapping fallbacks.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation logic is applied independently to the train and test sets, so there is no leakage of test statistics into the training data (though it introduces a different flaw).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Although clinical trials have dates, this task is typically treated as cross-sectional regression rather than strict time-series forecasting, making random splits acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split using train_test_split and evaluates models on it.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final predictions and is not used for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_model.fit(X_tr, y_tr)\nlgbm_val_pred = lgbm_model.predict(X_val)",
+   "reasoning": "The agent trains stochastic models (e.g., XGBoost, LightGBM) only once with a single random seed, rather than averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_rmse = np.sqrt(mean_squared_error(y_val, lgbm_val_pred))",
+   "reasoning": "The agent evaluates the models solely on RMSE without verifying performance across other regression metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem on the days_to_complete target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including date parsing, binary indicators, string length, and counts of pipe-separated items.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs a heuristically weighted ensemble based on inverse RMSE, which is more advanced than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test set statistic leakage (Transductive Imputation)",
+   "description": "The agent imputes missing values in the test set using statistics calculated directly from the test set (e.g., test median) instead of reusing the statistics computed from the training set. This can lead to distribution shift and inconsistent predictions if samples arrive independently in production.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features['Enrollment'] = df['Enrollment'].fillna(df['Enrollment'].median())\n...\nX_train = extract_features(train_df)\nX_test = extract_features(test_df)"
+  }
+ ],
+ "summary": "The agent provides a robust and generally well-structured solution, including solid feature engineering, a proper validation split, and a weighted ensemble. However, applying the extraction logic independently to train and test sets causes test-set missing values to be imputed with test-set medians, which violates standard inductive learning practices. Additionally, the agent relies entirely on a single random seed and a single metric (RMSE) for evaluation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,105 @@
+{
+ "task": "playground-series-s4e2",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMClassifier(...)\nmodel = OrdinalNN(...)",
+   "reasoning": "The agent evaluates its models using only a single train/validation split and a single random seed, without utilizing cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_acc = accuracy_score(val_targets, val_preds)",
+   "reasoning": "The agent relies exclusively on accuracy for evaluation and model selection, which may not fully capture model performance across all classes in a multi-class setting compared to metrics like log-loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect ordinal probability mass calculation",
+   "description": "When converting cumulative probabilities to individual class probabilities in an ordinal model, the predictions should subtract adjacent cumulative probabilities. The agent instead multiplies them, which violates basic probability rules and heavily distorts the neural network's predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "p_mid = probs[:, :-1] * (1.0 - probs[:, 1:])"
+  },
+  {
+   "name": "Independent quantile binning",
+   "description": "Quantile-based discretization is applied independently to the train, validation, and test sets using the same function. This causes the bin edges to be calculated dynamically based on each set's local distribution, leading to inconsistent mappings and data shift.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"BMI_bin\"] = pd.qcut(df[\"BMI\"], q=10, labels=False, duplicates=\"drop\")"
+  }
+ ],
+ "summary": "The agent performs solid data splitting and feature engineering but introduces a critical mathematical bug when converting cumulative ordinal probabilities into class probabilities. It also incorrectly applies quantile binning independently across data splits, leading to inconsistent feature mappings. Finally, it relies on a single evaluation run and a single metric (accuracy) for model selection.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

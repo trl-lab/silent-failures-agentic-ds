@@ -1,0 +1,148 @@
+{
+ "task": "financial-management",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on the test data or fit transformers globally on a combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans missing values by filling them with medians for numeric columns and 'Missing' for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly localized within a scikit-learn Pipeline (in get_ridge_model) applied during cross-validation, avoiding leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (e.g., medians) are computed strictly on the training set and then applied to the test set, avoiding test-to-train leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, Ridge) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a robust 5-fold cross-validation strategy to evaluate models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 cross-validation folds (with varying random states), accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_lgb = np.sqrt(mean_squared_error(y_val, oof_lgb[val_idx]))",
+   "reasoning": "The agent strictly evaluates models using RMSE and does not compute secondary metrics (like MAE or R-squared) to verify if RMSE is fully appropriate for the distribution of the target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem targeting 'State Share'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent generates numerous derived features including ratios, differences, datetime extractions, and grouped aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to systematically find the best weighted combination of out-of-fold predictions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "categorical_encoded_as_integers_for_linear_model",
+   "description": "Categorical features are encoded as arbitrary integers (e.g., using label encoding or cat.codes) and passed directly into a linear model. This inappropriately forces the model to assume a linear, ordinal relationship between the categories, which degrades model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df[col] = train_df[col].astype(cat_type).cat.codes\n... followed by fitting get_ridge_model() on X_all which includes these columns."
+  },
+  {
+   "name": "cv_data_leakage",
+   "description": "Preprocessing steps such as imputation, frequency encoding, and min-value calculation for log transformations are performed on the entire training dataset before cross-validation splitting. This leaks information from the validation folds into the training folds, making the out-of-fold validation scores slightly overly optimistic.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "med = train_df[col].median()\ntrain_df[col] = train_df[col].fillna(med)\n... computed prior to the KFold loop."
+  }
+ ],
+ "summary": "The solution is generally well-structured, employing sophisticated out-of-fold target encoding, robust ensembling, and appropriate model diversity. However, it suffers from a minor data leakage issue where frequency encoding and imputation statistics are computed over the entire training set prior to cross-validation splitting. Additionally, categorical variables are mapped to arbitrary integer codes and fed into a linear Ridge regression model, which inappropriately assumes an ordinal relationship for those features.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

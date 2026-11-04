@@ -1,0 +1,149 @@
+{
+ "task": "local-law-enforcements",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_num = pd.to_numeric(test[col], errors=\"coerce\")\nnon_missing = test[col].notna()\nif (\n    non_missing.sum() == 0\n    or (test_num.notna() & non_missing).sum() / non_missing.sum() >= 0.9\n):",
+   "reasoning": "The agent inspects missingness and numeric parseability in the test set to decide whether to cast boolean columns to float or treat them as categorical objects.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning, including dropping missing targets and replacing infinities with NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping single-value columns) is done using only the training set, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting; missing values are handled safely within CV mapping or by LightGBM directly.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset's temporal structure, if any, is not obvious, so we cannot determine if a time-based split is required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM regressor) is correctly used for predicting the number of officers.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, which inherently averages over multiple training partitions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task specifies RMSE as the evaluation metric, making it appropriate to evaluate using it.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in feature_cols:\n    if pd.api.types.is_bool_dtype(train[col]):",
+   "reasoning": "The agent applies basic type casting and categorical encoding, but implements no domain-specific feature engineering, derived ratios, or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += predict_model(model, X_te)\n...\ntest_preds /= n_splits",
+   "reasoning": "The agent uses a simple unweighted average of the fold predictions without attempting more advanced ensembling techniques like stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Mismatched optimization objective",
+   "description": "The agent applies a log1p transformation to the target variable and trains the model to minimize RMSE in the log space (effectively optimizing RMSLE). Since the final evaluation metric is RMSE on the original scale, this approach penalizes large absolute errors insufficiently, which will result in severe under-prediction of large values and suboptimal RMSE performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_model = np.log1p(y) if use_log else y.copy()\n...\nparams = {\"objective\": \"regression\", \"metric\": \"rmse\", ...}"
+  },
+  {
+   "name": "Averaging predictions in log space",
+   "description": "The agent averages the cross-validation fold predictions for the test set in the log space before applying the inverse transformation (`expm1`). This effectively computes the geometric mean rather than the arithmetic mean of the predictions, which systematically underestimates the expected value and worsens the RMSE.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += predict_model(model, X_te)\n...\ntest_preds /= n_splits\n...\ntest_preds = np.expm1(np.clip(test_preds, 0.0, max_log))"
+  }
+ ],
+ "summary": "The agent provides a structurally sound LightGBM pipeline with robust CV and categorical handling. However, it peeks at the test set when deciding how to cast boolean features. More critically, it trains the model on a log-transformed target while the task requires optimizing RMSE on the original scale, and it averages test predictions in the log space. Both of these mathematical flaws will systematically under-predict large values and significantly degrade the final RMSE.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

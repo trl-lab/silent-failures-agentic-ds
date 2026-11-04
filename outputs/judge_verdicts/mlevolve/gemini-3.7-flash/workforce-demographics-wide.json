@@ -1,0 +1,48 @@
+{
+ "task": "workforce-demographics-wide",
+ "failure_modes": {
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Synthetic ID column in submission",
+   "description": "The agent creates a synthetic 'id' column using np.arange() instead of preserving the original identifier from the test set, which will cause the submission to be rejected or incorrectly evaluated by the scoring system.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame({'id': np.arange(len(final_test_pred)), 'Female (%)': final_test_pred})"
+  },
+  {
+   "name": "Unsafe best_weights loading in PyTorch",
+   "description": "The script initializes best_weights as None and updates it only if the validation score improves. If the model outputs NaNs in the first epoch (e.g. due to gradient explosion), best_weights remains None, causing an AttributeError when attempting to load the state dict.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "best_weights = None\n...\nnn_model.load_state_dict({k: v.to(device) for k, v in best_weights.items()})"
+  },
+  {
+   "name": "Fragile StratifiedKFold on continuous target",
+   "description": "The agent uses pd.qcut with duplicates='drop' to bin a continuous target for StratifiedKFold. If the target distribution contains many identical values, this can result in a single bin, causing StratifiedKFold to raise a ValueError.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "target_bins = pd.qcut(y_train, q=n_bins, labels=False, duplicates='drop')\nskf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated and robust solution with extensive, leak-free feature engineering, multiple modeling paradigms (GBDTs, Bagging, Ridge, PyTorch ResMLP), and advanced SLSQP ensembling. None of the predefined bad data science practices are present, as the agent strictly separates out-of-fold statistics and test data. However, the solution suffers from a critical execution flaw where it overwrites the required submission IDs with a synthetic sequence, preventing successful evaluation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

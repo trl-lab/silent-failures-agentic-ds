@@ -1,0 +1,145 @@
+{
+ "task": "jigsaw-unintended-bias-in-toxicity-classification",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or fit transformers on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df['comment_text'].fillna('').astype(str)",
+   "reasoning": "The agent explicitly handles missing values in the text column by filling them with empty strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (fillna) is done independently on the train and test sets with a constant value, which does not leak statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not split the data, so it does not ignore temporal order during splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "clf = SGDClassifier(loss='log_loss', ...)",
+   "reasoning": "The agent correctly uses a classification model (Logistic Regression via SGD) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "clf.fit(X_train, y_train)\n\n# Predict probability of toxicity for ROC AUC evaluation\npreds = clf.predict_proba(X_test)[:, 1]",
+   "reasoning": "The agent trains on the entire training set and directly predicts on the test set without any internal validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "clf = SGDClassifier(\n    loss='log_loss',\n    penalty='l2',\n    alpha=1e-5,\n    max_iter=30,\n    tol=1e-3,\n    random_state=42\n)\nclf.fit(X_train, y_train)",
+   "reasoning": "The agent uses SGDClassifier (a stochastic model) but trains and evaluates it only once without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally, so it does not report or optimise on any metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "y_train = (train_df['target'].values >= 0.5).astype(np.int32)",
+   "reasoning": "The agent correctly formulates the problem as binary classification by binarizing the continuous target at 0.5.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "vectorizer = TfidfVectorizer(\n    ngram_range=(1, 2),\n    min_df=3,\n    max_features=100000,\n    sublinear_tf=True,\n    strip_accents='unicode',\n    token_pattern=r'(?u)\\b\\w+\\b'\n)",
+   "reasoning": "The agent applies TF-IDF vectorization with n-grams, which is a standard and appropriate feature engineering technique for text.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Modifying dataset files in place",
+   "description": "The agent modifies original dataset files on disk (e.g., ground truth label files) and overwrites them. This permanently corrupts the evaluation data and can break the benchmarking system.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[col] = (df[col] >= 0.5).astype(int)\n                            changed = True\n                    if changed:\n                        df.to_parquet(filepath)"
+  },
+  {
+   "name": "Ignoring test set ID column",
+   "description": "The agent generates an ID column for its predictions using a simple sequential range instead of extracting the actual ID column from the test dataset. This can lead to misaligned predictions if the original IDs are not a simple zero-indexed sequence.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(test_df))"
+  }
+ ],
+ "summary": "The agent implements a fast text classification pipeline using TF-IDF and an SGDClassifier. However, it critically fails by overwriting ground truth dataset files on disk and generating prediction IDs using a simple range instead of the actual test set IDs, both of which will break evaluation. Furthermore, the agent completely skips internal validation and relies on a single run of a stochastic model.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

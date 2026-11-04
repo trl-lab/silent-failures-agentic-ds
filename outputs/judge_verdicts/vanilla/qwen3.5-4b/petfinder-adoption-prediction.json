@@ -1,0 +1,141 @@
+{
+ "task": "petfinder-adoption-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no test data peeking occurs during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].fillna(X_train[col].median())",
+   "reasoning": "The agent makes a basic attempt to handle missing values by filling numeric columns with their median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test[col] = X_test[col].fillna(X_test[col].median())",
+   "reasoning": "Imputation is not fit on the combined dataset prior to splitting (though test data is improperly imputed using its own median instead of the train median).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = cb.CatBoostRegressor(iterations=1000, learning_rate=0.05, verbose=0, random_state=42)",
+   "reasoning": "The task is a classification task (predicting AdoptionSpeed categories 0-4), but the agent uses a Regressor and outputs raw float predictions without rounding or thresholding them back to integer classes.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Predict\npredictions = model.predict(X_test)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without creating a validation set or computing any validation scores.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so this specific failure mode regarding single evaluations is superseded by the complete lack of validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The core issue with task formulation (using regression for classification) is already covered under FM10.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "common_cols = [col for col in train_df.columns if col != target_col]\n\n# Prepare Train\nX_train = train_df[common_cols].copy()",
+   "reasoning": "The agent uses the raw columns as-is without deriving any new features, extracting information from text/dates, or building interactions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Error: Unspecified Categorical Features",
+   "description": "The agent passes string/object columns to a gradient boosting model (like CatBoost) without explicitly specifying which columns are categorical. This causes a runtime exception when the model attempts to parse strings as floats.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train) # Results in CatBoostError: Cannot convert 'The Adorable Trio' to float"
+  },
+  {
+   "name": "Improper imputation for test set",
+   "description": "The agent imputes missing values in the test set using the median of the test set itself, rather than the median computed from the training set. This makes preprocessing inconsistent and dependent on the test set batch.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test[col] = X_test[col].fillna(X_test[col].median())"
+  }
+ ],
+ "summary": "The agent's solution fails to execute because it passes raw string columns to CatBoost without specifying the `cat_features` parameter, causing a runtime crash. Additionally, the agent incorrectly uses a regression model for a classification task without rounding the continuous outputs, completely skips internal validation, and performs no feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

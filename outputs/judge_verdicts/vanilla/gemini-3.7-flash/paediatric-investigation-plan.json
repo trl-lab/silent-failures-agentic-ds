@@ -1,0 +1,142 @@
+{
+ "task": "paediatric-investigation-plan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis or test data inspection is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with empty strings or zeros.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "TF-IDF vectorizers are correctly fit only on the training text.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled using stateless methods (filling with 0 or ''), so no leakage occurs.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains several date columns indicating a temporal sequence of decisions, but the agent uses a random shuffled split, which introduces the risk of look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Logistic Regression and SGDClassifier, which are valid models for multi-class classification.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train)):\n    X_tr, y_tr = X_train[train_idx], y_train[train_idx]",
+   "reasoning": "The agent generates validation indices via K-Fold but completely ignores them, never evaluating the model on a holdout set or reporting any validation metric.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 folds with different random seeds and averages the test predictions, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Since the agent does not evaluate the model at all, it cannot be judged on whether it relies on a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multi-class classification problem over tabular and text features.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs significant feature engineering, including text concatenation, date part extraction, and domain-specific string matching.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds_proba += (0.6 * pred1 + 0.4 * pred2) / skf.n_splits",
+   "reasoning": "The agent combines predictions using an arbitrary, hardcoded weighted average without tuning or validating the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing feature scaling for mixed-scale features",
+   "description": "The agent concatenates unscaled numeric features (such as extracted years and string lengths, which have large magnitudes) with TF-IDF features and passes them directly to scale-sensitive linear models. This causes numerical instability and convergence failures, as seen in the stderr logs where LBFGS fails to converge and SGDClassifier encounters invalid values during division.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = hstack([X_train_word, X_train_char, csr_matrix(train_num)]).tocsr()"
+  }
+ ],
+ "summary": "The agent applies a solid feature engineering pipeline but fails critically in execution and validation. It sets up a K-Fold cross-validation loop but completely ignores the validation split, meaning no internal metrics are ever computed or reported. Furthermore, concatenating unscaled numeric features like 'years' (e.g., 2021) with small TF-IDF values causes severe numerical instability in the chosen linear models, evidenced by convergence failures in the logs.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

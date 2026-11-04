@@ -1,0 +1,145 @@
+{
+ "task": "miga-issued-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA; it directly applies transformations to the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values by filling them with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fits the scaler only on the training data and transforms the test data separately, adhering to the safe pattern for the main train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputation is performed separately for the train and test sets, avoiding leakage from the test set into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unknown whether this specific dataset contains temporal or date-based columns that require a time-based splitting strategy.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 cross-validation folds and calculates the mean score, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_val_fold, y_pred))\n    rmse_scores.append(rmse)",
+   "reasoning": "The agent solely calculates and reports RMSE, failing to use secondary metrics like MAE or R2 to verify model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target]",
+   "reasoning": "The agent directly uses raw columns as features without performing any domain-informed transformations, derived features, or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test set data leakage during imputation",
+   "description": "Imputing missing values in the test set using statistics (e.g., median or mean) calculated from the test set itself, rather than using the statistics learned from the training set. This violates the principle that the test set should be treated as entirely unseen single-instance data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_df = test_df.fillna(test_df[feature_cols].median())"
+  },
+  {
+   "name": "Data leakage during cross-validation",
+   "description": "Applying data transformations such as imputation and scaling to the entire training dataset before splitting it into cross-validation folds. This leaks information from the validation folds into the training folds, making the validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n...\nfor fold_idx, (train_idx, val_idx) in enumerate(kf.split(X_train_scaled)):"
+  }
+ ],
+ "summary": "The agent establishes a functional LightGBM regression pipeline with 5-fold cross-validation. However, it completely bypasses feature engineering and relies on a single evaluation metric. Most notably, the agent introduces two forms of data leakage: imputing the test set using its own batch statistics and applying scaling/imputation to the entire training set before executing the cross-validation splits.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

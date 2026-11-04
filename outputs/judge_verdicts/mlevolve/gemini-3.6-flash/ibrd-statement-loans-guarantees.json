@@ -1,0 +1,163 @@
+{
+ "task": "ibrd-statement-loans-guarantees",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)\n...\ndate_cols = [c for c in combined.columns if any(k in c.lower() for k in [\"date\", \"approval\", \"signing\", \"effective\", \"closed\"])]",
+   "reasoning": "The dataset contains explicit date columns (e.g., approval, signing, closed dates), indicating a temporal component, but the agent uses a randomized K-Fold split which introduces look-ahead bias by training on future records to predict past ones.",
+   "applicable": true
+  },
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or inspect test data distributions before processing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and filling with 0.0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is correctly fit on the training fold (X_tr) and then applied to the validation and test folds within the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the full combined dataset (train + test), though there is a minor leak across CV folds within the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses appropriate regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a PyTorch network with MSELoss) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model (TabularResNet) uses Dropout, BatchNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is the exact required metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as predicting the continuous original principal amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering including date parsing, time differences, TF-IDF, SVD, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to dynamically find the best ensemble weights rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation imputation leakage",
+   "description": "The agent computes statistics (like medians for imputation) on the entire training set before performing cross-validation splits. This leaks statistical information from the validation folds into the training folds, making the out-of-fold scores slightly overly optimistic.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_medians = X_train.median(numeric_only=True)\nX_train = X_train.fillna(train_medians).fillna(0.0)"
+  },
+  {
+   "name": "Target statistic leakage in CV",
+   "description": "Global target statistics are computed on the entire training target array and used for smoothing inside the cross-validation loop, causing a minor leak of validation target distributions into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "global_mean = float(np.mean(y_train_log))\n...\nsmoothed_means = (cat_counts * cat_means + m_smooth * global_mean) / (cat_counts + m_smooth)"
+  },
+  {
+   "name": "LabelEncoder test category leakage",
+   "description": "The agent fits a LabelEncoder on the combined train and test dataset before splitting. This subtly leaks the existence of test-specific categorical values into the training phase.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "le.fit(combined[col].astype(str).fillna(\"missing\"))\nord_df[f\"{col}_encoded\"] = le.transform(combined[col].astype(str).fillna(\"missing\"))"
+  }
+ ],
+ "summary": "The agent has provided a highly sophisticated solution with robust feature engineering, target encoding, and a well-optimized ensemble. The primary failure mode is ignoring the temporal component of the dataset by using a randomized split (FM05), which could introduce look-ahead bias. There are also several minor leakage issues where global statistics (medians, target means, and categorical vocabularies) are computed prior to CV splitting.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

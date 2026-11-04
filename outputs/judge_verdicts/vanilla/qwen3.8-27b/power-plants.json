@@ -1,0 +1,138 @@
+{
+ "task": "power-plants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or pre-fitting; it is strictly kept isolated during preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data is cleaned by handling infinite values, missing strings, and dropping missing targets.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "for col in feature_cols:\n        nunique = train[col].nunique(dropna=True)\n        if nunique <= high_card_threshold:\n            keep_cols.append(col)",
+   "reasoning": "High-cardinality feature filtering is applied to the full training set before the internal train/validation split, slightly leaking validation set properties into feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_preprocessor = FeaturePreprocessor().fit(X_train_raw)",
+   "reasoning": "The preprocessor (which includes imputation) is correctly fit only on the training split, completely isolating the validation set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset contains operation/retirement dates, but it is unclear if this is a time-series forecasting problem requiring a temporal split or just cross-sectional data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostRegressor is perfectly appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_raw, X_val_raw, y_train, y_val = train_test_split(",
+   "reasoning": "A train/validation split is explicitly performed to evaluate early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = CatBoostRegressor(\n            iterations=3000,\n            learning_rate=0.05,\n            depth=6,\n            l2_leaf_reg=3.0,\n            random_seed=RANDOM_STATE,\n            verbose=0,\n            allow_writing_files=False,\n            cat_features=cat_features,\n        )",
+   "reasoning": "The stochastic CatBoost model is evaluated on a single train/validation split rather than using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(\n            X_train,\n            y_train,\n            eval_set=(X_val, y_val),\n            early_stopping_rounds=100,\n            verbose=0,\n        )",
+   "reasoning": "The model is optimized using only the default RMSE metric with no other metrics computed or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is a standard regression approach which accurately matches the problem description.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train[\"RUN_YEAR\"] = extract_year(train[\"RUN_DATE\"])",
+   "reasoning": "The agent applies feature engineering by deriving meaningful numeric year features from date strings.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent drops ID columns from the test dataset and uses a naive generated sequence (np.arange) for the submission file IDs. If the evaluation system expects the specific IDs from the test set, the submission will be misaligned or fail entirely.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(predictions), dtype=int),"
+  }
+ ],
+ "summary": "The agent provides a remarkably robust solution that correctly fits imputation on the training split, uses early stopping on a validation set, and follows best practices by refitting on the full dataset with the optimal iterations. However, it applies a cardinality filter before the internal split (minor leak), evaluates the model on a single split, and critically discards the original test set IDs in favor of an arbitrary sequence for the final predictions.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

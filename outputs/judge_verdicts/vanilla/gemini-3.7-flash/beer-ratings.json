@@ -1,0 +1,145 @@
+{
+ "task": "beer-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or peeking.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by filling missing text with empty strings and coercing numerics.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Transformations are applied to the training set only, not the full dataset before train/test splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies on simple constant filling (e.g., fillna(0)), which does not leak statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "K-Fold cross-validation is used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated via 5-fold cross-validation, which averages over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Default metrics for early stopping are appropriate (RMSE), and no single metric is misreported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Derived features like IBU_ratio and TF-IDF/SVD are engineered.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a weighted average with specific weights (0.5, 0.4, 0.1), not an unweighted/equal-weight average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in stacking meta-features",
+   "description": "When generating meta-features from a base model for stacking, the agent uses in-sample predictions for the training folds instead of out-of-fold predictions. This causes the meta-model to overfit to the base model's training predictions, which are distributed differently than validation/test predictions, leading to severe performance degradation on unseen data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_fold['ridge_pred'] = ridge.predict(X_train_tfidf[train_idx])\n    X_val_fold['ridge_pred'] = oof_preds_ridge[val_idx]"
+  },
+  {
+   "name": "Cross-validation leakage from global transformations",
+   "description": "Stateful transformations (such as TF-IDF, TruncatedSVD, and frequency encoding) are fit on the entire training set before cross-validation. This leaks information from the validation folds into the training folds, making CV scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(...)\nX_train_tfidf = tfidf.fit_transform(train_text)\n... svd = TruncatedSVD(...)\ntrain_svd = svd.fit_transform(X_train_tfidf)\n... for train_idx, val_idx in kf.split(X_tr):"
+  }
+ ],
+ "summary": "The agent sets up a comprehensive pipeline with text processing, feature engineering, and a weighted ensemble. However, it introduces critical target leakage by using in-sample Ridge predictions as a meta-feature for training LightGBM. Additionally, applying TF-IDF and SVD on the full training set before cross-validation leads to data leakage between folds.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

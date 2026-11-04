@@ -1,0 +1,148 @@
+{
+ "task": "GiveMeSomeCredit",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including handling of missing values and special indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "inc = df[col_inc].fillna(df[col_inc].median())",
+   "reasoning": "The median for MonthlyIncome is calculated on the entire training set before the StratifiedKFold split, leaking validation statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is not a time series problem.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate binary classification models (LightGBM, XGBoost, CatBoost) are used.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold StratifiedKFold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models optimize for AUC, which is the correct metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (e.g., ratios, log transforms, interactions).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a manually weighted average (0.4, 0.3, 0.3) rather than a strictly unweighted/naive majority vote.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Submission ID error",
+   "description": "The agent drops the original ID column from the test set and recreates it using a 0-indexed range. This will cause the submission to fail or be misaligned, as the platform expects the original 1-indexed IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_ids = np.arange(len(test))\n...\nsub = pd.DataFrame({'id': test_ids, 'SeriousDlqin2yrs': final_preds})"
+  },
+  {
+   "name": "Missing early stopping for XGBoost",
+   "description": "The agent includes early stopping for LightGBM and CatBoost, but fails to specify `early_stopping_rounds` for XGBoost. As a result, XGBoost will train for the full 1500 iterations, likely overfitting the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_xgb.fit(X_tr, y_tr, eval_set=[(X_va, y_val)], verbose=False)"
+  }
+ ],
+ "summary": "The solution employs strong feature engineering and a solid cross-validation strategy with multiple gradient boosting models. However, it critically fails by discarding the original test IDs and generating arbitrary replacements, which ruins the submission file. Furthermore, the agent leaks validation statistics by calculating median imputation prior to the CV split and neglects early stopping for the XGBoost model.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

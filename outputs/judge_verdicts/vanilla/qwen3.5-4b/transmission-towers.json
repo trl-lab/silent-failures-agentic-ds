@@ -1,0 +1,134 @@
+{
+ "task": "transmission-towers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or inspect the test data prior to processing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_processed[col].fillna(median_val, inplace=True)",
+   "reasoning": "The agent explicitly handles missing values using median imputation for numerical features and 'UNK' for categorical ones.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = train_processed[col].median()",
+   "reasoning": "The agent correctly calculates the median strictly on the training set and applies it to both train and test.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(objective=\"regression\", random_state=42, verbose=-1, num_leaves=31)",
+   "reasoning": "The agent uses a regression model for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(train_processed.values, y_train)\n\n    predictions = model.predict(test_processed.values)",
+   "reasoning": "The agent trains on the entire training dataset without creating a validation split to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(objective=\"regression\", random_state=42, verbose=-1, num_leaves=31)",
+   "reasoning": "The agent trains and evaluates the model only once, rather than averaging multiple runs with different random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent skips local evaluation entirely, so it does not rely on a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"SupStruc\"",
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_processed = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses the raw columns with basic imputation and encoding, without deriving any new features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "LabelEncoder crash on unseen categories",
+   "description": "Using sklearn's LabelEncoder on categorical variables without handling unseen categories in the test set. If the test set contains a category not present in the training set, `LabelEncoder.transform()` will raise a ValueError or KeyError, causing the script to crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_processed[col] = le.transform(test_processed[col])"
+  }
+ ],
+ "summary": "The agent attempts a straightforward pipeline with basic imputation and LightGBM for the regression task. However, the solution completely skips local validation (FM06) and feature engineering (FM07). More critically, the script crashes during execution because it applies `LabelEncoder` directly to the test set without handling unseen categorical values, which is a fatal error.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "historical-earthquake-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data before preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in text columns by filling with empty strings and converts categorical NaNs to strings before relying on LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to numerical features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd_comments.fit_transform(tfidf_comments.fit_transform(combined_df['Comments']))",
+   "reasoning": "TF-IDF and TruncatedSVD are fitted on the combined train and test data, leaking test set vocabulary, IDF statistics, and variance into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string, which does not leak dataset statistics from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains historical earthquake events with a 'Date' column, but the agent drops it and uses a randomized split, introducing look-ahead bias by potentially training on future events.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classification model (LGBMClassifier) is appropriately used for the multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold to separate training and validation data internally.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated over 5 cross-validation folds, which inherently averages over multiple runs and accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly report or optimise a specific metric, relying entirely on the default multi-logloss for early stopping.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multiclass classification task over the damage descriptions.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers features by applying TF-IDF and TruncatedSVD for text dimensionality reduction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict_proba(X_test) / skf.n_splits",
+   "reasoning": "The agent averages predictions from the cross-validation folds with equal weights, using a naive ensembling approach without tuning the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded sequential IDs in submission",
+   "description": "The agent drops the original ID columns during preprocessing and instead generates a simple sequential range (0 to N-1) for the submission file's 'id' column. If the test set IDs are non-sequential, alphanumeric, or do not start at 0, the submission will be misaligned or invalid.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_df))"
+  }
+ ],
+ "summary": "The agent builds a LightGBM model utilizing text feature extraction (TF-IDF + SVD). However, the solution contains critical data leakage by fitting the text transformers on the combined train and test sets (FM09). Additionally, it discards the dataset's temporal nature in favor of a randomized split (FM05) and incorrectly generates synthetic sequential IDs for the final submission instead of preserving the test set's original IDs.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

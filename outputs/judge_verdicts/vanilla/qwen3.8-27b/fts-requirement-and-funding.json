@@ -1,0 +1,138 @@
+{
+ "task": "fts-requirement-and-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for EDA or to fit any transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by dropping rows missing the target, handling date features, and dealing with infinite values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature dropping based on cardinality is done on the training set alone, not leaking the final test set information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_fit, X_val, y_fit, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE)",
+   "reasoning": "The dataset contains temporal features like 'startDate' and 'endDate', but the agent splits the training data randomly rather than using a time-based split, which can introduce look-ahead bias during validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a train/validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = make_lgbm(1500)\n...\nmodel.fit(\n    X_fit_enc,\n    y_fit_t,\n    eval_set=[(X_val_enc, y_val_t)],",
+   "reasoning": "The agent uses a stochastic model (LightGBM with subsampling) but evaluates it only once without using cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_metric='rmse'",
+   "reasoning": "The agent evaluates the model solely on RMSE for early stopping and doesn't compute any other metrics to check performance robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as predicting a continuous funding value.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date components, calculates a duration in days, and applies a log transformation to the requirements column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Deprecated pandas API usage",
+   "description": "The code uses `pd.api.types.is_categorical_dtype`, which was deprecated in pandas 2.1.0 and removed in 2.2.0. In modern environments, this raises an AttributeError, causing the script's global try-except block to catch the error and output a dummy submission of all zeros.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "or pd.api.types.is_categorical_dtype(X[col])"
+  }
+ ],
+ "summary": "The agent provides a mostly reasonable baseline using LightGBM and custom date-based feature engineering. However, it fails to account for the temporal nature of the dataset during validation (using a random split) and relies on a single evaluation of a stochastic model. Most critically, it uses a removed Pandas API method (`is_categorical_dtype`) which will crash the script in modern environments, triggering the fallback mechanism to predict all zeros.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

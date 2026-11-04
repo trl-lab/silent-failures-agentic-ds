@@ -1,0 +1,138 @@
+{
+ "task": "nomad2018-predict-transparent-conductors",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or use test data statistics to inform preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\ntarget_col = \"formation_energy_ev_natom\"\ny_train = train_df[target_col].values.astype(np.float64)\n\nX_train_df = engineer_crystal_features(train_df)",
+   "reasoning": "The agent passes the raw data directly into feature engineering and model training pipelines without any checks or explicit handling for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_tr_scaled = scaler.fit_transform(X_tr)\nX_va_scaled = scaler.transform(X_va)",
+   "reasoning": "The standard scaler is correctly fit only on the training folds and applied to the validation/test folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the regression problem with appropriate models (LGBMRegressor, XGBRegressor, etc.) and loss functions (MSE/RMSLE).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)\noptimizer = AdamW(nn_model.parameters(), lr=1.5e-3, weight_decay=1e-4, eps=1e-8)",
+   "reasoning": "The deep learning model incorporates regularisation via Dropout layers and weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=SEED)",
+   "reasoning": "The agent correctly uses a StratifiedKFold cross-validation scheme to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final predictions and is not used to evaluate or tune models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold in range(n_splits):",
+   "reasoning": "While individual models are initialized once per fold, the 5-fold cross-validation inherently averages predictions across multiple runs with different data splits, sufficiently accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def calc_rmsle(y_true: np.ndarray, y_pred: np.ndarray) -> float:",
+   "reasoning": "The agent only tracks and optimizes for a single metric (RMSLE) without verifying the model's behavior using secondary regression metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a regression problem targeting formation energy.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_crystal_features(df: pd.DataFrame) -> pd.DataFrame:",
+   "reasoning": "The agent builds an extensive and domain-informed set of crystallographic features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = opt.minimize(\n    blend_objective,\n    init_weights,\n    method=\"SLSQP\",",
+   "reasoning": "The agent uses an optimization algorithm (SLSQP) to find the optimal blending weights instead of a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The solution is generally of very high quality, featuring extensive domain-specific feature engineering, robust cross-validation, correct scaling within folds, and optimized model blending. The main minor flaws are the complete absence of initial data cleaning/validation checks and the reliance on a single evaluation metric without secondary metrics to confirm robust performance.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

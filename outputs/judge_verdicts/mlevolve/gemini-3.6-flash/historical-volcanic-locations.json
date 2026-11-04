@@ -1,0 +1,163 @@
+{
+ "task": "historical-volcanic-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA that peeks at the test data to guide design choices.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing targets are dropped and missing values in features are actively imputed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fitted only on the training set and then applied to validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting the data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (using medians) is correctly fit only on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if there is a strict temporal order in the data that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classification models and objectives for the multi-class task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm, and weight decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is created and used for evaluation and early stopping.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating the final submission, not for model evaluation or weight tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df, val_df, y_train, y_val = train_test_split(..., random_state=42)",
+   "reasoning": "The stochastic models are trained and evaluated on a single random split without cross-validation or multiple seed runs to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y_val, np.argmax(blend_probs, axis=1))",
+   "reasoning": "The agent relies entirely on accuracy for model evaluation and blending, without verifying if it is appropriate given potential class imbalances typical in disaster severity data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers spatial transformations, frequency encodings, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a proper grid search to optimise the blending weights of the ensemble.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates the submission file using a simple integer range instead of preserving the actual identifier column from the test dataset. This typically breaks automated scoring systems if the test set IDs are non-sequential.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_pred_labels))"
+  },
+  {
+   "name": "Data Leakage via Feature Alignment",
+   "description": "The agent creates missing value indicator columns dynamically based on whether missing values exist in each split, and then aligns the columns across train, validation, and test sets. This subtly leaks the presence of test-set missing values into the training feature space.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "all_cols = sorted(list(set(train_feat.columns) | set(val_feat.columns) | set(test_feat.columns)))"
+  },
+  {
+   "name": "Using ID Column as a Feature",
+   "description": "The agent drops the target column but does not check for or drop identifier columns (like 'id'). If an ID column is present and numerical, it will be treated as a regular feature and passed into the models, which can lead to overfitting.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "train_df = train_raw.drop(columns=[target_col], errors=\"ignore\")"
+  }
+ ],
+ "summary": "The agent provides a solid, well-structured solution with appropriate preprocessing, robust feature engineering, and a nicely tuned ensemble of tree-based and deep learning models. However, it fails to perform cross-validation for its stochastic models, and it overwrites the test set IDs with a hardcoded integer range, which will likely break submission scoring.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

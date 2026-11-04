@@ -1,0 +1,148 @@
+{
+ "task": "national-average-drug-acquisition-cost",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data interactively.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values via imputation and separate categorical handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No numerical scalers are applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD are fit on the combined train and test dataset, leaking test information into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "features[col] = col_data.fillna(col_data.median()).astype(np.float32)",
+   "reasoning": "Median imputation is applied to the combined dataset, leaking test distribution statistics into the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains dates and tracks costs over time, but the agent uses a random K-Fold split which ignores temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent sets up a 5-fold cross-validation scheme, avoiding training solely on the full dataset without internal validation loops.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models over multiple folds, naturally accounting for variance rather than a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task metric is RMSE, and the models appropriately optimize for it.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a standard regression problem on the provided target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, text TF-IDF, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_test_preds = 0.5 * test_preds_lgb + 0.5 * test_preds_cat",
+   "reasoning": "The agent combines two models using an unweighted average, ignoring the opportunity to optimize weights using the available OOF predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unreported Validation Score",
+   "description": "The agent performs cross-validation and collects out-of-fold predictions but fails to compute or report any validation metric (e.g., RMSE), making it impossible to evaluate model performance without submitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_preds_lgb[val_idx] = model_lgb.predict(X_va)"
+  },
+  {
+   "name": "Frequency Encoding Leakage",
+   "description": "Frequency encoding is computed on the combined train and test dataset before splitting, leaking test set distribution statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = str_data.value_counts(normalize=True).to_dict()\nfeatures[f'{col}_freq'] = str_data.map(freq)"
+  }
+ ],
+ "summary": "The agent effectively implements cross-validation, proper target encoding, and comprehensive feature engineering. However, the solution suffers from data leakage due to computing medians, frequency encoding, TF-IDF, and TruncatedSVD on the combined train and test datasets. Furthermore, it ignores the temporal nature of the dataset with a random split, uses naive ensembling, and entirely forgets to compute a validation score from its out-of-fold predictions.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

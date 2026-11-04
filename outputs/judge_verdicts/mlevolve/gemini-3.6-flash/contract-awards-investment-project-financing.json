@@ -1,0 +1,65 @@
+{
+ "task": "contract-awards-investment-project-financing",
+ "failure_modes": {
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, y_tr = X.iloc[train_idx].copy(), y_train_log[train_idx]",
+   "reasoning": "The agent makes no effort to handle missing values or outliers in numerical columns, relying entirely on the downstream tree models to handle missingness natively.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=30, random_state=42)\n        svd_feats = svd.fit_transform(tfidf_combined)",
+   "reasoning": "TF-IDF vectorizers and TruncatedSVD (PCA) are fit on the combined dataset (train and test combined) before cross-validation, leaking test set text distributions into the training features.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "cv_kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "Despite extracting date features for contract awards (which implies an inherent temporal component), the agent uses a random shuffled K-Fold split, risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(\n            mean_squared_error(\n                y_train_raw[val_idx], np.exp(oof_lgb[val_idx] + 0.5 * fold_var_lgb) - 1.0\n            )\n        )",
+   "reasoning": "The agent calculates and reports only the RMSE metric, without evaluating other metrics like MAE or R-squared to verify the model's robustness or overall fit quality.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Meta-Feature Generation",
+   "description": "When generating meta-features (such as predictions from a base model) to be used as inputs for another model, using in-sample predictions on the training set causes target leakage. The downstream model will overfit to this meta-feature because it is unrealistically accurate on the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr[\"text_pred_log\"] = ridge_text.predict(tfidf_combined[train_idx]).astype(\"float32\")"
+  }
+ ],
+ "summary": "The agent implements a comprehensive pipeline with TF-IDF, target encoding, and an ensemble of tree models. However, it introduces critical data leakage by fitting TF-IDF and SVD on the combined train and test sets before cross-validation. Additionally, there is severe target leakage in the meta-feature generation, where in-sample predictions from a Ridge regression model are used as training features for the downstream tree models.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,162 @@
+{
+ "task": "sberbank-russian-housing-market",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le = LabelEncoder()\n    df[col] = le.fit_transform(df[col])",
+   "reasoning": "The agent fits a LabelEncoder transformer on the combined train and test dataset before splitting, leaking test set information.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data by correcting anomalies and imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on X_train.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "SimpleImputer is correctly fit only on X_train.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly sorts by time and uses a chronological holdout split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes dropout, layer normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A chronological train/validation split is performed.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models on a validation set, not the final test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "np.random.seed(42)\ntorch.manual_seed(42)",
+   "reasoning": "The agent evaluates stochastic models (LGBM, XGBoost, NN) exactly once with a fixed seed, without multi-seed averaging.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"LGBM Val RMSLE: {lgb_rmsle:.5f}\")",
+   "reasoning": "The agent only reports the target RMSLE metric and does not use any secondary metrics to verify model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as predicting the log1p of housing prices.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive domain-specific feature engineering is performed.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find optimal ensemble weights, rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage in Ensembling",
+   "description": "The same validation set is used for early stopping of base models and for optimizing the blending weights. Base model predictions on this set are optimistically biased, leading to suboptimal and overfitted ensemble weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(X_train, y_train, eval_set=[(X_val, y_val)], callbacks=[lgb.early_stopping(50, verbose=False)])\n...\nres = minimize(objective, init_weights...)"
+  },
+  {
+   "name": "Feature Leakage Before Splitting",
+   "description": "Applying dataset-wide operations like frequency encoding and group aggregations on the combined train and test sets leaks the test feature distributions into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq_map = df[col].value_counts(normalize=True).to_dict()\n...\ndf[f\"sub_area_{stat}_full_sq\"] = df.groupby(\"sub_area\")[\"full_sq\"].transform(stat)"
+  },
+  {
+   "name": "Improper Categorical Handling in Neural Network",
+   "description": "Categorical variables are label-encoded into integers, standardized via StandardScaler, and fed into a dense neural network. This falsely imposes an ordinal relationship on nominal categories; embeddings or one-hot encoding should be used.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le = LabelEncoder()\ndf[col] = le.fit_transform(df[col])\n...\nX_train_np = scaler.fit_transform(imputer.fit_transform(X_train))\n...\nnn_model = TabularResNet(input_dim=X_train_np.shape[1]...)"
+  }
+ ],
+ "summary": "The solution implements a strong pipeline with domain-specific feature engineering, chronological splitting, and a blended ensemble of gradient boosters and a neural network. However, it suffers from data leakage by fitting a LabelEncoder and computing group/frequency features on the combined train and test sets. Additionally, it reuses the same validation set for both early stopping and ensemble weight optimization, and improperly treats label-encoded categorical variables as continuous numerical features in the neural network.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 7,
+ "no_code": false
+}

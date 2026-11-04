@@ -1,0 +1,102 @@
+{
+ "task": "random-acts-of-pizza",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_text = TfidfVectorizer(...)\ntfidf_text_mat = tfidf_text.fit_transform(full_text)\nsvd_text = TruncatedSVD(n_components=35, random_state=42)\nsvd_text_feats = svd_text.fit_transform(tfidf_text_mat)",
+   "reasoning": "TF-IDF vectorizers and TruncatedSVD models are fit on the combined dataset (train + test), leaking test set vocabulary and variance statistics into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains timestamps of requests, but the agent uses a randomized cross-validation split, ignoring the temporal sequence of the data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_blend = 0.6 * oof_lgb + 0.4 * oof_lr\nfinal_test_preds = 0.6 * test_preds_lgb + 0.4 * test_preds_lr",
+   "reasoning": "The agent blends predictions using hardcoded, arbitrary weights (0.6 and 0.4) instead of optimizing the weights based on cross-validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Applying scaling or feature transformations to the entire training set before cross-validation splits, leaking information from validation folds into the training folds during evaluation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y)):\n    ...\n    X_tr_sc, X_va_sc = X_train_scaled[train_idx], X_train_scaled[val_idx]"
+  }
+ ],
+ "summary": "The agent builds a robust feature engineering pipeline including text and behavioral features. However, it suffers from significant data leakage by fitting TF-IDF and SVD on the combined train and test sets. Furthermore, it leaks validation statistics during CV by scaling the entire training set prior to splitting, ignores temporal ordering, and uses naive, hardcoded weights for its ensemble.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

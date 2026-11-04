@@ -1,0 +1,142 @@
+{
+ "task": "blood-transfusion-service-center",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not peeked at during data exploration or preprocessing; the test set is properly isolated.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in numeric_cols:\n        X_train[col] = pd.to_numeric(X_train[col], errors=\"coerce\")",
+   "reasoning": "While missing values are handled for categorical columns, numeric columns are simply coerced and passed to the models, relying entirely on the tree models' internal handling rather than an explicit imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on the data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models (LGBM, XGBoost, CatBoost) are used for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is created and used to compute model weights for the ensemble.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_fit, X_val, y_fit, y_val = train_test_split(\n        X_train,\n        y_train,\n        test_size=0.2,\n        random_state=RANDOM_STATE,\n        stratify=y_train,\n    )",
+   "reasoning": "The stochastic tree models are trained and evaluated on a single validation split without cross-validation or multiple seed runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "auc = roc_auc_score(y_val, val_proba)\n            flip = auc < 0.5\n            model_weights[name] = max(abs(auc - 0.5), 1e-6)",
+   "reasoning": "The models are evaluated and weighted solely based on ROC AUC without verifying performance against other metrics like precision, recall, or log loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(transformers=transformers, remainder=\"drop\")",
+   "reasoning": "The raw numeric columns are used directly with no derived features, missing clear opportunities for domain-informed transforms (e.g., frequency/time ratios in the RFM format dataset).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses a weighted average based on validation AUC rather than a naive unweighted or equal-weight vote.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No early stopping or hyperparameter tuning",
+   "description": "The models are trained with a fixed, large number of trees (e.g., 500) without early stopping or hyperparameter tuning. This can lead to severe overfitting, especially on small datasets.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "n_estimators=500, learning_rate=0.05 ... model.fit(X_train_processed, y_train)"
+  }
+ ],
+ "summary": "The solution implements a robust modeling pipeline with stratification, ensemble weighting, and strict separation between validation and final test inference. However, it fails to perform any feature engineering, evaluates stochastic models strictly on a single data split, and uses fixed hyperparameters with no early stopping, which risks overfitting on small datasets.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "global-power-plant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during setup or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using SimpleImputer in a ColumnTransformer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied across the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly constrained to the pipeline, applied after data loading.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent loads pre-split train and test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regressor (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pipeline.fit(X_train, y_train)",
+   "reasoning": "The agent trains on the entire provided training set and predicts on the test set without creating an internal validation split or using cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes test predictions but performs no internal evaluation/scoring at all.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(\n        transformers=[\n            ('num', SimpleImputer(strategy='median'), num_cols),\n            ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols)\n        ],\n        remainder='passthrough'\n    )",
+   "reasoning": "The agent uses raw columns as-is with only basic imputation and encoding, entirely omitting derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in column selection",
+   "description": "The agent extracts subsets of column names (e.g., numerical columns) from the full dataframe before the target column is dropped. When these column lists are later used in a ColumnTransformer on the features-only dataframe, it causes a KeyError/ValueError because the target column is missing from the features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "num_cols = df_train.select_dtypes(include=['number']).columns.tolist()\n...\n('num', SimpleImputer(strategy='median'), num_cols)"
+  }
+ ],
+ "summary": "The agent attempts to build a standard LightGBM pipeline but makes a critical coding error by extracting numerical column names from the full training dataframe, thus including the target column. This results in a pipeline execution failure. Furthermore, the agent implements no validation strategy and performs zero feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

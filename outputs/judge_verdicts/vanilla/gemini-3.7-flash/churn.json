@@ -1,0 +1,130 @@
+{
+ "task": "churn",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le.fit(list(X[col]) + list(X_test[col]))",
+   "reasoning": "The agent fits the LabelEncoder on the combined training and test data, leaking the test set's categorical levels into the preprocessing step.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].fillna(median_val)",
+   "reasoning": "The agent explicitly handles missing values by filling them with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()",
+   "reasoning": "The imputation median is correctly calculated only on the training set (X) and then applied to both train and test.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "LGBMClassifier(...) \n CatBoostClassifier(...) \n XGBClassifier(...)",
+   "reasoning": "The agent correctly uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X.iloc[val_idx], y[val_idx]\n\n    lgb = LGBMClassifier(",
+   "reasoning": "The agent creates validation folds but never evaluates the model on them, providing no estimate of generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so this specific failure mode regarding a single evaluation score is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics, making this failure mode inapplicable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = train_df[target_col].astype(int).values",
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categorical_cols = X.select_dtypes(include=['category', 'object']).columns.tolist()",
+   "reasoning": "The agent applies basic encoding and imputation but does not engineer any new or derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_pred = (lgb_pred + cat_pred + xgb_pred) / 3.0",
+   "reasoning": "The agent uses a naive, unweighted average to ensemble the three models without optimizing the combination weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent successfully implements a cross-validated ensemble of gradient boosting models and correctly handles missing values without leaking numerical statistics. However, it fails to calculate any validation metrics, leaving it blind to model performance. Additionally, it applies label encoding on the combined train and test sets (causing categorical leakage) and relies on a naive unweighted average for ensembling with no feature engineering.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

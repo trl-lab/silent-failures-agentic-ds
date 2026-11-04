@@ -1,0 +1,138 @@
+{
+ "task": "michelin-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for any exploratory data analysis or to compute distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by dropping empty/constant columns, dropping obvious IDs, replacing infinite values with NaN, and explicitly configuring LightGBM to handle remaining missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution (which is acceptable for LightGBM).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant and high-cardinality features) is strictly derived from the training data, avoiding test leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed prior to splitting; missing values are handled natively by the model.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the Michelin ratings dataset requires strict temporal splitting, as it is typically treated as cross-sectional or panel data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A multiclass classification model (LightGBM with 'multiclass' objective) is correctly used for this multiclass task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a proper 5-fold Stratified K-Fold cross-validation loop.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, meaning the stochastic model is trained and evaluated multiple times to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_accs.append(accuracy_score(y_va, pred_va))",
+   "reasoning": "The agent relies entirely on accuracy to evaluate the model and does not check for class imbalances or compute complementary metrics like F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train[col] = train[col].astype(\"int64\") // 86_400_000_000_000",
+   "reasoning": "The agent applies minimal data transformations (converting dates to simple integers and encoding categoricals) without extracting any derived features or date components.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding original test IDs",
+   "description": "The agent drops identifier columns during preprocessing but generates a naive sequential ID range for the submission file. If the original test dataset relies on specific string or non-sequential IDs for evaluation, the submission will be invalid.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test), dtype=int), TARGET: pred_labels})"
+  }
+ ],
+ "summary": "The agent provides a structurally sound and leak-free solution using 5-fold Stratified K-Fold cross-validation and LightGBM. However, it lacks any meaningful feature engineering and naively overwrites test set IDs with a generic sequence for the submission file, which will likely break downstream evaluation.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

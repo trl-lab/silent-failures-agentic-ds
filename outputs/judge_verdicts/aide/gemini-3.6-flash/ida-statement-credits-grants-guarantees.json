@@ -1,0 +1,145 @@
+{
+ "task": "ida-statement-credits-grants-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent parses dates and explicitly handles missing values by filling them with 0 for XGB/CatBoost and allowing LightGBM to handle them natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No dataset-wide scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=svd_dim, random_state=42)\nsvd_features = svd.fit_transform(text_tfidf)",
+   "reasoning": "The agent fits TF-IDF and TruncatedSVD on the combined train and test sets, leaking test set vocabulary and variance structure into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted on the full dataset; missing values are filled with a constant (0).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal components (dates parsed into year, month, etc.), but the agent uses a random K-Fold split, introducing look-ahead bias by potentially training on future records to predict past ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 folds, which accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_cv_rmse = root_mean_squared_error(y, oof_ensemble)",
+   "reasoning": "The agent only calculates RMSE, which is highly sensitive to outliers, without validating if it is appropriate for predicting financial principal amounts that are typically heavily skewed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including datetime extraction, aggregations, and text SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an SLSQP optimizer to find the best blending weights rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test feature distribution leakage",
+   "description": "Calculating aggregate feature statistics (such as frequency encodings, group means, or group standard deviations) on the combined train and test sets before splitting. This leaks the distribution of the test set features into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts().to_dict()\n...\ngrp_mean = df_all.groupby(cat, observed=False)[num].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a structurally strong pipeline with K-Fold cross-validation, proper out-of-fold target encoding, and optimized blending. However, it introduces significant data leakage by applying TF-IDF, SVD, frequency encodings, and group aggregations on the combined train and test sets prior to splitting. Furthermore, it ignores the temporal nature of the financial data by using a random split, risking look-ahead bias, and relies solely on RMSE without addressing the likely skewness of the target variable.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

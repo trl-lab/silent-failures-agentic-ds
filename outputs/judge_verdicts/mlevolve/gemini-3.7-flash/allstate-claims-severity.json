@@ -1,0 +1,153 @@
+{
+ "task": "allstate-claims-severity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not contain missing values requiring explicit cleaning.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_tr_scaled = scaler.fit_transform(X_tr)",
+   "reasoning": "Scaling is correctly applied within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "nn.Dropout(0.25)",
+   "reasoning": "The deep learning model includes dropout, batch normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=42)",
+   "reasoning": "A 5-fold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold in range(N_SPLITS):",
+   "reasoning": "Stochastic models are evaluated across 5 folds, mitigating variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "mean_absolute_error",
+   "reasoning": "The agent correctly uses MAE, which is the official metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_cont_train = compute_cont_features(cont_train_raw, train_df)",
+   "reasoning": "Extensive feature engineering is performed, including interactions and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(ensemble_objective, [0.35, 0.35, 0.15, 0.15], method=\"Nelder-Mead\")",
+   "reasoning": "The agent uses Nelder-Mead optimization to find the optimal ensemble weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper categorical encoding",
+   "description": "Categorical features are ordinal-encoded into arbitrary integers and treated as continuous numeric features across all models. The neural network scales them and passes them to a linear layer instead of using embeddings, and LightGBM/XGBoost are not informed of their categorical nature, forcing them to find arbitrary numerical splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tr_ord = np.array([cat_to_int[v] for v in tr_vals], dtype=np.int32) ... scaler.fit_transform(X_tr) ... nn_model = TabularNN(X_tr.shape[1])"
+  },
+  {
+   "name": "Feature engineering leakage before splitting",
+   "description": "Group-by aggregations on continuous features (e.g., mean/std grouped by a categorical column) are calculated over the entire training dataset before cross-validation splitting. This causes feature distributions from validation folds to leak into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "grouped = train_df.groupby(c_col)[num_col]; mean_map = grouped.mean().to_dict() ... computed before KFold"
+  }
+ ],
+ "summary": "The solution is generally well-structured, utilizing a robust 5-fold cross-validation scheme, out-of-fold target encoding, and a thoughtfully optimized ensemble of LightGBM, XGBoost, and a PyTorch Neural Network. However, it fails to handle categorical features correctly, treating arbitrary ordinal integers as continuous numerical values in both the tree models and the neural network. Additionally, there is minor feature-feature data leakage due to calculating group-by aggregations on the full training set before cross-validation splitting.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

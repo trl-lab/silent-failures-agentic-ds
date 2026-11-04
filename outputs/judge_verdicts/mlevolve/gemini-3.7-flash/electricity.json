@@ -1,0 +1,98 @@
+{
+ "task": "electricity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_idx, val_idx = train_test_split(\n    np.arange(len(df_train)), test_size=0.20, random_state=42, stratify=y_raw\n)",
+   "reasoning": "The electricity dataset has a strong temporal component, but the agent uses a random stratified split rather than a time-based split, introducing significant look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if cand_acc > best_acc:\n            best_acc = cand_acc\n            best_weights = (w_lgb, w_xgb, w_nn)\n            best_thresh = thresh\n...\nfinal_val_score = accuracy_score(y_val, final_val_preds)",
+   "reasoning": "The agent determines the optimal ensemble weights and classification threshold using the validation set, and then reports the final validation score on this exact same set, resulting in an overly optimistic evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "np.random.seed(42)\ntorch.manual_seed(42)",
+   "reasoning": "The agent trains stochastic models (like TabularResNet, LightGBM, and XGBoost) only once with a single random seed and reports a single score, failing to account for variance through multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cand_acc = accuracy_score(y_val, cand_preds)",
+   "reasoning": "The agent evaluates and optimizes the ensemble purely based on accuracy without verifying if the metric is fully appropriate or exploring additional metrics like F1-score or AUC.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a thorough pipeline with careful, leak-free feature engineering and scaling. However, it fundamentally mismanages the temporal structure of the electricity dataset by using a random train-test split, leading to critical look-ahead bias. Furthermore, it overfits the validation set by using it to tune ensemble weights and thresholds while reporting the final score on the same data.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 8,
+ "stage_count_max": 8,
+ "no_code": false
+}

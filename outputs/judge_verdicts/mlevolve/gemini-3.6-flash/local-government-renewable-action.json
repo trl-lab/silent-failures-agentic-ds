@@ -1,0 +1,163 @@
+{
+ "task": "local-government-renewable-action",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data for EDA, though it does combine train and test for frequency encoding (flagged as a custom failure mode).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the target column and handles missing values for both numeric and categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection and extraction (e.g., SVD, TF-IDF) are fit on the training data, not the full dataset before split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (e.g., median) is calculated only on the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset contains date features, but it is unclear from the task description if strict temporal splitting is required for validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and MSE loss in PyTorch) are correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, BatchNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a proper 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "RMSE is the target metric, and the agent correctly optimizes and reports it.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including TF-IDF, SVD, target encoding, and interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble weights using SLSQP rather than a simple average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Data Leakage in Feature Engineering",
+   "description": "The agent combines the train and test sets to compute global statistics (e.g., category frequencies) and uses them as features. This leaks the test set distribution into the training data, making the model dependent on the test set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq_map = pd.concat([train_str, test_str]).value_counts().to_dict()\n    train_feat[f\"{col}_freq\"] = train_str.map(freq_map).fillna(0)"
+  },
+  {
+   "name": "OOM Risk in Neural Network Evaluation",
+   "description": "The agent evaluates the neural network on the entire validation and test sets in a single forward pass without batching (DataLoader), which can cause Out-Of-Memory errors on larger datasets.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_pred_sc = (\n            nn_model(torch.tensor(X_va_sc, dtype=torch.float32).to(device))\n            .cpu()\n            .numpy()\n        )"
+  },
+  {
+   "name": "Validation Leakage via Global OOF Features",
+   "description": "The agent generates Out-Of-Fold features (target encoding and Ridge predictions) globally before the main model cross-validation using the exact same split structure. This causes the features in the training folds to contain information derived from the validation folds' targets.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf_te.split(train_feat, y_binned)):\n... followed by using ...\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)"
+  }
+ ],
+ "summary": "The agent implements a sophisticated pipeline with extensive feature engineering and an optimized ensemble. However, it suffers from target leakage because it generates Out-Of-Fold features globally using the same cross-validation splits as the main model training, exposing the validation targets to the training folds. Additionally, there is test data leakage in the frequency encodings and a risk of OOM during PyTorch evaluation due to the lack of batching.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,156 @@
+{
+ "task": "vehicles",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect test data statistics during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in categorical columns and relies on GBDTs' native missing value handling for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scalers are used.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates models across multiple splits rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"5-Fold CV RMSE (LightGBM): {np.sqrt(mean_squared_error(y, oof_lgb)):.4f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without using any secondary metrics to verify model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates several derived features, such as gpm_comb and displ_per_cyl.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes blending weights using scipy.optimize.minimize rather than using a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage during feature engineering",
+   "description": "The agent calculates aggregated statistics (group means and frequency counts) on the combined train and test dataset before splitting. This leaks the distribution of the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "year_fuel_mean = combined_df.groupby(\"year\")[\"fuelCost08\"].transform(\"mean\")\n...\nfreq = combined_df[col].value_counts()\ncombined_df[f\"{col}_freq\"] = combined_df[col].map(freq)"
+  },
+  {
+   "name": "Improper categorical encoding for tree models",
+   "description": "The agent uses OrdinalEncoder for categorical variables and feeds them into XGBoost and CatBoost without specifying them as categorical features. This forces the models to treat arbitrary integer labels as continuous ordered features, which degrades performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_df[cat_cols] = encoder.fit_transform(combined_df[cat_cols])\n...\ndtrain_xgb = xgb.DMatrix(X_tr, label=y_tr)\n...\ncb_model.fit(X_tr, y_tr, ...)"
+  },
+  {
+   "name": "Suboptimal XGBoost prediction after early stopping",
+   "description": "The agent uses XGBoost with early stopping but fails to specify the iteration limit during prediction. Unlike LightGBM or CatBoost, XGBoost's `predict` method defaults to using all trained trees (including those past the best iteration) unless specified, leading to suboptimal and overfitted predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_xgb[val_idx] = model_xgb.predict(dval_xgb)\ntest_preds_xgb += model_xgb.predict(dtest_xgb) / n_splits"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold CV pipeline with an optimized ensemble of LightGBM, XGBoost, and CatBoost. However, it introduces critical data leakage by calculating group means and frequencies on the combined train-test dataset. Additionally, it mishandles categorical features in XGBoost and CatBoost by passing them as continuous ordinal values, and it fails to enforce the best iteration for XGBoost predictions.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

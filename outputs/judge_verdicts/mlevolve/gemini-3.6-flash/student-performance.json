@@ -1,0 +1,44 @@
+{
+ "task": "student-performance",
+ "failure_modes": {
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_score = root_mean_squared_error(y_train, final_oof_preds)",
+   "reasoning": "The agent only calculates and reports RMSE (the competition metric), without verifying if it is robust to potential outliers in the data or looking at any other metrics like MAE or R2.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-Validation Target Encoding Leakage",
+   "description": "Target encoding is computed out-of-fold using a standard KFold split, but the models are later trained using a StratifiedKFold split. Because the folds are misaligned, the target encoding features in the model's training folds will inadvertently include target values from the model's validation folds, causing target leakage during cross-validation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf_te = KFold(n_splits=5, shuffle=True, random_state=42)\n...\nkf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)"
+  },
+  {
+   "name": "Cross-Validation Imputation & Encoding Leakage",
+   "description": "Imputation statistics (like median and mode) and frequency encoding maps are computed on the entire training dataset before the cross-validation split. This leaks distribution information from the validation folds into the training folds during CV.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "median_val = train_features[col].median()\ntrain_features[col] = train_features[col].fillna(median_val)\n...\nfreq_map = train_fe[col].value_counts(normalize=True).to_dict()"
+  }
+ ],
+ "summary": "The agent provides a very strong and sophisticated solution, featuring extensive domain-specific feature engineering, a well-structured PyTorch Tabular ResNet, and an SLSQP-optimized ensemble. However, it suffers from a subtle but important cross-validation leakage because the folds used for out-of-fold target encoding do not align with the folds used for model training. It also lacks multi-metric evaluation.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

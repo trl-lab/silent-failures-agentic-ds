@@ -1,0 +1,149 @@
+{
+ "task": "college-deposit-product-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or explicitly peek at test data manually, though there is programmatic leakage in a preprocessing rule.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data by standardising missing value strings, parsing dates, and coercing numeric strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the combined dataset; missing values are handled natively by LightGBM or filled with a constant string inside the cross-validation loop for CatBoost.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset contains date features, but it is not explicitly clear if the data is sequential requiring a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, satisfying the requirement for an internal validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which implicitly evaluates the model across multiple folds, though it fails to compute the evaluation metric.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metric, so it does not optimise on an inappropriate one.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date components (year, month, day) and processes strings into numeric features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_test_preds + 0.5 * cb_test_preds",
+   "reasoning": "The agent combines the predictions of LightGBM and CatBoost using a hardcoded, unweighted 50/50 split without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "data_leakage_in_preprocessing_logic",
+   "description": "The agent applies a condition based on statistics of the full dataset (train + test) to decide whether to convert a column to numeric, which leaks information about the test set distribution into the preprocessing pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if converted.notna().sum() > 0.5 * len(combined[col].dropna()):\n            combined[col] = converted"
+  },
+  {
+   "name": "no_validation_metric_computed",
+   "description": "The agent performs cross-validation and generates test predictions, but completely fails to compute or log any out-of-fold validation score (like RMSE). This makes it impossible to know the model's actual performance without an external evaluator.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_test_preds + 0.5 * cb_test_preds\n\noutput_df = pd.DataFrame..."
+  }
+ ],
+ "summary": "The agent implements a generally sound K-Fold cross-validation strategy with LightGBM and CatBoost, but falls short in ensembling and evaluation. It uses a naive 50/50 blend for the ensemble and completely neglects to compute or report any validation metric (RMSE) for the out-of-fold predictions. Additionally, there is minor data leakage where the decision to convert strings to numerics is based on the combined train and test dataset's statistics.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

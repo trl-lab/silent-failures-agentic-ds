@@ -1,0 +1,146 @@
+{
+ "task": "financial-intermediary-funds-cash-transfers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect test data or compute statistics on it during exploratory steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation for numericals and a 'missing' category for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fill_val = float(train_fe[c].median() if train_fe[c].notna().sum() > 0 else 0.0)\ntrain_fe[c] = train_fe[c].fillna(fill_val).astype(np.float32)",
+   "reasoning": "The agent imputes missing numeric values using the median of the entire training dataset before cross-validation splitting, leaking validation statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset involves financial cash transfers which are temporal events, but the agent uses a randomized KFold split instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a continuous target variable.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used at the end to generate final predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which inherently evaluates models over multiple fold iterations, accounting for data variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "def calculate_rmse(y_true, y_pred):\n    return float(np.sqrt(np.mean((np.asarray(y_true) - np.asarray(y_pred)) ** 2)))",
+   "reasoning": "The agent only computes and optimizes for RMSE. Given that financial transfer amounts typically have extreme outliers, additionally tracking MAE would verify model robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date part extraction, interaction terms, and frequency/target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization with L2 regularization to find the optimal blending weights, which is a sophisticated ensembling technique.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Cross-Validation Target Encoding",
+   "description": "The agent computes out-of-fold target encodings and assigns them to the full training dataset in a first pass. It then reuses the exact same CV folds in a second pass to train models. This causes the training features for a given row to contain encodings computed from the validation set's targets, resulting in severe target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_fe.loc[train_fe.index[val_idx], f\"te_mean_{c}\"] = val_series.map(mean_map).fillna(global_mean)\n...\nfor fold, (trn_idx, val_idx) in enumerate(fold_indices):\n    X_tr, y_tr = train_fe.iloc[trn_idx], y_train[trn_idx]"
+  }
+ ],
+ "summary": "The agent implements a complex pipeline with sophisticated feature engineering and an optimized ensemble. However, the solution contains critical flaws: it suffers from a severe target leakage due to improperly implemented out-of-fold target encoding, and it ignores the temporal nature of the financial transfer data by using a randomized CV split. Additionally, minor leaks occur by imputing missing values globally before the CV splits.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

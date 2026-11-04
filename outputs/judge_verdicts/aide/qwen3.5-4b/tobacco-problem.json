@@ -1,0 +1,145 @@
+{
+ "task": "tobacco-problem",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_val = X_train_val.fillna(X_train_val.mean(numeric_only=True))",
+   "reasoning": "The agent explicitly handles missing values via mean imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_val, X_val, y_train_val, y_val = train_test_split(...)\n\n# Handle missing values\nX_train_val = X_train_val.fillna(...)",
+   "reasoning": "Imputation is explicitly done after the train/validation split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal component requiring chronological splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(",
+   "reasoning": "The agent correctly uses a classifier for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_val, X_val, y_train_val, y_val = train_test_split(",
+   "reasoning": "The agent splits the data into training and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(\n    n_estimators=500, learning_rate=0.05, num_leaves=31, random_state=42, verbose=-1\n)",
+   "reasoning": "The agent trains a single stochastic LightGBM model without using cross-validation or multiple seed runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_val, y_val_pred)",
+   "reasoning": "The agent evaluates performance exclusively using accuracy, which may be misleading if the classes are imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses raw features directly with basic encoding and imputation, without deriving any new features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputing with test/validation statistics",
+   "description": "The agent fills missing values in the validation and test sets using their own respective means (e.g., `X_val.mean()`) rather than the mean computed from the training set. This causes a subtle form of data leakage, as the evaluation data influences its own preprocessing and doesn't reflect a real-world scenario where testing statistics are unknown.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_val = X_val.fillna(X_val.mean(numeric_only=True))\nX_test = X_test.fillna(X_test.mean(numeric_only=True))"
+  },
+  {
+   "name": "Unseen labels in LabelEncoder",
+   "description": "The agent uses `LabelEncoder.transform()` on the validation and test sets after fitting it on the training set. If the validation or test sets contain any categorical values not present in the training set, this will raise a `ValueError` and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_val[col] = le.transform(X_val[col].astype(str))\nX_test[col] = le.transform(X_test[col].astype(str))"
+  }
+ ],
+ "summary": "The agent successfully sets up a baseline LightGBM model with a proper train/validation split and handles missing values and categorical encoding. However, the solution suffers from a lack of feature engineering, relies on a single metric (accuracy), and performs only one evaluation run. Critically, the agent incorrectly imputes missing values in the validation and test sets using their own means rather than the training set's mean, and the categorical encoding approach is prone to crashing if unseen labels exist in the test data.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

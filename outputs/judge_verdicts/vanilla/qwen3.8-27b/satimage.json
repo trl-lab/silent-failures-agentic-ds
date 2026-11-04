@@ -1,0 +1,142 @@
+{
+ "task": "satimage",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test set; it only uses test_df to align columns.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values appropriately using SimpleImputer within a pipeline.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting (or at all in this case).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly placed within a scikit-learn Pipeline, avoiding data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a train/validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used once at the end for final predictions; it is not used for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(...)",
+   "reasoning": "The agent relies on a single train/validation split rather than using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y_val_split, pred)",
+   "reasoning": "The agent only calculates accuracy and uses it for weighting, without verifying if it is appropriate for the class distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multiclass classification task is framed correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train[common_cols]",
+   "reasoning": "The agent uses the raw columns as-is without any derived features or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an accuracy-weighted average of the models rather than a purely unweighted/naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "XGBoost Label Encoding Error",
+   "description": "XGBClassifier strictly requires multiclass labels to be sequential integers starting from 0 (i.e., [0, num_classes - 1]). The agent's target encoding logic blindly casts to integers if possible. For the satimage dataset, which has non-sequential integer classes (1, 2, 3, 4, 5, 7), this will cause XGBoost to crash with a ValueError during fitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "try:\n        return y.astype(int), None\n...\n'xgb': XGBClassifier("
+  }
+ ],
+ "summary": "The agent successfully implements pipelines to avoid data leakage and handles the multi-model ensembling logic fairly well using accuracy weighting. However, the solution suffers from a critical execution failure: the target encoding blindly preserves raw integers, which will cause XGBoost to crash on the non-0-indexed, non-sequential classes of the satimage dataset (1, 2, 3, 4, 5, 7). Additionally, the agent performs no feature engineering and evaluates the models on a single validation split without cross-validation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

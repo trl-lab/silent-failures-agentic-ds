@@ -1,0 +1,155 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data to inform EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent includes a SimpleImputer for categorical columns, demonstrating some effort to handle missing data explicitly.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is appropriately encapsulated inside a scikit-learn Pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is safely encapsulated inside a scikit-learn Pipeline.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is an appropriate model choice for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(train, y_train)\n\npredictions = model.predict(test)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without establishing a holdout set or performing cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally at all, so it does not report a single validation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train.drop(columns=['id', 'player_id', 'target'])",
+   "reasoning": "The agent passes the raw dataset columns directly into the model pipeline without engineering any derived features from the game logs.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The target variable is not removed from the feature matrix passed to the model during training, meaning the model can use the target to predict itself.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = train['rating'].values\n...\nmodel.fit(train, y_train)"
+  },
+  {
+   "name": "Execution Failure - Invalid Column Names",
+   "description": "The code attempts to drop hardcoded column names that do not exist in the dataset, leading to a KeyError during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train.drop(columns=['id', 'player_id', 'target'])"
+  },
+  {
+   "name": "Execution Failure - Missing Numeric Imputation",
+   "description": "The pipeline applies a scaler to numeric columns without any prior imputation, which will cause the code to crash if any numeric features contain missing values.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "numeric_transformer = Pipeline(steps=[\n    ('scaler', StandardScaler())\n])"
+  },
+  {
+   "name": "Duplicate Features",
+   "description": "Feature column lists are created by concatenating train and test columns without deduplication, causing the pipeline to extract and process the same features multiple times.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_cols = list(X_train.columns) + list(X_test.columns)"
+  }
+ ],
+ "summary": "The agent provides a minimal pipeline that fails to execute due to hardcoded column names that don't match the dataset. Beyond execution errors, the solution suffers from critical target leakage because the target column ('rating') is never dropped from the training dataframe passed to the pipeline. Additionally, the agent performs no feature engineering and skips validation entirely.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

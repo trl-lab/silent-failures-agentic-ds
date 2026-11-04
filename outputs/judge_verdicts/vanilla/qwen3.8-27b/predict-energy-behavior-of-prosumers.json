@@ -1,0 +1,148 @@
+{
+ "task": "predict-energy-behavior-of-prosumers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans numeric columns by coercing to numeric and replacing infinities with NaNs, dropping completely empty columns, and relying on LightGBM's native missing value handling, which is a valid explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler or normalization is used in the pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses LGBMRegressor for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does perform a train/validation split to determine the best number of iterations for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_model = LGBMRegressor(**final_params)\nfinal_model.fit(train[common_features], train[TARGET], categorical_feature=lgb_cats)\npred = final_model.predict(test[common_features])",
+   "reasoning": "The agent trains a stochastic model (LightGBM with subsampling and colsampling) exactly once and does not average predictions over multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses L1 (MAE) as the evaluation metric, which perfectly aligns with the task's requested metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a time-series regression problem, incorporating external price and weather data.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively engineers multiple temporal features (e.g., sine/cosine transforms, day of week) and joins several external datasets.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Random Validation Split for Time Series",
+   "description": "The agent attempts to perform a time-based validation split, but accidentally drops the datetime column during feature engineering. This causes the script to fall back to a random train/test split, which breaks temporal causality and causes severe data leakage in time-series forecasting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df = df.drop(columns=[dt_col], errors=\"ignore\")\n...\nif train_dt_col is not None and train_dt_col in train.columns:\n...\nelse:\n    tr_idx, val_idx = train_test_split(train.index, test_size=0.2, random_state=42)"
+  },
+  {
+   "name": "Train/Test Feature Distribution Shift",
+   "description": "The agent uses historical (actual) weather data for training and forecast weather data for testing. This introduces a distribution shift because forecast data contains prediction errors not present in historical data, which will degrade model performance. The model should ideally be trained on forecast data if it will be evaluated on forecast data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = join_common(..., use_forecast=False)\ntest = join_common(..., use_forecast=True)"
+  },
+  {
+   "name": "Data Leakage: Encoding before validation split",
+   "description": "Frequency encoding for high-cardinality categorical variables is computed on the entire training dataset before the validation split. This leaks information about the validation set's distribution into the training features, leading to overly optimistic early stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq_maps = {c: train[c].value_counts(dropna=True) for c in high_card_cols}\ntrain, train_features, train_cats = make_features(train, train_dt_col, high_card_cols, freq_maps)"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with LightGBM, feature engineering, and proper retraining on the full dataset. However, a critical bug during feature engineering drops the datetime column, forcing the validation strategy to fall back to a random split, which causes severe temporal leakage. Additionally, the agent introduces a train/test feature distribution shift by using historical weather for training but forecast weather for testing, and computes frequency encodings before the validation split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "cosmetic-event",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le.fit_transform(df_all[col])",
+   "reasoning": "The agent fits a LabelEncoder on the combined train and test datasets, which leaks test set categories into the training process.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values and creates missing indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on the training folds and applied to the validation/test folds within the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like median) are correctly calculated only on the training portion of the data before filling.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)",
+   "reasoning": "The cosmetic-event dataset contains time-dependent events, but the agent splits randomly rather than chronologically, which introduces look-ahead bias by training on future events to predict past ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models and objectives.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes dropout, batch normalization, layer normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models via 5-fold cross-validation, which naturally trains and evaluates the architecture across multiple folds, accounting for some variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_val_score = accuracy_score(y_train_full, oof_meta_preds)",
+   "reasoning": "The agent relies solely on accuracy to evaluate performance, failing to verify if the metric is appropriate for the dataset's class distribution (which is typically imbalanced in event datasets).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts various features including datetime components, categorical frequencies, and grouped numeric statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a level-2 meta-learner (Logistic Regression) to stack predictions rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Timeout",
+   "description": "The script attempts to train a large ensemble of computationally expensive models (LightGBM, XGBoost, CatBoost, ExtraTrees, PyTorch) inside a 5-fold loop on what is likely a large dataset, leading to the process timing out before completion.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TIMEOUT after 7200s"
+  }
+ ],
+ "summary": "The agent successfully implements a complex stacking ensemble and deep learning model with solid feature engineering. However, it fails to account for the temporal and subject-grouped nature of the event data, using a random StratifiedKFold that introduces look-ahead bias and data leakage. Additionally, the sheer complexity of training 25 base models and a meta-model causes the script to time out after 2 hours.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

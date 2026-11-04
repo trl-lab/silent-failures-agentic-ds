@@ -1,0 +1,149 @@
+{
+ "task": "device-pma",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or inspect test set statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling them with constants or creating explicit missingness indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(rich_text)\n\nsvd = TruncatedSVD(n_components=25, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent fits TF-IDF and TruncatedSVD on the combined train and test dataset, leaking test set vocabulary and variance distribution into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constant strings/numbers rather than via an imputer fitted on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features (like date_received and decision_date), but the agent uses random cross-validation splitting instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train.iloc[val_idx], y_train[val_idx]",
+   "reasoning": "The agent sets aside a validation set during cross-validation but completely ignores it, failing to compute or report any validation metric.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model's performance at all, making this inapplicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate any metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date differences, frequency encoding, and TF-IDF extraction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent uses a naive, unweighted average to combine predictions from LightGBM and CatBoost without any tuning of the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage (Frequency Encoding)",
+   "description": "Applying frequency encoding to the combined train and test dataset before splitting leaks the test set's categorical distributions into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_counts = df_all[col].fillna('__MISSING__').value_counts()\nfeatures_df[f'{col}_freq'] = df_all[col].fillna('__MISSING__').map(val_counts)"
+  },
+  {
+   "name": "Potential Target Leakage (Future Dates)",
+   "description": "Using dates that occur after the event being predicted (e.g., notice dates or decision dates if predicting prior to a decision) as features can cause target leakage if they are missing or differ systematically for certain outcomes.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "features_df['days_to_fed_reg'] = (dt_fed_reg - dt_decision).dt.days"
+  }
+ ],
+ "summary": "The agent executes a substantial feature engineering pipeline and builds an ensemble of LightGBM and CatBoost classifiers. However, the solution is critically flawed by data leakage (applying TF-IDF, SVD, and frequency encoding on the combined train/test dataset) and completely omits any validation evaluation despite properly generating CV splits. Additionally, the ensembling strategy is a naive equal-weight average.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,134 @@
+{
+ "task": "car",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\n# Identify features and target\ntarget_col = \"class\"",
+   "reasoning": "The agent makes no effort to handle missing values, duplicates, or outliers before training.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMClassifier is appropriate for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages performance over 5 folds using cross_val_score, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_scores = cross_val_score(model, X_train, y_train, cv=kf, scoring=\"accuracy\")",
+   "reasoning": "The agent only evaluates the model using accuracy, which may not provide a complete picture of performance for multi-class tasks (e.g., if classes are imbalanced).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification task is appropriately framed.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Train-test categorical encoding mismatch and KeyError",
+   "description": "Applying one-hot encoding separately to train and test sets can result in misaligned or missing columns if the sets contain different unique categories. Furthermore, the agent attempts to select the original feature columns after they have been dropped by the encoding function, which will cause a KeyError if any object columns are present.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test_encoded = pd.get_dummies(X_test_encoded, columns=[col], drop_first=True)\n\n# Prepare feature matrix\nX_train = X_train_encoded[feature_cols]\nX_test = X_test_encoded[feature_cols]"
+  }
+ ],
+ "summary": "The agent correctly formulates the classification task and implements cross-validation. However, it fails to perform data cleaning or feature engineering, evaluates the model solely on accuracy, and implements a highly flawed categorical encoding strategy that would either cause a train-test feature mismatch or explicitly crash if executed on object-type columns.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

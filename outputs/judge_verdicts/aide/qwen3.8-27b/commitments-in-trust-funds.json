@@ -1,0 +1,138 @@
+{
+ "task": "commitments-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if pd.api.types.is_numeric_dtype(X_train[c]) or pd.api.types.is_numeric_dtype(X_test[c]):",
+   "reasoning": "The agent peeks at the test set to determine whether to cast features to numeric types.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train[c] = X_train[c].replace([np.inf, -np.inf], np.nan)",
+   "reasoning": "The agent relies entirely on LightGBM's native handling of missing values without implementing any explicit imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant and high-cardinality columns) is based solely on the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset may contain dates related to trust fund commitments, but without seeing the columns, we cannot confirm if a temporal split is required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across multiple CV folds and averages the validation scores.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_scores.append(root_mean_squared_error(y.iloc[va_idx], val_pred))",
+   "reasoning": "The agent only calculates RMSE, which can be sensitive to outliers in financial data, without verifying robustness using other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train[keep_cols]",
+   "reasoning": "The agent uses the raw columns as-is and applies no feature engineering whatsoever.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation for skewed data",
+   "description": "The target variable is a financial amount, which is typically heavily right-skewed. The agent predicts it directly without applying a variance-stabilizing transformation (like log1p), which can cause the model to overfit to extreme outliers when optimizing an outlier-sensitive metric like RMSE.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train[TARGET].astype(float)"
+  }
+ ],
+ "summary": "The agent provides a robust generic tabular baseline using LightGBM and proper cross-validation, safely avoiding major data leakage. However, it lacks any domain-specific feature engineering, relies entirely on the model for missing values, and fails to apply a variance-stabilizing transformation to the financial target, which could significantly harm RMSE performance.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

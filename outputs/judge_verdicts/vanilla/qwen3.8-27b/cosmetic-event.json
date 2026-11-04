@@ -1,0 +1,146 @@
+{
+ "task": "cosmetic-event",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col], X_test[col]], axis=0).astype(str)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on both train and test data combined, leaking test set categories into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning, imputation, and date parsing are performed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Constant imputation (-999) is applied independently to the train and test sets, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train_encoded, test_size=0.2, random_state=42, stratify=y_train_encoded)",
+   "reasoning": "The dataset contains dates ('event_date', etc.), but the agent uses a random split for validation, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Classification models are used appropriately for the classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation split is explicitly created and used to evaluate models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated on the internal validation set, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train_encoded, test_size=0.2, random_state=42, stratify=y_train_encoded)",
+   "reasoning": "The validation split and models use a single random state and are evaluated only once, failing to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent evaluates the models using only accuracy, without verifying if the classes are balanced or considering secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The classification task is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts year and month from date columns and parses the age column.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_ensemble = np.mean(val_predictions, axis=0)",
+   "reasoning": "The agent uses a simple unweighted average of probabilities to ensemble the models without attempting to tune the weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dropped test IDs for submission",
+   "description": "The agent drops the original ID columns from the test set and replaces them with a simple range index in the final submission file. This will usually result in a submission format error if the evaluation system expects the original IDs to map predictions back.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df.drop(col, axis=1, inplace=True)\n...\n'id': range(len(test_pred_labels))"
+  }
+ ],
+ "summary": "The agent implements a reasonable baseline pipeline with feature engineering, model training, and ensembling, but commits a few critical errors. It fits categorical encoders on combined train and test data, causing data leakage, and ignores temporal order by using a random train-validation split instead of a time-based one. Finally, it drops the original ID columns and generates a dummy index for the final submission, which will likely break the evaluation system.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

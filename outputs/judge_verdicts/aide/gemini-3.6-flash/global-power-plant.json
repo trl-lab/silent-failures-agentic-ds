@@ -1,0 +1,141 @@
+{
+ "task": "global-power-plant",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def feature_engineering(tr, te):\n    df = pd.concat([tr, te], axis=0, ignore_index=True)\n...\n        freq = df[g_col].value_counts()\n...\n        nn = NearestNeighbors(n_neighbors=6, algorithm=\"kd_tree\").fit(spatial_coords)",
+   "reasoning": "The agent concatenates train and test sets to compute frequency encodings, groupby statistics, and spatial nearest neighbors, effectively fitting transformers on test data before the split is established.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by creating indicator columns and using fillna(0) for certain continuous features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler (StandardScaler, etc.) is fit on the combined dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer object is fit on the full dataset; fillna(0) and the global mean of the training target are used safely.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is not a time series forecasting problem.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently averages evaluations over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is the designated metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a regression problem on capacity_mw.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including spatial KNN, aggregations, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses scipy.optimize.minimize to find optimal blending weights and scale/bias adjustments.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage in Cross-Validation",
+   "description": "The agent performs out-of-fold target encoding before model training, but uses the exact same K-Fold splits (with the same random seed) for both the encoding and the model cross-validation. This causes the target-encoded features in the training folds to be computed using target values from the validation fold, leading to target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=seed) # in add_oof_target_encoding with seed=42\n...\nkf = KFold(n_splits=n_splits, shuffle=True, random_state=42) # in main CV loop"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution with extensive domain-specific feature engineering, target encoding, and optimized blending. However, the pipeline contains two notable data leakage issues: extracting test set distribution information by fitting aggregations on the concatenated train/test sets, and utilizing identical K-Fold splits for both OOF target encoding and model training (which leaks validation targets into the training features).",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

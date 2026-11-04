@@ -1,0 +1,149 @@
+{
+ "task": "total-contributions-ibrd-ida-ifc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data is cleaned (inf handling, constant column dropping, explicit string imputation) before modelling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "elif s.dtype.name == \"string\" and s.nunique(dropna=True) > max(\n        50, int(0.5 * len(train))\n    ):\n        drop_cols.append(c)",
+   "reasoning": "High-cardinality string columns are dropped based on statistics computed over the entire training dataset before cross-validation splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation only uses a constant string ('missing'), which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the specific dataset requires time-based splitting, though financial contributions often have temporal components.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An XGBRegressor is appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across multiple folds (5-fold CV), which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof)",
+   "reasoning": "The agent only computes and relies on RMSE, without verifying if it is the most appropriate metric or evaluating alternatives like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[feature_cols].copy()",
+   "reasoning": "No derived features or interactions are created; the raw columns are used as-is after basic encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages CV fold predictions, which is standard bagging practice, not naive ensembling of distinct models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Categorical encoding before splitting",
+   "description": "Categorical encoders are fitted on the entire training dataset before cross-validation. While not as severe as target leakage, this leaks information about the presence and cardinality of categories across folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "encoder.fit(X_train_str)\n        train[string_cols] = encoder.transform(X_train_str)"
+  },
+  {
+   "name": "Aggressive ID dropping",
+   "description": "Dropping any column ending with '_id' might inadvertently remove useful categorical features (like group, project, or entity IDs) that carry predictive signal.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "or str(c).strip().lower().endswith(\"_id\")"
+  }
+ ],
+ "summary": "The agent provides a robust XGBoost regression baseline using 5-fold cross-validation and early stopping. However, the solution completely lacks feature engineering, aggressively drops potential categorical features ending in '_id', and performs categorical encoding and feature selection prior to the cross-validation split, introducing minor data leakage across folds.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

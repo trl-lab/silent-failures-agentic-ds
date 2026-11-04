@@ -1,0 +1,142 @@
+{
+ "task": "recipient-executed-grants-commitments-disbursements",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train_df.drop(columns=[TARGET_COL], errors=\"ignore\"), test_df], ignore_index=True)",
+   "reasoning": "The agent makes no explicit effort to clean data or handle missing values, relying entirely on LightGBM's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputer is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)",
+   "reasoning": "The agent extracts several date columns and temporal features but uses a standard randomized KFold split, ignoring the temporal order of the data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "RANDOM_SEED = 42\nnp.random.seed(RANDOM_SEED)",
+   "reasoning": "The agent evaluates the stochastic LightGBM model and CV split with a single random seed without averaging across multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(mean_squared_error(y_val_fold, val_pred))",
+   "reasoning": "The agent reports and evaluates only RMSE, without exploring other metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including date part extraction, durations, mathematical interactions, and groupby aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across CV folds, which is a standard bagging practice rather than naive multi-model ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering leakage",
+   "description": "Performing groupby aggregations or frequency encoding on a combined dataset of train and test samples leaks test set feature distributions into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped = df.groupby(cat)[num].agg([\"mean\", \"std\", \"min\", \"max\"]).reset_index()\n... freq = df[col].value_counts()\ndf[f\"{col}_freq\"] = df[col].map(freq)"
+  }
+ ],
+ "summary": "The agent implements a LightGBM regression pipeline with extensive automated feature engineering. However, the solution suffers from critical data leakage by calculating groupby aggregations and frequency encodings on the combined train and test dataset. It also fails to account for the dataset's temporal components during validation, uses no explicit data cleaning, and relies on a single random seed and metric for evaluation.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

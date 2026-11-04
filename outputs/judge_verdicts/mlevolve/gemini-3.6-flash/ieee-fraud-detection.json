@@ -1,0 +1,155 @@
+{
+ "task": "ieee-fraud-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "stats_df = train_split.groupby(g_col)[a_col].agg([\"mean\", \"std\", \"min\", \"max\"])",
+   "reasoning": "Group statistics and frequency encodings are strictly computed on the training split and then mapped to validation and test sets.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"null_count\"] = df.isnull().sum(axis=1).astype(\"int16\")",
+   "reasoning": "The agent explicitly handles missing values by creating a null count feature and filling missing categorical values before integer encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is performed before the train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before the split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = train_df.sort_values(\"TransactionDT\").reset_index(drop=True)\n\n# 2. Strict 80/20 Time Split FIRST",
+   "reasoning": "The agent explicitly sorts by time and uses a strict time-based split to avoid temporal leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_params = {\"objective\": \"binary\", ...}",
+   "reasoning": "The agent correctly uses binary classification objectives for all models.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, y_train = train_split[features], train_split[\"isFraud\"]\nX_val, y_val = val_split[features], val_split[\"isFraud\"]",
+   "reasoning": "A proper validation split is created and used for early stopping and evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.train(...)\ncat_model.fit(...)\nxgb_model.fit(...)",
+   "reasoning": "The agent trains its stochastic tree models (LightGBM, CatBoost, XGBoost) exactly once with a fixed seed and does not average over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "roc_auc_score(y_val, blend_val)",
+   "reasoning": "While only ROC AUC is used, it is the appropriate metric for this highly imbalanced task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def create_base_features(df):",
+   "reasoning": "The agent creates numerous domain-informed features, including temporal velocity, composite user keys, and D-feature normalization.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, init_weights, method='SLSQP', bounds=bounds, constraints=constraints)",
+   "reasoning": "The ensemble uses a properly optimized blend ratio via scipy.optimize rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Independent temporal feature extraction on splits",
+   "description": "Temporal features like time-since-last-transaction (`dt_diff`) are computed independently on the train, validation, and test splits rather than across the entire dataset timeline before splitting or carrying state over. This breaks the continuity of the time series for users spanning across splits, causing their first transaction in a later split to incorrectly appear as their first ever transaction.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[f\"{key}_dt_diff\"] = df.groupby(key)[\"TransactionDT\"].diff().fillna(-1).astype(\"float32\")"
+  },
+  {
+   "name": "Unspecified categorical features in CatBoost",
+   "description": "The agent label-encodes categorical features into integers but fails to pass them as `cat_features` to the CatBoost model. Consequently, CatBoost treats these nominal categories as ordinal continuous variables, which can degrade model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_model.fit(X_train, y_train, eval_set=(X_val, y_val), early_stopping_rounds=50, verbose=100)"
+  },
+  {
+   "name": "Using monotonically increasing time feature directly",
+   "description": "The agent includes `TransactionDT` (a strictly increasing timestamp) as a raw feature in the model. Since the test set is in the future, tree-based models cannot extrapolate and will likely overfit to specific time windows in the training data, leading to poor generalization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "exclude_cols = [\"TransactionID\", \"isFraud\"]\nfeatures = [col for col in train_split.columns if col not in exclude_cols]"
+  }
+ ],
+ "summary": "The agent's solution has a strong overall structure, utilizing strict time-based validation, rich domain-specific feature engineering (like D-norm and user velocity), and a robust SLSQP-optimized ensemble. However, the evaluation relies on a single run of stochastic models, and there are subtle feature engineering bugs: temporal lag features are computed independently per split (breaking time continuity), `TransactionDT` is left in the feature set risking temporal overfitting, and CatBoost is not informed of categorical feature indices.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

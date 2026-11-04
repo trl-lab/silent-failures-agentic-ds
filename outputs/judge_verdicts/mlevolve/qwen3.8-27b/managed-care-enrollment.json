@@ -1,0 +1,146 @@
+{
+ "task": "managed-care-enrollment",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"\\nMissing values in test:\\n{test.isnull().sum()}\")",
+   "reasoning": "The agent inspects missing value counts for the test set during the data exploration phase, violating the strict separation of test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively imputes missing values using median for numericals and mode for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fit only on X_train and then used to transform X_val and X_test.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median/mode) are computed exclusively on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear from the task context whether the managed-care-enrollment dataset has a temporal structure that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (Ridge, LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split and uses it to evaluate model performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent compares model candidates and selects the best one based on validation RMSE, not test RMSE.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses multiple random seeds (5) for the LightGBM model and averages the predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "single_rmse = np.sqrt(mean_squared_error(y_val, val_pred))",
+   "reasoning": "The agent evaluates the models using only RMSE and does not compute secondary metrics like MAE or R2 to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly formulated as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including log transforms, ratios, polynomial features, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "best_w = 0.5\nensemble_val_pred = np.clip(best_w * ridge_val_pred + (1 - best_w) * lgb_val_pred_avg, 0, None)",
+   "reasoning": "The agent uses a hardcoded, unweighted (equal-weight) blend for the ensemble without attempting to optimize the blending weights based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Failure to drop ID column from feature set",
+   "description": "The agent identifies the ID column and excludes it when building the list of feature columns, but fails to actually drop it from the dataframe. Consequently, the ID column remains in the training data, leading to a crash when models or scalers attempt to process a string ID, or resulting in data leakage/overfitting if the ID is numeric.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train.columns if c != id_col]\n...\nX_train_raw = train.iloc[train_idx].reset_index(drop=True)"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with proper train/validation splitting, seed-averaging, and feature engineering that avoids data leakage. However, it exhibits minor flaws like checking test data missingness during EDA, relying on a single evaluation metric, and using a naive, untuned ensemble. More critically, it forgets to actually drop the ID column from the training dataframe after identifying it, which causes the pipeline to crash or overfit on the ID.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

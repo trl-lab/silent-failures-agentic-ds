@@ -1,0 +1,148 @@
+{
+ "task": "device-pma",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data before the split is established (the split is provided upfront).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them (e.g., with 'missing', 0, or empty strings) and uses errors='coerce' during conversions.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal information (as evidenced by the date feature extraction), but the agent uses a randomized cross-validation split rather than a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation (StratifiedKFold) for internal validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models across 5 folds with different random seeds, not just a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for AUC, which is the correct metric for this task, though it fails to report it.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates numerous derived features (date components, TF-IDF for text, frequency encoding for categoricals).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent averages fold predictions, which is standard practice, but never finishes the script to ensemble the different model types.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Truncated script / Incomplete execution",
+   "description": "The script terminates abruptly in the middle of instantiating a model, meaning it never finishes training, makes final predictions, or saves an output file.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "xgb_model = xgb.XGBClassifier(\n      n_estimators=1000,\n      learning_rate=0.03,\n      max_depth=6,\n      subsample=0.8,\n      colsample_bytree=0.8,\n      random_state=42 + fold,\n      eval_metric=\"auc\",\n      early_stopping_rounds=50,\n  )"
+  },
+  {
+   "name": "Test set leakage during encoding",
+   "description": "The agent concatenates the training and test sets to fit a LabelEncoder, leaking the vocabulary and distribution of the test set into the training process.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col], X_test[col]]).astype(str).fillna(\"missing\")\n  le.fit(combined)"
+  }
+ ],
+ "summary": "The agent sets up a reasonably robust feature engineering pipeline handling dates, text (via TF-IDF), and categorical variables. However, it introduces look-ahead bias by using a randomized CV split on a temporal dataset. Most critically, the code cuts off abruptly while defining the XGBoost model, meaning the script fails to execute completely or produce any predictions.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

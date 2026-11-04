@@ -1,0 +1,149 @@
+{
+ "task": "har",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is explicitly performed via FeatureTransformer, handling missing and infinite values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is safely fit on the training splits only, avoiding leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models (LGBM, XGBoost, CatBoost) are used for this multi-class task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly performed using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not reused to evaluate models; a separate validation set is used for this purpose.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "validation_scores[name] = accuracy_score(y_val, model.predict(X_val_processed))",
+   "reasoning": "Stochastic models (LGBM, XGBoost, CatBoost) are evaluated exactly once on a single validation split without cross-validation or multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "validation_scores[name] = accuracy_score(y_val, model.predict(X_val_processed))",
+   "reasoning": "Accuracy is the only metric used to evaluate model performance and determine ensemble weights.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification problem is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "class FeatureTransformer:",
+   "reasoning": "The script applies only basic imputation and label encoding with no derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses a weighted average based on relative validation scores, avoiding a naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "AttributeError in probability alignment",
+   "description": "The function `align_proba` calls `.index()` on `target_classes`, which is instantiated as a numpy array. This will raise an AttributeError if executed. While it is hidden behind a broad try-except block that safely skips the model, any model that doesn't predict all classes will be silently discarded from the ensemble.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "aligned[:, target_classes.index(cls)] = proba[:, idx]"
+  },
+  {
+   "name": "Categorical features treated as continuous numericals",
+   "description": "Categorical features are mapped to integers and then cast to floats, but they are not specified as categorical features to the tree-based models (e.g., via `cat_features` in CatBoost or `categorical_feature` in LightGBM). This forces the models to treat them as continuous ordinal values, which can degrade splitting efficiency and performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[col] = values.map(mapping).fillna(-1).astype(int)\n...\nreturn X.astype(float)"
+  }
+ ],
+ "summary": "The solution implements a solid baseline pipeline with appropriate train/validation splitting and effectively avoids data leakage. However, it misses out on feature engineering, relies on single evaluations of stochastic models, and contains a latent AttributeError in the probability alignment logic that could cause models to be silently dropped during ensembling.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

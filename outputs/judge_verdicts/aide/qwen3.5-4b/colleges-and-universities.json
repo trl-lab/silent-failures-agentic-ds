@@ -1,0 +1,145 @@
+{
+ "task": "colleges-and-universities",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test data for EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values by using median imputation and LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_X = train_X.fillna(train_X.median())\n\n# 5-fold cross-validation for evaluation\nkf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent imputes missing values using the median of the entire training dataset before splitting it into cross-validation folds, causing validation statistics to leak into the training process.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is not clear from the context whether there is a temporal component to the data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor / lgb.train with objective='regression') for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross validation, which averages over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = mean_squared_error(y_val_fold, y_pred_val, squared=False)\ncv_scores.append(rmse)",
+   "reasoning": "The agent evaluates the model using only the task's default metric (RMSE) without computing secondary metrics to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent frames the problem correctly as a regression task predicting RATIO_ENROLL_EMP.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != \"RATIO_ENROLL_EMP\"]\ntrain_X = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses all raw columns as features directly without creating any derived features, interactions, or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputing test data with test statistics",
+   "description": "The agent imputes missing values in the test set using statistics (e.g., median) calculated from the test set itself, rather than using the statistics learned from the training set. This can lead to inconsistent predictions if the test distribution differs from the training distribution, and fails completely in a production setting where test samples arrive individually.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_X = test_X.fillna(test_X.median())"
+  },
+  {
+   "name": "Execution Failure / NameError",
+   "description": "The script attempts to use a variable that was never defined, which will cause it to crash during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": test_id, \"RATIO_ENROLL_EMP\": test_predictions})"
+  }
+ ],
+ "summary": "The agent builds a LightGBM regression model evaluated via 5-fold cross-validation but completely skips feature engineering, relying exclusively on raw columns. The solution contains multiple data leakage and best-practice flaws, notably imputing the entire training set before performing the cross-validation split and using test set statistics to impute the test data. Additionally, the first half of the concatenated script references an undefined variable (`test_id`), which will result in a fatal execution error.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

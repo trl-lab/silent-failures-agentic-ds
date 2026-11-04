@@ -1,0 +1,153 @@
+{
+ "task": "miga-issued-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or inspect test data distributions before modeling.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and filling categoricals with 'Missing'.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scaler or normalizer is used in the pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].fillna(df_all[col].median())",
+   "reasoning": "The median for missing value imputation is calculated on the combined dataset (train + test), leaking test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date features (identified and parsed by the agent), but the validation strategy uses a randomized split rather than a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor, LGBMRegressor, XGBRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used to generate final predictions, not for model selection or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which naturally averages performance over multiple folds rather than relying on a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"CatBoost OOF RMSE: {root_mean_squared_error(y, oof_cb):.4f}\")",
+   "reasoning": "The agent relies entirely on RMSE without analyzing if a metric more robust to outliers (like MAE) would be more appropriate for a financial amount target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly formulated as predicting a continuous amount using regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple derived features, including pairwise date differences, date components, and frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SciPy to optimize blend weights rather than using a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Frequency encoding leakage",
+   "description": "Frequency encoding or target encoding is computed on the combined train and test dataset before splitting. This leaks the categorical distribution of the test set into the features used for training.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts()\ndf_all[f\"{col}_freq\"] = df_all[col].map(freq)"
+  },
+  {
+   "name": "Missing target transformation for skewed financial data",
+   "description": "The target variable is a financial quantity (e.g., Gross Issued Amount), which is generally highly right-skewed. Failing to apply a log or similar transformation can lead the model to overfit large outlier values, especially when optimized with a squared-error metric like RMSE.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train_df[target_col].values"
+  }
+ ],
+ "summary": "The agent provides a structurally sound script with appropriate models, ensemble techniques, and cross-validation. However, it suffers from significant data leakage by performing median imputation and frequency encoding on the concatenated train and test sets before splitting. Additionally, it ignores the temporal nature of the project issuance dates during validation and fails to apply a log-transformation to the heavily skewed financial target.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

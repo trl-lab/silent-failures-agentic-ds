@@ -1,0 +1,134 @@
+{
+ "task": "insurance-company-complaints",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    train[feature_cols], train[target], test_size=0.2, random_state=42\n)",
+   "reasoning": "The agent performs no data cleaning, relying entirely on LightGBM to handle any missing values or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any scaling.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform imputation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a regression model (LightGBM regressor) for a regression task, which is appropriate.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly splits the data into train and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=500,\n    valid_sets=[train_data, val_data],\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n    keep_training=True,\n)",
+   "reasoning": "The agent trains a stochastic LightGBM model (using feature and bagging fractions) exactly once and reports a single validation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, y_val_pred))\nprint(f\"Validation RMSE: {val_rmse:.4f}\")",
+   "reasoning": "The agent evaluates the model solely on RMSE without considering other metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col != target]",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unencoded categorical features",
+   "description": "The agent passes raw dataframe columns directly to LightGBM. If any columns are of object or string dtype, LightGBM will throw a ValueError during Dataset creation or training since it requires categorical columns to be explicitly converted to the 'category' dtype or numerically encoded.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "train_data = lgb.Dataset(X_train, label=y_train)"
+  }
+ ],
+ "summary": "The agent correctly sets up a validation split and trains a LightGBM regression model, but skips crucial data science steps. It fails to clean the data, engineer any features, or encode categorical variables (which may cause LightGBM to crash). Furthermore, it evaluates a stochastic model only a single time using a single metric, making the reported performance less robust.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

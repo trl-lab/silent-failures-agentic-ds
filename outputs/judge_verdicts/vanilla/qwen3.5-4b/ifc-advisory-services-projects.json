@@ -1,0 +1,138 @@
+{
+ "task": "ifc-advisory-services-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "SimpleImputer is used to handle missing values for both numerical and categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is applied within a pipeline rather than fit on the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No temporal split is missed because no validation split is performed at all.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is an appropriate model type for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "preprocessor_model.fit(X_train_processed, y_train_array)\n\n# Transform Test Data\nX_test_processed = preprocessor.transform(X_test_full)\npredictions = preprocessor_model.predict(X_test_processed)",
+   "reasoning": "The agent trains directly on the full training set and predicts on the test set without creating a holdout set or computing any validation metrics to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Since no validation is performed, the model is never evaluated at all.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metric is computed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = X_train_full.select_dtypes(include=[np.number]).columns.tolist()\ncategorical_cols = [col for col in X_train_full.columns if col not in features and col != TARGET_COLUMN]",
+   "reasoning": "The agent automatically selects raw columns based on dtype and applies basic encoding/imputation without attempting any domain-specific or derived feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Pipeline Misuse Execution Error",
+   "description": "The agent manually transforms the training data with a preprocessor, but then mistakenly passes the resulting numpy array into a Pipeline that begins with the exact same preprocessor. This causes a critical execution crash because the preprocessor's ColumnTransformer expects a pandas DataFrame with specific string column names, not a featureless numpy array.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_processed = preprocessor.fit_transform(X_train_full)\n...\npreprocessor_model.fit(X_train_processed, y_train_array)"
+  }
+ ],
+ "summary": "The agent builds a straightforward LightGBM regression pipeline with basic imputation and encoding, but omits both feature engineering and validation. A critical execution error occurs because the agent double-applies the preprocessing step, transforming the dataframe into a numpy array and then feeding it back into the same pipeline, causing a crash.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

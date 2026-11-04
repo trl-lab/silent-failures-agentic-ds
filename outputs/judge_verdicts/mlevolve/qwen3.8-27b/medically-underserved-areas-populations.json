@@ -1,0 +1,138 @@
+{
+ "task": "medically-underserved-areas-populations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "num_cols = [c for c in X_full.select_dtypes(include=[np.number]).columns if c in test.columns]",
+   "reasoning": "The agent only uses the test set to align the schema (checking column presence), which is standard practice, rather than computing statistics on test data distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(train_medians)",
+   "reasoning": "The agent actively handles missing values by imputing with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_s = scaler.fit_transform(X_train)\nX_val_s   = scaler.transform(X_val)",
+   "reasoning": "The agent correctly fits the scaler only on the training set after splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_full = X_full[num_cols]",
+   "reasoning": "The agent only filters for numeric columns and test set column presence prior to splitting, which does not leak statistical information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_medians = X_train.median()\nX_train = X_train.fillna(train_medians)\nX_val   = X_val.fillna(train_medians)",
+   "reasoning": "Imputation statistics are correctly calculated only on the training set after splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset contains a temporal component, though typical population/area datasets are cross-sectional.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = GradientBoostingRegressor(",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(",
+   "reasoning": "The agent correctly splits the data into training and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = GradientBoostingRegressor(\n    n_estimators=300, max_depth=5, learning_rate=0.1,\n    subsample=0.8, random_state=42\n)",
+   "reasoning": "The agent evaluates a stochastic model (GradientBoostingRegressor with subsample=0.8) exactly once rather than averaging over multiple runs or using cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse     = float(np.sqrt(mean_squared_error(y_val, val_pred)))",
+   "reasoning": "The agent only calculates RMSE and does not verify performance using other metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"IMU Score\"\ny = train[target_col].values",
+   "reasoning": "The agent correctly formulates the task as predicting the IMU Score using regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_cols = [c for c in X_full.select_dtypes(include=[np.number]).columns\n            if c in test.columns]\nX_full = X_full[num_cols]",
+   "reasoning": "The agent uses raw numeric columns as-is and creates no derived features, interaction terms, or domain-informed transforms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dropping categorical features entirely",
+   "description": "The agent drops all non-numeric columns instead of applying categorical encoding (e.g., one-hot or target encoding), discarding potentially highly predictive information.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_cols = [c for c in X_full.select_dtypes(include=[np.number]).columns\n            if c in test.columns]\nX_full = X_full[num_cols]"
+  }
+ ],
+ "summary": "The agent implements a functionally safe modeling pipeline that correctly avoids data leakage by splitting the data before imputing and scaling. However, the solution is overly simplistic: it entirely discards categorical features, performs no feature engineering, evaluates a stochastic model on a single validation split, and relies only on a single metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,117 @@
+{
+ "task": "bioresponse",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if col in X_train.columns and not pd.api.types.is_numeric_dtype(X_test[col]):",
+   "reasoning": "The agent inspects the external test set's column types to determine which columns require categorical encoding, using test data for preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n        X,\n        y,\n        test_size=0.2,\n        random_state=RANDOM_STATE,\n        stratify=y,\n    )",
+   "reasoning": "The models and data splits are evaluated exactly once using a fixed random seed, without using cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = log_loss(y_val, np.clip(val_proba, EPS, 1.0 - EPS))",
+   "reasoning": "The agent only computes log_loss for evaluation and does not report complementary metrics like accuracy or AUC to verify performance comprehensively.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "encoder = OrdinalEncoder(handle_unknown=\"use_encoded_value\", unknown_value=-1)",
+   "reasoning": "The agent only applies basic type coercion and ordinal encoding, failing to extract any domain-specific or derived features from the raw data.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_proba = np.mean(probabilities, axis=0)",
+   "reasoning": "The agent combines model predictions using a simple unweighted average rather than tuning blend weights or using a stacking approach.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Outdated LightGBM API",
+   "description": "The agent passes `early_stopping_rounds` directly to `LGBMClassifier.fit()`, which is deprecated and removed in recent LightGBM versions, causing the model training to throw an exception and fall out of the ensemble.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "early_stopping_rounds=100,"
+  },
+  {
+   "name": "Encoding before splitting",
+   "description": "Categorical encoding is applied to the full training dataset before creating the validation split, meaning the encoder sees the validation set's unique categories and leaks validation information.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "encoder.fit_transform(X_train[non_numeric_cols])"
+  }
+ ],
+ "summary": "The agent builds a binary classification pipeline using multiple gradient boosting models but misses opportunities for feature engineering and advanced ensembling. It relies on a single train-validation split and a single metric for evaluation, ignoring model variance. Additionally, an outdated LightGBM API call causes one of the models to fail during training, and encoding is applied before the validation split, causing minor target leakage.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "rasnf_notification_list",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_raw = pd.concat([X_train_raw, X_test_raw], axis=0)\n...\nfreq = s.value_counts(normalize=True)\n...\ntfidf = TfidfVectorizer(...)\ntfidf_mat = tfidf.fit_transform(combined_text)",
+   "reasoning": "The agent computes frequency encoding statistics and fits the TF-IDF transformer on the combined train and test data, causing data leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "features_df[f'{col}_is_null'] = combined_raw[col].isna().astype(int)",
+   "reasoning": "The agent explicitly handles missing values by creating indicator columns and filling NaNs with string placeholders.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent does not use any standard numerical scalers on the combined dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=64, random_state=42)\nsvd_features = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (dimensionality reduction/feature selection) is applied to the combined train and test data before splitting, leaking test information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "s = combined_raw[col].fillna('__MISSING__').astype(str)",
+   "reasoning": "Missing values are filled with a constant placeholder rather than a fitted imputer, so no statistical leakage occurs.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is not clear from the code or task description if there is a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model = LGBMClassifier(",
+   "reasoning": "The task is binary classification and the agent appropriately uses classifier models.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train.iloc[val_idx], y[val_idx]\n    \n    # LightGBM\n    lgb_model = LGBMClassifier(...)\n    lgb_model.fit(X_tr, y_tr)\n    lgb_test_preds += lgb_model.predict_proba(X_test)[:, 1]",
+   "reasoning": "Although the agent extracts validation splits (X_va, y_va), it never predicts on them or computes a validation score, failing to estimate model generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so this failure mode regarding single stochastic evaluation does not apply.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes no evaluation metrics at all, so it does not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "le_target = LabelEncoder()\ny = le_target.fit_transform(y_raw)",
+   "reasoning": "The task is specified as binary classification, and the agent uses classification models and label encoding, which is a valid formulation.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(combined_text)",
+   "reasoning": "The agent performs extensive feature engineering including text length, frequency encoding, TF-IDF, and SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_test_preds + 0.5 * cb_test_preds",
+   "reasoning": "The agent combines the predictions of LightGBM and CatBoost using a hardcoded, unweighted average without attempting to tune the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignored validation data",
+   "description": "The agent extracts validation sets during cross-validation but completely ignores them, missing the opportunity to evaluate the model, tune hyperparameters, or use early stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train.iloc[val_idx], y[val_idx]"
+  },
+  {
+   "name": "Synthetic ID generation / Potential ID leakage",
+   "description": "The agent generates test IDs using a simple sequential range instead of extracting an identifier column from the dataset. If an ID column exists in the raw data, it was likely leaked into the features and the submission will be malformed.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "submission = pd.DataFrame({'id': np.arange(n_test),"
+  }
+ ],
+ "summary": "The agent's solution exhibits critical data leakage by fitting transformers (TF-IDF, SVD) and computing frequency encoding statistics on the combined train and test datasets. Furthermore, despite setting up a cross-validation loop, the agent completely fails to evaluate the models on the validation sets, meaning no generalisation score is calculated. Finally, the agent uses a naive equal-weight average to ensemble its models.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

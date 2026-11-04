@@ -1,0 +1,141 @@
+{
+ "task": "wine-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data for exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SimpleImputer to handle missing values, so data cleaning is attempted.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is fit only on the training set (X_train_imputed) before transforming the test set, avoiding test set leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fit only on the training set, avoiding test set leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages performance over 5 cross-validation folds, accounting for variance instead of relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(mean_squared_error(y_val_fold, y_pred_fold))",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying model robustness using other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\n    \"fixed_acidity\",\n    \"volatile_acidity\",\n    \"citric_acid\",\n...",
+   "reasoning": "The agent uses the raw chemical properties as-is, missing obvious opportunities for derived features such as bound sulfur dioxide (total minus free) or acidity ratios.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage in cross-validation",
+   "description": "Data transformations such as imputation and scaling are applied to the entire training set before splitting it into cross-validation folds, causing information from the validation folds to leak into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train_imputed)\n...\nfor fold_idx, (train_idx, val_idx) in enumerate(kf.split(X_train_scaled)):"
+  },
+  {
+   "name": "Early stopping on training data",
+   "description": "During final model training, early stopping is evaluated on the training dataset itself rather than a holdout validation set, which defeats the purpose of early stopping and can lead to overfitting or premature stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(\n    X_train_scaled,\n    y_train,\n    eval_set=[(X_train_scaled, y_train)],\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)"
+  }
+ ],
+ "summary": "The agent establishes a generally sound LightGBM pipeline with a proper separation between the train and test sets for imputation and scaling. However, it fails to perform any domain-specific feature engineering, causes data leakage between cross-validation folds by applying transformations prior to the K-Fold split, and incorrectly uses the training set as the evaluation set for early stopping during final model training.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

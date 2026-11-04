@@ -1,0 +1,138 @@
+{
+ "task": "default-of-credit-card-clients",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only extracts the test ID column and does not peek at test data distributions or statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent extracts raw values directly from the dataframe without checking for or handling missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is cross-sectional across clients, so a random split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a binary classification objective in LightGBM, which matches the task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates an 80/20 train/validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=1000,\n    valid_sets=[val_data],\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)],\n)",
+   "reasoning": "The agent trains and evaluates the LightGBM model (which uses feature and bagging fractions) exactly once rather than cross-validating or averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val_split, y_val_pred)\nprint(f\"Final Validation Score (ROC-AUC): {val_auc:.4f}\")",
+   "reasoning": "The agent only computes ROC-AUC and does not examine other metrics (like precision/recall or Brier score) to fully understand model performance on credit defaults.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is framed correctly as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [target_col, test_id_col]]",
+   "reasoning": "The agent uses the raw columns as features without deriving any new features, despite the presence of payment histories and bill amounts that would benefit from ratio or trend features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing Directory Creation",
+   "description": "The agent attempts to save an output file to a subdirectory without first ensuring the directory exists, which can lead to a FileNotFoundError if the environment is not pre-configured.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "submission.to_csv(\"./submission/submission.csv\", index=False)"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM pipeline with a proper train/validation split but completely skips data cleaning and feature engineering. It also evaluates a stochastic model only once using a single metric, and risks a runtime exception by writing to a directory without verifying its existence.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

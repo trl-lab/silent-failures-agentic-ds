@@ -1,0 +1,138 @@
+{
+ "task": "restaurant-revenue-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ct.fit(df_train[feature_cols])",
+   "reasoning": "The ColumnTransformer is fitted exclusively on the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "num_imputer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly handles missing values by using a median imputer for numerical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ct.fit(df_train[feature_cols])",
+   "reasoning": "The imputer is fitted only on the training data, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any data splitting, so it does not split randomly.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(objective='regression', ...)",
+   "reasoning": "The agent correctly uses a regression model for the revenue regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n    \n    # Prepare test features\n    X_test_full = ct.transform(df_test[feature_cols])",
+   "reasoning": "The model is trained on the full training set and predicts on the test set without any internal validation split being created or evaluated.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(..., subsample=0.8, colsample_bytree=0.8, ..., random_state=42)\n    \n    model.fit(X_train, y_train)",
+   "reasoning": "The stochastic LightGBM model is trained exactly once, with no mechanism for multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Since no internal evaluation or validation is performed at all, it cannot be determined whether the agent would have used an inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "target = 'revenue'\n    feature_cols = [col for col in df_train.columns if col != target]",
+   "reasoning": "The agent correctly formulates the task as predicting the continuous revenue target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "('ohe', ohe, cat_cols)",
+   "reasoning": "The agent simply passes all non-numeric columns (which includes dates like 'Open Date') directly into a one-hot encoder without extracting any derived date components or creating interaction features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fatal runtime error due to out-of-scope variable",
+   "description": "The code attempts to use a variable that was defined inside a function scope but was neither returned nor defined globally, causing the script to crash with a NameError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = ct.transform(df_train[feature_cols]) # feature_cols is not defined in main()"
+  }
+ ],
+ "summary": "The agent's solution crashes at runtime due to a basic variable scoping error (`feature_cols` is undefined in `main()`). Even if the code executed, the methodology is flawed because it lacks any validation split to measure performance, and entirely skips feature engineering\u2014blindly treating complex variables like dates as raw categorical features for one-hot encoding.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "national-average-drug-acquisition-cost",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "num_imputer = SimpleImputer(strategy='median')\nnum_imputer.fit(X_train[numerical_cols])",
+   "reasoning": "The agent explicitly handles missing numerical values using a median imputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "num_imputer.fit(X_train[numerical_cols])",
+   "reasoning": "The imputer is properly fit only on the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the pre-provided train and test splits rather than creating its own random split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses a regressor for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_final, y_train)\n\n# Predict\ny_pred = model.predict(X_test_final)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without defining a validation split or running cross-validation to assess generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem on the provided target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_imputer = SimpleImputer(strategy='median')\n...\ncat_encoder = OneHotEncoder(handle_unknown='ignore')",
+   "reasoning": "The agent applies basic imputation and one-hot encoding but does not derive any new features from the raw columns.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "SyntaxError in list literal",
+   "description": "The code contains a syntax error because a keyword argument is placed inside a list literal, which will cause immediate parsing failure.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_processed = pd.concat([\n    num_imputer.transform(X_train[numerical_cols]),\n    pd.DataFrame(cat_encoder.transform(X_train[categorical_cols])),\n    key=\"dummy\"\n], axis=1)"
+  },
+  {
+   "name": "TypeError in pd.concat with numpy array",
+   "description": "The code attempts to use pd.concat on a list containing a numpy array, which raises a TypeError since pd.concat only accepts pandas Series or DataFrame objects.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_final = pd.concat([X_train_num, X_train_cat], axis=1)"
+  },
+  {
+   "name": "KeyError dropping target from test set",
+   "description": "The code indiscriminately drops the target column from the test dataset. If the test set does not contain the target column (as is standard for holdout evaluation files), this will raise a KeyError.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "X_test = test_df.drop(columns=[TARGET_COLUMN])"
+  }
+ ],
+ "summary": "The agent attempts to preprocess the data and train a LightGBM model but fails to implement any validation strategy (FM06) or feature engineering (FM07). Furthermore, the solution is severely compromised by execution-stopping errors: a SyntaxError caused by placing a keyword argument inside a list, and a TypeError caused by attempting to concatenate numpy arrays using pd.concat.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

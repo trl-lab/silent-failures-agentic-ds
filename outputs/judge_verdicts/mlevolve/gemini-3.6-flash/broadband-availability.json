@@ -1,0 +1,152 @@
+{
+ "task": "broadband-availability",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if X_train[col].isnull().any() or X_test[col].isnull().any():",
+   "reasoning": "The agent explicitly checks for missing values in the test set to determine whether to create a missing value indicator feature for the training set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by using SimpleImputer for numeric columns and filling missing categorical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fitted inside the K-Fold loop exclusively on the training folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection and dimensionality reduction (PCA) are not based on test data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fit only on the provided training set, preventing test missing-value statistics from leaking into the training process (though validation leakage occurs, noted separately).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The target is broadband availability for a specific year (2019) and does not represent a time series requiring temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, etc.) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with an out-of-fold evaluation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for tuning or selecting models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which inherently averages model performance over multiple folds, providing a robust estimate.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_score = np.sqrt(mean_squared_error(y, final_oof))",
+   "reasoning": "The agent evaluates and optimizes the ensemble using only RMSE without verifying robustness against outliers using other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly framed as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent generates multiple features including missing indicators, frequency encoding, PCA components, and ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal weights for blending the models, avoiding a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation leakage",
+   "description": "Data transformations such as imputation, frequency encoding, and ordinal encoding are fit on the entire training dataset before it is split into cross-validation folds. This leaks information from the validation folds into the training folds, making the out-of-fold validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_imputer.fit_transform(X_train[numeric_cols])\n... ord_encoder.fit_transform(X_train[categorical_cols])"
+  },
+  {
+   "name": "Execution Timeout",
+   "description": "The script takes too long to execute and times out, likely because it trains multiple computationally expensive models (e.g. ExtraTrees with 300 estimators, LightGBM/XGBoost with 1200 estimators) 5 times each in a cross-validation loop without accommodating for dataset size constraints.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TIMEOUT after 7200s"
+  }
+ ],
+ "summary": "The agent provides a comprehensive pipeline with strong feature engineering and a mathematically optimized ensemble. However, it peeks at the test data to decide which missing indicator features to create (FM02). Furthermore, it suffers from cross-validation leakage by applying imputations and encodings on the entire training set before splitting into folds, and its excessively heavy model training causes a critical execution timeout.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

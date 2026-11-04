@@ -1,0 +1,148 @@
+{
+ "task": "college-deposit-product-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set distributions manually.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n... \ncombined = pd.concat([train_df, test_df], axis=0).reset_index(drop=True)",
+   "reasoning": "The agent does not perform any explicit data cleaning (e.g. handling missing values, duplicates, or outliers) before feature engineering and modelling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalisation is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fit on the full dataset (NaNs are handled either by filling with 0 or natively by the tree models).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal component requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which implicitly averages over multiple folds, preventing single-evaluation variance issues.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "return root_mean_squared_error(y, pred)",
+   "reasoning": "The agent relies entirely on RMSE for evaluation and ensemble weight optimization, without checking other metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements several feature engineering steps including frequency encoding, aggregations, and interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble weights using scipy.optimize.minimize rather than naive equal weighting.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in target encoding",
+   "description": "The agent calculates target encoding using the training fold's targets and applies it directly to the same training fold without out-of-fold estimation or smoothing. This causes severe target leakage into the training features and guarantees overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "te_map = pd.Series(y_tr).groupby(X_tr[c].astype(str).values).mean().to_dict()\nX_tr[f\"{c}_te\"] = (\n    X_tr[c].astype(str).map(te_map).astype(float).fillna(global_mean)\n)"
+  },
+  {
+   "name": "Test set leakage in feature engineering",
+   "description": "The agent calculates global statistics (e.g., frequency encoding, group-wise means, and standard deviations) on the combined train and test dataset before splitting. This leaks the distribution and statistics of the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "agg = combined.groupby(g_col, observed=False)[n_col].transform(\"mean\")\ncombined[f\"{g_col}_{n_col}_mean\"] = agg"
+  }
+ ],
+ "summary": "The agent correctly sets up cross-validation, models, and an optimized ensemble. However, there are two critical data leakage bugs: test set statistics are leaked into the training data during feature engineering, and target encoding is applied in-fold without smoothing or cross-validation, which will cause catastrophic overfitting. The agent also fails to perform basic data cleaning.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

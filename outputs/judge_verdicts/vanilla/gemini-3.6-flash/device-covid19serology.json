@@ -1,0 +1,141 @@
+{
+ "task": "device-covid19serology",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([s_train, s_test], axis=0)\n    le.fit(combined)",
+   "reasoning": "The agent fits a LabelEncoder on the combined train and test sets, leaking information about test set categories into the training process.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X[c] = pd.to_numeric(X[c], errors='coerce')",
+   "reasoning": "The agent makes no explicit effort to impute missing values for numeric columns, relying entirely on the tree models' native handling of NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant columns) is performed only using the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if this dataset contains temporal components requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation (StratifiedKFold) to train and evaluate the models internally.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated multiple times across the cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly report or optimize on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in X.columns:\n    if c not in cat_cols:\n        X[c] = pd.to_numeric(X[c], errors='coerce')",
+   "reasoning": "The agent uses the raw columns as-is, with only basic type coercion and label encoding, omitting any derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * test_preds_lgb + 0.3 * test_preds_cb + 0.3 * test_preds_xgb",
+   "reasoning": "The agent blends predictions using arbitrary, hardcoded weights without tuning or optimizing the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation score reported",
+   "description": "The agent trains models using cross-validation but fails to calculate or report any aggregated validation metric, leaving the user with no estimate of the model's generalisation performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_lgb.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_va)],\n        callbacks=[lgb.early_stopping(50, verbose=False)]\n    )\n    test_preds_lgb += model_lgb.predict_proba(X_test)[:, 1] / len(splits)"
+  }
+ ],
+ "summary": "The agent correctly sets up a cross-validation framework and trains multiple gradient boosting models but exhibits several bad practices. It leaks test set categories by fitting a LabelEncoder on combined train and test data, applies arbitrary weights for ensembling, performs no feature engineering, and completely fails to report any cross-validation scores.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

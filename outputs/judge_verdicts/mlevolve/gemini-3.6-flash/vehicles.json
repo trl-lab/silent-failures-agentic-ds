@@ -1,0 +1,148 @@
+{
+ "task": "vehicles",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed that would leak test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_train[c] = df_train[c].replace([np.inf, -np.inf], np.nan).fillna(med)",
+   "reasoning": "Missing values and infinities are explicitly handled via imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_proc = scaler.fit_transform(df_train[num_cols]).astype(np.float32)\nX_test_proc = scaler.transform(df_test[num_cols]).astype(np.float32)",
+   "reasoning": "The scaler is fit only on the training set (df_train), preventing test statistics from leaking into the training distribution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med = df_train[c].median()\ndf_train[c] = df_train[c]...\ndf_test[c] = df_test[c]...",
+   "reasoning": "Imputation statistics (median) are calculated solely on the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_xgb = xgb.XGBRegressor(",
+   "reasoning": "Regression models are appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)",
+   "reasoning": "The neural network includes dropout layers and weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "A 5-fold cross-validation strategy is implemented to evaluate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (tr_idx, va_idx) in enumerate(fold_indices):",
+   "reasoning": "The stochastic models are evaluated over 5 distinct cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = np.sqrt(mean_squared_error(y_train, final_oof))",
+   "reasoning": "The agent optimizes for and reports RMSE, which is the exact metric requested by the task description.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a direct regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def add_domain_features(df):",
+   "reasoning": "Extensive domain-specific feature engineering (e.g., fuel cost ratios, group aggregations) is applied.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "meta_model = RidgeCV(alphas=np.logspace(-3, 3, 50), cv=5)",
+   "reasoning": "A tuned RidgeCV meta-model is utilized for stacking, rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "cross_validation_leakage",
+   "description": "Global transformations (such as median imputation, StandardScaler, and full-dataset group aggregations) are applied to the entire training set before entering the K-Fold cross-validation loop. While this avoids test-set leakage, it leaks validation-fold statistics into the training folds during CV, which causes overly optimistic out-of-fold predictions and can lead to overfitting of the meta-model.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "group_stats = df_train.groupby(gk)[ac].agg([\"mean\", \"std\"])\n...\nscaler = StandardScaler()\nX_train_proc = scaler.fit_transform(df_train[num_cols])\n...\nfold_indices = list(kf.split(X_train_proc))"
+  },
+  {
+   "name": "execution_error_attribute",
+   "description": "The script crashes during execution with an AttributeError. This is highly likely caused by library version mismatches, such as attempting to use `lgb.early_stopping` as a callback which may not be supported in older LightGBM environments, preventing the script from producing a submission file.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)]"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution featuring domain-specific feature engineering, robust out-of-fold target encoding, a PyTorch deep learning model, and a well-formulated RidgeCV stacking ensemble. However, it applies scaling, median imputation, and group aggregations to the entire training set before the K-Fold split, leading to cross-validation leakage. Additionally, the code fails to execute due to an AttributeError, likely stemming from a library version incompatibility with LightGBM callbacks.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

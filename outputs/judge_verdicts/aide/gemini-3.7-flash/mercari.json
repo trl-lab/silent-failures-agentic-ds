@@ -1,0 +1,145 @@
+{
+ "task": "mercari",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with constant values like 'missing', 0, or 1.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_num = scaler.fit_transform(\n    full_df[[\"brand_missing\", \"desc_missing\", \"desc_len\", \"name_len\"]].values\n)",
+   "reasoning": "The StandardScaler is fit on the combined full_df (train and test data together) before they are split, which leaks test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection methods are used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constant values, which does not compute or leak any statistics from the test set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Ridge regression is appropriate for the regression task of predicting price.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, meaning the model is evaluated multiple times.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent evaluates the model using only RMSE (on the log scale) without checking if it's the most appropriate or robust metric given the data distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem to predict price.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates numerous derived features such as subcategories, cross-feature interactions, text lengths, and missing indicators.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses predefined, unequal weights for combining models rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Text vectorization and encoding leakage",
+   "description": "Fitting text vectorizers (like TfidfVectorizer or CountVectorizer) and encoders (like OneHotEncoder) on the combined train and test dataset leaks test set vocabulary, inverse document frequencies, and categorical levels into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_name_word = name_word_vec.fit_transform(full_df[\"name_with_brand\"])"
+  },
+  {
+   "name": "Target metric mismatch",
+   "description": "The agent applies a log1p transform to the target and reports RMSE on the transformed scale (which is mathematically RMSLE). If the true evaluation metric is RMSE on the original scale, optimizing for RMSLE might yield suboptimal results and misrepresent actual performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = np.log1p(train_df[\"price\"].values)\n...\noof_rmse = root_mean_squared_error(y, oof_preds)"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering pipeline using text vectorization, interactions, and a Ridge regression ensemble evaluated via 5-fold CV. However, it critically leaks test data by fitting the StandardScaler, OneHotEncoder, and all text vectorizers on the combined train and test dataset before splitting. Additionally, it optimizes and reports RMSE on a log-transformed target, which may not align with the requested RMSE metric on the original scale.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

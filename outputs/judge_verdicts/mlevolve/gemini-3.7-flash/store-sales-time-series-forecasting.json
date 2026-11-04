@@ -1,0 +1,116 @@
+{
+ "task": "store-sales-time-series-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model_1 = lgb.train(\n    lgb_params_1,\n    dtrain,\n    num_boost_round=2500,",
+   "reasoning": "The agent trains each stochastic model (LightGBM, CatBoost) with a single fixed random seed and does not evaluate across multiple seeds or folds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmsle_lgb1 = compute_rmsle(y_val_raw, val_preds_raw_lgb1)",
+   "reasoning": "The agent only computes and reports the competition metric (RMSLE) without evaluating other metrics like MAE or R-squared to better understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "w_lgb1, w_lgb2, w_cb = 0.40, 0.35, 0.25\n\nval_preds_log_ens = (\n    w_lgb1 * val_preds_log_lgb1 + w_lgb2 * val_preds_log_lgb2 + w_cb * val_preds_log_cb\n)",
+   "reasoning": "The agent uses a hardcoded weighted average to ensemble the models without applying any optimization or search to find the best blending weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Not retraining on full data before test prediction",
+   "description": "The agent splits the dataset into training and validation sets, trains models on the training set with early stopping, and then predicts on the test set without retraining on the full data. In time-series forecasting, the validation set contains the most recent data, which is highly valuable, and discarding it for the final test predictions degrades performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_pred_log_lgb1 = np.maximum(\n    0.0, lgb_model_1.predict(X_test, num_iteration=lgb_model_1.best_iteration)\n)"
+  },
+  {
+   "name": "Reporting performance on early-stopping set",
+   "description": "The agent evaluates the model's final performance on the exact same validation set that was used for early stopping. This yields an optimistically biased validation score because the model's training duration was tuned specifically to minimize error on this data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "callbacks=[lgb.early_stopping(50, verbose=False), lgb.log_evaluation(0)],\n)\n\nval_preds_log_lgb1 = np.maximum(\n    0.0, lgb_model_1.predict(X_val, num_iteration=lgb_model_1.best_iteration)\n)\nval_preds_raw_lgb1 = np.maximum(0.0, np.expm1(val_preds_log_lgb1))\nrmsle_lgb1 = compute_rmsle(y_val_raw, val_preds_raw_lgb1)"
+  },
+  {
+   "name": "Treating categorical features as continuous in CatBoost",
+   "description": "The agent encodes categorical columns as integers using `cat.codes` but does not provide them as `cat_features` to the CatBoostRegressor, causing the model to treat these inherently unordered categories as continuous numerical variables.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cb_model = CatBoostRegressor(**cb_params)\ncb_model.fit(\n    X_train,\n    y_train,\n    eval_set=(X_val, y_val),"
+  }
+ ],
+ "summary": "The agent implements a solid time-series forecasting solution with good practices like a 16-day lag shift to avoid lookahead bias, clean target encoding, and a strict temporal validation split. However, it fails to retrain the models on the full dataset (including the validation set) before predicting on the test set, which loses valuable recent data. Additionally, it reports validation scores on the same set used for early stopping, uses hardcoded ensemble weights without tuning, and evaluates stochastic models only once.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

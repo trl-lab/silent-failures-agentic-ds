@@ -1,0 +1,134 @@
+{
+ "task": "financial-product-complaint",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only checks for column presence in test data to align features, which is standard, and does not use test statistics for EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly drops rows with missing targets and safely handles infinite/missing values before modelling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant or all-NaN columns) is safely performed strictly on the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted; missing values are handled natively by the LightGBM algorithm.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "splitter = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a strong temporal component (complaint dates), but the agent uses randomized cross-validation, ignoring temporal order and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass LightGBM classifier for the multiclass target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a robust 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent loops over multiple random seeds to evaluate the model and averages the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_acc = float(np.mean(fold_accs))\nprint(f\"CV Accuracy: {cv_acc:.6f} (std={cv_std:.6f})\")",
+   "reasoning": "The agent only computes accuracy, which is highly misleading for predicting company responses as the target classes are typically severely imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is accurately formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "elif is_date_like(s) or (\"date\" in col.lower() or \"time\" in col.lower()):\n    numeric_cols.append(col)\nelse:\n    drop_cols.append(col)",
+   "reasoning": "The agent drops any high-cardinality column, meaning critical textual features (like the consumer complaint narrative) are entirely discarded without applying NLP techniques, and dates are only converted to raw days since epoch rather than extracting useful seasonal parts.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While the agent uses an unweighted average of predictions, this is done across different random seeds of the same model, which is the standard mathematically sound approach for variance reduction rather than a naive ensemble of distinct models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent sets up a robust training pipeline with cross-validation, multiple seeds, and model retraining based on average early-stopping rounds. However, the solution falls short in feature engineering by blindly dropping high-cardinality columns\u2014destroying the rich text narratives intrinsic to the dataset\u2014while also ignoring temporal data splitting and relying solely on accuracy for an imbalanced target.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

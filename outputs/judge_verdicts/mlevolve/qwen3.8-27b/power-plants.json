@@ -1,0 +1,112 @@
+{
+ "task": "power-plants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for epoch in range(num_epochs):\n...\n# Validation predictions\nwith torch.no_grad():",
+   "reasoning": "The agent trains and evaluates the stochastic neural network exactly once, without averaging over multiple runs or seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val_orig, val_preds_orig))",
+   "reasoning": "The agent evaluates the model solely using RMSE and does not compute other relevant regression metrics to comprehensively assess performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Exponential Overflow in Loss and Metrics",
+   "description": "The script applies an exponential transformation (expm1) to unbounded model predictions both in the custom hybrid loss and during validation scoring. If the network outputs large values, this overflows to infinity, causing NaN gradients during training and a ValueError in scikit-learn's mean_squared_error (which checks for finity), crashing the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_preds_orig = np.expm1(val_preds_log)\n    val_preds_orig = np.maximum(val_preds_orig, 0.0)\n    val_rmse = np.sqrt(mean_squared_error(y_val_orig, val_preds_orig))"
+  },
+  {
+   "name": "Invalid Type Casting for ID Column",
+   "description": "The script blindly casts the test ID column to integer when creating the submission file. If the original dataset contains string identifiers (which is common), this cast will raise a ValueError and crash the script before saving the predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": test_id.astype(int), \"NAMPLT_CAP\": test_pred_orig})"
+  },
+  {
+   "name": "Unsafe State Dict Loading",
+   "description": "The script attempts to load a best model state dictionary at the end of training without verifying if it was ever successfully updated. If the validation metric is always NaN (due to the exponential overflow), the state dict remains None, causing a TypeError upon loading.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "best_model_state = None\n...\nmodel.load_state_dict(best_model_state)"
+  }
+ ],
+ "summary": "The agent implements a Mixture Density Network for regression but introduces critical numerical instabilities by applying exponential transformations to unbounded predictions. This overflow leads to NaN gradients and ValueErrors during metric calculation, ultimately crashing the script. Additionally, the solution uses unsafe type casting for the submission IDs and lacks multiple evaluations for robustness.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

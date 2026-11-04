@@ -1,0 +1,138 @@
+{
+ "task": "sberbank-russian-housing-market",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for EDA or fitting preprocessors.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by handling missing categoricals, extracting date components, and relying on LightGBM's native missing value handling for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Categorical encoding uses categories derived strictly from the training portion (or the full train set during final refit), preventing imputation leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly splits the data temporally using a quantile cutoff on 'timestamp_year_month'.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a train/validation split to perform early stopping and determine the optimal number of iterations.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(\n        X_train_part,\n        y_train_part,\n        eval_set=[(X_val, y_val)],\n...",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model on a single validation split to find the best iteration, without using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_metric=\"rmse\",",
+   "reasoning": "The agent only tracks RMSE on the log-transformed target (which equates to RMSLE) and does not compute any other metrics to evaluate performance robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem targeting price_doc.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple relevant features such as area ratios, floor ratios, and building age.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dropped submission ID",
+   "description": "The agent drops the original ID column from the test dataset during preprocessing and artificially generates a sequential ID for the submission file using np.arange(), which will cause the predictions to be misaligned with the expected evaluation IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if \"id\" in df.columns:\n        df = df.drop(columns=[\"id\"])\n...\n\"id\": np.arange(len(test_df), dtype=int),"
+  }
+ ],
+ "summary": "The data science solution is structurally sound, incorporating temporal validation, feature engineering, and proper target transformation for RMSLE. However, a critical execution failure occurs when the agent drops the original test IDs during preprocessing and generates sequential IDs for the final submission, rendering the predictions invalid for evaluation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

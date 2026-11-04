@@ -1,0 +1,145 @@
+{
+ "task": "health-professional-shortage-areas",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set distributions prior to prediction.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly uses an imputer to handle missing numerical values and an encoder to handle categorical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_processed = preprocessor.fit_transform(X_train)\n        X_test_processed = preprocessor.transform(X_test)",
+   "reasoning": "The imputer is correctly fit on the training data and then used to transform the test data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, and standard predefined train/test splits are used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor(objective='regression', metric='rmse'",
+   "reasoning": "The task is regression and the agent correctly uses a regression model.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train)\n\n    # Generate Predictions\n    predictions = model.predict(X_test_processed)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without holding out any internal validation data to estimate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(objective='regression', metric='rmse', verbose=-1, random_state=42, n_estimators=1000, max_depth=-1, learning_rate=0.05)\n    model.fit(X_train_processed, y_train)",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated only once using a fixed random seed, without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or compute any validation metrics, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor(objective='regression'",
+   "reasoning": "The agent correctly frames the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "transformers.append(('cat', OneHotEncoder(sparse_output=False, handle_unknown='ignore'), cat_features))\n    if len(num_features) > 0:\n        transformers.append(('num', SimpleImputer(strategy='median'), num_features))",
+   "reasoning": "The agent only applies basic imputation and one-hot encoding, completely ignoring domain-informed feature engineering or derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "ID column used as a feature",
+   "description": "The agent includes all columns except the target as predictive features. This usually leaves the primary key/ID column in the feature set, potentially causing overfitting or learning arbitrary patterns based on row identifiers.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in df_train.columns if col != target_col]"
+  },
+  {
+   "name": "Synthetic prediction IDs",
+   "description": "The agent generates an arbitrary sequence of integers for the prediction ID column instead of using the actual identifiers from the test set. This will result in misaligned or invalid submissions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": list(range(len(predictions))),"
+  }
+ ],
+ "summary": "The agent delivers a bare-bones baseline script with standard preprocessing via a sklearn pipeline, avoiding data leakage. However, they fail to implement any internal validation to gauge performance, do not engineer any features, and overwrite the test predictions' IDs with a synthetic range, which will likely invalidate the submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

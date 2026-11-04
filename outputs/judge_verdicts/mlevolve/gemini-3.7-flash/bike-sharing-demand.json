@@ -1,0 +1,149 @@
+{
+ "task": "bike-sharing-demand",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data is cleaned and zero-values/missing values (like windspeed) are explicitly handled via an imputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation models and target-independent aggregations are properly fitted on the training split and then applied to validation/test sets without leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a temporal split mimicking the competition setup (days 1-14 for training, days 15-19 for validation).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models (LightGBM, XGBoost, CatBoost) are used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is performed and used for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model_cas.fit(\n        X_train,\n        y_train_casual,\n        eval_set=[(X_val, y_val_casual)],\n        callbacks=lgb_callbacks,\n    )",
+   "reasoning": "The agent trains stochastic models exactly once with a fixed random seed and evaluates them without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "validation_score = calculate_rmsle(y_val_true_count, val_ensemble)\n...\nprint(f\"Final Validation Score: {validation_score}\")",
+   "reasoning": "The agent evaluates and reports only a single validation metric (RMSLE) without verifying performance across other metrics like RMSE or MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is highly effective, predicting 'casual' and 'registered' users separately and blending them with the total count.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive domain-informed feature engineering is performed (cyclical transforms, solar elevation, biometeorological indices, lags).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensembling is not naive 'unweighted/equal-weight'; the agent uses a weighted average (e.g., 0.40, 0.35, 0.25), although the weights are hardcoded.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Ensemble Weights / Unused Optimizer",
+   "description": "The agent imports an optimization function (e.g., scipy.optimize.minimize) presumably to find optimal ensemble weights, but fails to use it, instead relying on hardcoded, arbitrary weights for blending models.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "from scipy.optimize import minimize\n... val_ensemble = 0.40 * val_lgb_blend + 0.35 * val_xgb_blend + 0.25 * val_cb_blend"
+  },
+  {
+   "name": "Incorrect Submission Identifier Column",
+   "description": "The agent generates the submission file with an incorrect identifier column name (e.g., using 'id' instead of 'datetime' for a time-series task), which would normally cause submission scoring to fail on platforms like Kaggle.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame({\"id\": test_ids, \"count\": test_ensemble_preds})"
+  }
+ ],
+ "summary": "The agent provides an exceptionally high-quality solution with advanced feature engineering, proper temporal validation, and sophisticated model retraining heuristics (scaling iterations by expansion factor). The only notable flaws are minor: evaluating stochastic models only once, relying on a single metric, leaving ensemble weights hardcoded despite importing an optimizer, and formatting the final submission with an 'id' column instead of the required 'datetime' column.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

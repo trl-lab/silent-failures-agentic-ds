@@ -1,0 +1,145 @@
+{
+ "task": "sf-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values explicitly by filling them with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation via fillna(0) is applied separately to the train and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any internal train/validation split, so it does not make a random split on temporal data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multi-class classification model (LGBMClassifier) for this task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train)\n\n# Predict\npredictions_proba = model.predict_proba(X_test_processed)",
+   "reasoning": "The agent trains on the full training set and predicts directly on the test set without establishing a validation split to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation score, so it cannot be penalized for evaluating only once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly sets up the model as a multi-class classifier.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "categorical_cols = X_train.select_dtypes(include=['object', 'category']).columns.tolist()\n...\n    X_train_cats_encoded = pd.get_dummies(X_train_cat, drop_first=True)",
+   "reasoning": "The agent uses raw columns as-is and attempts to one-hot encode the 'Dates' column as a categorical string instead of extracting highly relevant temporal features like hour, day, and month.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid Pandas Index Operation",
+   "description": "The code attempts to use the bitwise NOT operator (~) directly on a pandas Index object, which raises a TypeError. This causes the feature engineering try-except block to fail silently and fall back to raw data, ultimately crashing the LightGBM model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_num = X_train[~X_train.columns.intersection(categorical_cols)].copy()"
+  },
+  {
+   "name": "Hard Predictions for Probabilistic Metric",
+   "description": "The agent outputs hard class predictions instead of class probabilities, which is fundamentally incompatible with the evaluation metric (log_loss) that requires probabilistic outputs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predicted_classes = model.predict(X_test_processed)\n...\nresult_df = pd.DataFrame({\n    'id': np.arange(len(test_df)),\n    'Category': predicted_classes.astype(str)\n})"
+  }
+ ],
+ "summary": "The agent's solution contains severe technical and methodological flaws. It fails to perform necessary feature engineering (ignoring the temporal nature of the 'Dates' column), skips model validation entirely, and attempts an invalid pandas index operation that silently masks the failure of its preprocessing step. Furthermore, it incorrectly submits hard class labels for a task evaluated on log_loss, which requires class probabilities.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

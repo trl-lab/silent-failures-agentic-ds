@@ -1,0 +1,138 @@
+{
+ "task": "electrical-grid-stability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any statistics on the test data or use it for EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by filling missing values with medians and one-hot encoding categorical variables.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling or normalisation is applied in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_medians, categorical_categories = fit_preprocessor(\n        X,\n        numeric_features,\n        categorical_features,\n    )",
+   "reasoning": "The preprocessor (which calculates median values for imputation) is fit on the entire training set 'X' before it is split into training and validation sets, leaking validation statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data into train and validation sets using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly evaluates models on a held-out validation set, not the final test set, to select the best model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n        proba = model.predict_proba(X_val)[:, positive_idx]",
+   "reasoning": "The agent trains and evaluates each stochastic model (LGBM, XGBoost, CatBoost) exactly once on a single validation split, rather than averaging over multiple runs or cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = roc_auc_score(y_val, proba)",
+   "reasoning": "The agent evaluates the models using only a single metric (ROC AUC) without checking other supporting metrics like log loss or calibration.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def transform_features(X, numeric_features, categorical_features, numeric_medians, categorical_categories):",
+   "reasoning": "The agent only applies basic missing value imputation and one-hot encoding, without creating any derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage",
+   "description": "The dataset contains a continuous variable ('stab') that is mathematically thresholded to create the categorical target ('stabf'). Including it as a predictor causes extreme target leakage during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != TARGET]"
+  }
+ ],
+ "summary": "The agent implements a basic machine learning pipeline but suffers from a critical target leakage flaw by failing to drop the continuous proxy for the target ('stab'). It also leaks validation statistics by fitting the imputation preprocessor on the entire training set before the train/validation split. Evaluation is limited to a single metric and a single run per model, and feature engineering is entirely absent.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

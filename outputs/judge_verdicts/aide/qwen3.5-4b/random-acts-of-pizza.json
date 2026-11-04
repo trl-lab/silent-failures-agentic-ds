@@ -1,0 +1,152 @@
+{
+ "task": "random-acts-of-pizza",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test set during EDA or data preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna()\ntest_df = test_df.dropna()",
+   "reasoning": "The agent makes no effort to handle missing values intelligently, opting instead to drop all rows with NaNs, which is catastrophic for the test set as it alters the submission length.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "While requests have timestamps, random splitting is commonly accepted for this task formulation, though time-based splits are generally safer.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classification model (LightGBM with objective='binary') for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into train and validation sets and uses cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross-validation, evaluating the model across multiple folds rather than just once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimises for ROC-AUC, which is the designated and appropriate evaluation metric for this imbalanced binary classification task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    train_df.drop(\"requester_received_pizza\", axis=1),",
+   "reasoning": "The agent uses raw columns as-is without extracting any features, which is highly problematic for this dataset since it contains rich text and temporal fields.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Suboptimal fold model selection",
+   "description": "The agent performs cross-validation but only saves and predicts using the single model from the fold with the best validation score. This discards the benefits of ensembling multiple folds and risks overfitting to the validation data of that specific fold.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_auc > best_auc:\n        best_auc = fold_auc\n        best_model = model\n\n# Final model evaluation on validation set\nfinal_pred = best_model.predict(X_val)"
+  },
+  {
+   "name": "Dropping target column from test set",
+   "description": "The agent attempts to drop the target column from the test dataframe before generating predictions. Because test sets typically do not contain the target column, this will raise a KeyError and cause the script to crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_pred = best_model.predict(test_df.drop(\"requester_received_pizza\", axis=1).values)"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent creates submission IDs using a simple range instead of mapping predictions back to the actual IDs provided in the test set. This will result in mismatched or invalid submissions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame(\n    {\"id\": range(len(test_pred)), \"requester_received_pizza\": test_pred}\n)"
+  }
+ ],
+ "summary": "The agent implements a LightGBM baseline with cross-validation but makes several critical implementation errors. It incorrectly drops missing values from the test set, hardcodes submission IDs, and attempts to drop the target column from the test set, all of which will cause execution or submission failures. Additionally, the agent lacks any feature engineering for the text-heavy dataset and suboptimally selects a single fold model instead of ensembling.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

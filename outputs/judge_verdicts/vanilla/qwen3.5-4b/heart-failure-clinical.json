@@ -1,0 +1,159 @@
+{
+ "task": "heart-failure-clinical",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or peeking at test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def preprocess_data(dataframe):\n    return dataframe.fillna(0)",
+   "reasoning": "The agent makes a basic explicit effort to handle missing values by filling them with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no temporal order or sequential timestamp splitting required for this patient tabular dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly chooses a binary classifier (LightGBM) for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_set = lgb.Dataset(X_test_processed, reference=train_set)",
+   "reasoning": "The agent does not split the training data to create a validation set, and improperly attempts to use the test set for validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params, \n    train_set, ...",
+   "reasoning": "The LightGBM model is trained exactly once without averaging over multiple runs or folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "'metric': 'binary_logloss', # Using logloss for calibration with AUC",
+   "reasoning": "The agent optimizes only for binary logloss during training and does not evaluate multiple metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_columns = [\n    'age', 'anaemia', 'creatinine_phosphokinase', 'diabetes', \n    'ejection_fraction', 'high_blood_pressure', 'platelets', \n    'serum_creatinine', 'serum_sodium', 'sex', 'smoking', 'time'\n]",
+   "reasoning": "The agent collapses a survival analysis problem into plain binary classification, ignoring the time-to-event nature of the problem and instead improperly using follow-up 'time' as a regular predictive feature.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_columns].copy()",
+   "reasoning": "The agent uses the raw columns directly without deriving any new features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Error (Incorrect Case)",
+   "description": "The code uses a lowercase column name for the target variable when the dataset contains uppercase, leading to a KeyError/ValueError that stops execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_column = 'death_event'\n...\nraise ValueError(f\"Target column '{target_column}' not found in training data.\")"
+  },
+  {
+   "name": "Hard Predictions for ROC AUC",
+   "description": "The agent converts continuous probabilities into binary 0/1 classes before submission, which severely degrades the ROC AUC metric as it expects probabilities.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "threshold_predictions = (probabilities >= 0.5).astype(int)"
+  },
+  {
+   "name": "Invalid Early Stopping Validation Set",
+   "description": "The agent sets the unlabelled test data as the validation set for early stopping. LightGBM cannot compute validation metrics without labels, which will cause the training process to crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_set = lgb.Dataset(X_test_processed, reference=train_set)\n...\nvalid_sets=val_set"
+  },
+  {
+   "name": "Target Leakage",
+   "description": "The agent includes the follow-up duration ('time') as a feature. Since the follow-up time ends when the event (death) occurs, this directly leaks target information into the features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_columns = [..., 'time']"
+  }
+ ],
+ "summary": "The agent's script fails to execute due to a case-sensitivity error with the target column name. Methodologically, the solution contains critical flaws: it uses the follow-up 'time' column as a feature causing severe target leakage, attempts to use the unlabelled test set for early stopping validation (which will crash the model), outputs hard binary predictions instead of probabilities for an ROC AUC metric, and lacks any internal train/validation split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,156 @@
+{
+ "task": "discretionary-grant",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"\\nMissing values in test:\\n{test.isnull().sum()[test.isnull().sum() > 0]}\")",
+   "reasoning": "The agent explicitly inspects the test set's missing value distribution during the initial data loading phase.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values using median imputation for numerics and string filling for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply global scaling or normalization to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection and interaction selection based on target correlation are strictly isolated to the training indices.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics do not leak the test set, although they do inappropriately leak the validation set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard tabular problem without a defined temporal component, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM regressor is entirely appropriate for predicting the continuous AwardTotal target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and utilized.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates on a validation set across model variants, not the final held-out test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n        params,\n        train_data,\n        num_boost_round=5000,",
+   "reasoning": "The agent trains a stochastic LightGBM model once per configuration without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = root_mean_squared_error(y_val, val_pred)",
+   "reasoning": "The agent evaluates its models using only RMSE and does not compute secondary metrics to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated appropriately.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent executes extensive feature engineering including log transforms, interactions, ratios, and target encoding.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage during Imputation and Encoding",
+   "description": "The agent computes statistics for imputation, label encoding, and frequency encoding using the entire pre-split training dataframe (train + val). This leaks validation distribution information into the training data, compromising the integrity of the validation split.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_median = all_data.loc[: n_train - 1, col].median()\nall_data[col] = all_data[col].fillna(train_median)"
+  },
+  {
+   "name": "Biased Final Evaluation Score",
+   "description": "The agent selects the best hyperparameters based on performance on a validation set and then reports the performance on that exact same validation set as the final score. This results in an optimistically biased estimate of model generalization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "score = val_rmse_clipped\nprint(f\"Final Validation Score: {score}\")"
+  },
+  {
+   "name": "Runtime Execution Error",
+   "description": "The script fails with a TypeError during execution, preventing the generation of the submission file. This is often caused by inappropriate type casting (e.g., trying to cast string IDs to integer) or incompatible library function signatures.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "submission = pd.DataFrame({\"id\": test_id.astype(int), \"AwardTotal\": test_preds})"
+  }
+ ],
+ "summary": "The agent constructs a complex LightGBM pipeline with strong feature engineering practices like target encoding and interaction terms explicitly isolated to the training indices. However, it still inadvertently leaks validation data when computing simpler statistics (like median imputation and frequency encoding) over the entire un-split training subset. Additionally, the agent's final reported validation score is biased because it evaluates on the exact same set used for hyperparameter tuning, and a runtime type error prevents the submission file from being saved.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

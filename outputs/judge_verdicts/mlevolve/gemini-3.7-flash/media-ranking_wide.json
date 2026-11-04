@@ -1,0 +1,153 @@
+{
+ "task": "media-ranking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train.replace([np.inf, -np.inf], np.nan, inplace=True)",
+   "reasoning": "The agent thoroughly cleans the data, handling missing values, infinite values, and aggressive string-to-numeric type conversions.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "km_scaler.fit_transform(km_imputer.fit_transform(X_train[numeric_cols]))",
+   "reasoning": "Scalers are fit exclusively on the training data, so test statistics do not leak into the training distribution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd_w = TruncatedSVD(n_components=n_c_svd, random_state=42 + c_idx)\n        w_tr_svd = svd_w.fit_transform(w_tr)",
+   "reasoning": "Dimensionality reduction (SVD) is fit only on the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "rf_imputer.fit_transform(X_train_np)",
+   "reasoning": "Imputers are fit only on the training data, preventing test missing-value statistics from leaking.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "self.drop1 = nn.Dropout(dropout_rate)",
+   "reasoning": "The deep learning model includes dropout, layer normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 10-fold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly held out and only used for final predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_lgb = test_lgb_folds.mean(axis=0)",
+   "reasoning": "The agent evaluates stochastic models across 10 cross-validation folds and averages the predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "root_mean_squared_error(y_val_f, val_preds)",
+   "reasoning": "The agent optimizes for RMSE, which is explicitly the requested metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard regression task as specified.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[f\"{c1}_add_{c2}\"] = X_train[c1] + X_train[c2]",
+   "reasoning": "The agent implements extensive feature engineering, including interactions, aggregations, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(ensemble_loss, init_weights, method=\"SLSQP\", bounds=bounds, constraints=constraints)",
+   "reasoning": "The agent uses advanced ensembling techniques, including SLSQP weight optimization and Ridge/Bayesian meta-learners.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-Validation Data Leakage",
+   "description": "The agent computes global transformations (such as imputation for tree models, clustering, and target encoding global statistics) on the entire training set outside the cross-validation loop. This leaks information from validation folds into training folds, artificially inflating the out-of-fold validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "rf_imputer = SimpleImputer(strategy=\"median\")\nX_train_imp = rf_imputer.fit_transform(X_train_np)"
+  },
+  {
+   "name": "TypeError on Empty Categorical Columns",
+   "description": "The agent attempts to concatenate text features using `.agg(' | '.join, axis=1)` on a DataFrame subset of categorical columns. If the dataset has no categorical columns (or all were successfully coerced to numeric), this operation is performed on an empty DataFrame, which raises a TypeError in pandas and crashes the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "dense_text_train = X_train[categorical_cols].astype(str).agg(\" | \".join, axis=1)"
+  }
+ ],
+ "summary": "The agent provides an extremely thorough and advanced solution, including a wide array of models, feature engineering, and ensembling. However, it suffers from data leakage across cross-validation folds by applying global transformations (like imputation and clustering) before the CV loop. Additionally, a fragile pandas aggregation on categorical columns causes a TypeError if no categorical columns are present, leading to script failure.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 8,
+ "stage_count_max": 8,
+ "no_code": false
+}

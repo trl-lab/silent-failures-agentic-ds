@@ -1,0 +1,103 @@
+{
+ "task": "vehicle",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y, oof_preds)",
+   "reasoning": "The agent evaluates and reports only accuracy without verifying the class distribution to ensure accuracy is an appropriate metric for the dataset.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "blended_val_prob = 0.5 * prob_svc_val + 0.5 * prob_mlp_val",
+   "reasoning": "The agent combines the predictions of an SVC and an MLP using a naive 50/50 equal-weight average, without performing any tuning or search to optimize the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputation leakage in cross-validation",
+   "description": "The agent imputes missing values using the median of the entire training dataset before splitting it into cross-validation folds. This leaks validation set statistics into the training folds, making the cross-validation performance estimate overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = X.fillna(X.median())\n... X_train = engineer_features(train_df, feature_cols)\n... for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y)):"
+  },
+  {
+   "name": "Batch-dependent test preprocessing",
+   "description": "The agent imputes missing values in the test set using the median of the test set itself rather than using statistics learned from the training data. This causes predictions for test instances to inappropriately depend on the specific batch of test data provided, which is an anti-pattern for production models.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = X.fillna(X.median())\n... X_test = engineer_features(test_df, feature_cols)"
+  }
+ ],
+ "summary": "The agent provides a generally well-structured solution with domain-specific feature engineering, cross-validation, and proper pipelines for scaling. However, it introduces data leakage by applying median imputation on the entire training set before cross-validation splitting, and similarly computes test-set medians for test imputation, causing batch dependency. Additionally, the ensembling approach relies on a naive unweighted average, and the agent does not verify whether accuracy is robust to the dataset's class distribution.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

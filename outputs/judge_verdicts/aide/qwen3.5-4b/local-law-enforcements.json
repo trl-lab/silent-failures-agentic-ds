@@ -1,0 +1,138 @@
+{
+ "task": "local-law-enforcements",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent peeking at test data statistics during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Imputation is applied to the entire training set before performing K-Fold cross-validation, leaking validation fold missing-value statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not clear if there is a temporal component to this dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly evaluates the model using a 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent utilizes 5-fold cross-validation, which provides an averaged evaluation across multiple data splits, mitigating the single-evaluation issue.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_fold_val, y_pred_val))",
+   "reasoning": "The agent evaluates the model solely using RMSE without verifying if it is the most robust metric for the data distribution (e.g. checking for outliers where MAE might be better).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The modeling problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent simply feeds all raw columns into the model without any attempt at deriving new features or applying domain-informed transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Set Imputation Leakage",
+   "description": "The agent imputes missing values in the test set using statistics (median) calculated from the test set itself, rather than from the training set. This is critically invalid for production models as test statistics should not be assumed to be available per-instance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median())"
+  }
+ ],
+ "summary": "The agent correctly sets up a regression pipeline with cross-validation but completely ignores feature engineering. The most critical issue is data leakage: the agent computes imputation statistics directly on the test set, and similarly applies imputation to the training set before cross-validation, leaking validation fold statistics into the training folds.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

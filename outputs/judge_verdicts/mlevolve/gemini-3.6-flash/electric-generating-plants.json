@@ -1,0 +1,156 @@
+{
+ "task": "electric-generating-plants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test set; it separates train and test data before any cross-validation or fitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "median_val = train_feats[col].median()\n        train_feats[col] = train_feats[col].fillna(median_val)",
+   "reasoning": "The agent explicitly handles missing values via median imputation and categorical filling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\n        X_tr = scaler.fit_transform(X_train[train_idx])",
+   "reasoning": "Scaling is correctly performed per-fold inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "median_val = train_feats[col].median()",
+   "reasoning": "Imputation statistics are fit only on the training set (train_feats), preventing leakage from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unknown whether the target requires a strict time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_xgb = xgb.XGBRegressor(",
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "self.dropout = nn.Dropout(dropout_rate)\noptimizer = optim.AdamW(..., weight_decay=weight_decay)",
+   "reasoning": "The neural network correctly employs dropout, weight decay, and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent implements a rigorous 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_nn = calculate_rmse(y_train_raw, oof_nn_raw)",
+   "reasoning": "Stochastic models are evaluated over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def calculate_rmse(y_true, y_pred):",
+   "reasoning": "The agent uses RMSE, which is the official task metric requested.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as standard tabular regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_feats[f\"{col}_freq\"] = train_feats[col].map(freq_map).fillna(0)",
+   "reasoning": "The agent applies extensive feature engineering, including out-of-fold target encoding, spatial rotations, and group statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "res = minimize(\n            blend_objective,\n            init_w,",
+   "reasoning": "The agent uses Nelder-Mead optimization to find the optimal blending weights for the ensemble, rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded ID column detection",
+   "description": "The agent hardcodes a specific list of possible ID column names. If the dataset uses a different naming convention (e.g., 'Plant_Code'), the ID column will not be dropped (leaking into features), and the submission file will use a generated integer range instead of actual IDs, leading to submission failure.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in [\"id\", \"ID\", \"Id\"]:\n        if col in train_df.columns:\n            id_col = col"
+  },
+  {
+   "name": "Arbitrary non-negative target truncation",
+   "description": "The agent correctly recognizes that the target can be negative during preprocessing (using np.sign and np.abs for log1p), but then arbitrarily truncates the final ensembled predictions to be non-negative. This contradiction could degrade performance if negative targets are valid (e.g., pumped storage plants consuming net energy).",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_test_preds = np.maximum(0.0, final_test_preds)"
+  }
+ ],
+ "summary": "The agent provides an exceptionally robust and well-structured data science solution. It correctly implements out-of-fold target encoding, per-fold scaling, a well-regularised neural network, and an optimised ensemble. The only observable flaws are a brittle, hardcoded assumption about the ID column name and an arbitrary truncation of final predictions at zero that contradicts its own earlier target transformation logic.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

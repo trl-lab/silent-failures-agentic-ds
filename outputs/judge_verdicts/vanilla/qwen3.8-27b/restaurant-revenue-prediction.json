@@ -1,0 +1,160 @@
+{
+ "task": "restaurant-revenue-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing; test data is only transformed using statistics/mappings derived from the training set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent parses dates, replaces infinite values, and explicitly handles categorical missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping all-NaN columns) does not leak statistical information from the target or test set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Categorical imputation uses constant values ('MISSING' and -1) which does not leak statistics, and numerical columns are passed natively to tree models.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Although the dataset contains 'Open Date', the task is cross-sectional across different independent restaurants, making random train/test splitting standard.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly splits the training data into train and validation sets using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Model selection and weighting are based on the internal validation set, not the held-out test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cand[\"model\"].fit(cand[\"X_tr\"], y_tr)",
+   "reasoning": "The stochastic tree models (LightGBM, XGBoost, CatBoost) are trained and evaluated exactly once using a single random seed, rather than averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = float(np.sqrt(mean_squared_error(y_val, pred)))",
+   "reasoning": "The agent evaluates the models using only RMSE, without verifying robustness against outliers (e.g., using MAE) which is common in revenue prediction.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers features such as date parts from 'Open Date' and missing-value indicators.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses inverse-RMSE weighting for the ensemble, which is a step above naive unweighted ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding test IDs",
+   "description": "The agent drops the identifier column from the test set during preprocessing and generates arbitrary sequential IDs for the final submission, which can cause predictions to be misaligned or rejected by evaluation systems if test IDs are not perfectly sequential.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = test_df.drop(columns=[ID_COL])\n...\nout = pd.DataFrame({\"id\": np.arange(len(test_pred), dtype=int), \"revenue\": test_pred})"
+  },
+  {
+   "name": "Data leakage via encoding before splitting",
+   "description": "The agent calculates frequency encoding statistics on the entire training dataset before performing the train/validation split. This leaks frequency information from the validation set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_enc = add_categorical_features(train_df, cat_cols, train_df)\n...\ntrain_idx, val_idx = train_test_split(np.arange(len(X_train_enc)), test_size=0.2, random_state=RANDOM_STATE)"
+  },
+  {
+   "name": "Unnormalized ensemble weights upon model failure",
+   "description": "The agent pre-calculates ensemble weights that sum to 1, but if a model fails during the final test prediction, its weight is omitted without redistributing to the successful models, causing the final ensembled predictions to be systematically scaled down (underpredicted).",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "weight = weights.get(cand[\"name\"], 0.0)\n...\ntry:\n    ...\n    test_preds.append(weight * pred)\nexcept Exception:\n    continue\n...\ntest_pred = sum(test_preds)"
+  }
+ ],
+ "summary": "The agent constructs a reasonable pipeline with automated handling of categoricals and missing values, utilizing inverse-RMSE weighted ensembling of tree-based regressors. However, it exhibits critical flaws including dropping the explicit test IDs in favor of a generated sequence, leaking validation data statistics by applying frequency encoding prior to the train/validation split, and poorly handling ensemble weights if a model fails during inference.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

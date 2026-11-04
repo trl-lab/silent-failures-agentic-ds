@@ -1,0 +1,134 @@
+{
+ "task": "predict-energy-behavior-of-prosumers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_data = train_data.dropna(subset=['target']).reset_index(drop=True)",
+   "reasoning": "The agent drops missing targets and relies on LightGBM's native handling of missing feature values, which is an acceptable practice.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined['installed_capacity'] = combined['installed_capacity'].fillna(0)",
+   "reasoning": "Constant imputation (filling with 0) is applied before splitting, but this does not leak distributional statistics from the test set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses a regression model for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_mask = train_data['data_block_id'] > val_cutoff",
+   "reasoning": "The agent correctly implements a temporal hold-out validation split based on data_block_id.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(\n        tr_sub[sub_features], tr_sub['target'],\n        eval_set=[(va_sub[sub_features], va_sub['target'])]",
+   "reasoning": "The LightGBM models are trained and evaluated exactly once without cross-validation or multiple seed runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "'metric': 'mae'",
+   "reasoning": "The agent only evaluates the model using MAE and does not track secondary metrics like RMSE to understand error distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for is_cons in [0, 1]:\n    tr_sub = tr_df[tr_df['is_consumption'] == is_cons]",
+   "reasoning": "The agent correctly formulates the task, properly predicting the target and even splitting the data into consumption and production regimes.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[f'target_lag_{lag}h'] = combined.groupby(lag_group_cols)['target'].shift(lag)",
+   "reasoning": "The agent implements extensive feature engineering, including datetime components, lag features, and rolling statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incomplete Code / Syntax Error",
+   "description": "The provided code script is truncated and ends mid-statement, which will cause a syntax error and prevent execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_preds[test_data['is_consumption'] == is_cons] = model.predict(te_sub"
+  }
+ ],
+ "summary": "The agent developed a fundamentally sound approach, utilizing a temporal hold-out validation set, extensive feature engineering with target lags, and separate LightGBM models for consumption and production. However, the solution suffers from a critical execution failure because the final code block is truncated mid-statement, resulting in a syntax error. Additionally, minor issues include a lack of multiple seed runs for the stochastic model and relying exclusively on a single evaluation metric.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,169 @@
+{
+ "task": "transmission-lines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis (EDA) is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans missing sentinels, parses string voltages, and imputes data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit and applied strictly within the cross-validation fold loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation (fillna with mean) is performed safely within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models for the m-classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch TabularResNet includes proper regularization: Dropout, LayerNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold to validate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly held out and only used for final prediction generation, not for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated using 5-fold cross-validation, implicitly averaging variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes logloss for the ensemble while accurately reporting the target task metric (accuracy).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multiclass classification problem for the voltage classes.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including spatial geometries, KNN distances, and text SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an SLSQP optimizer to find optimal blend weights rather than using a naive unweighted average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target encoding leak",
+   "description": "The agent computes target encoding statistics on the training fold (`X_tr`) and maps them directly back to the same training fold. This includes the target of the row itself in its own feature, causing severe target leakage and overfitting. Proper target encoding requires nested out-of-fold computation for the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "stats = pd.DataFrame({\"cat\": X_tr[col], \"target\": y_tr_binary}).groupby(\"cat\")[\"target\"].agg([\"count\", \"mean\"])\n...\nX_tr[te_col_name] = X_tr[col].map(te_map)"
+  },
+  {
+   "name": "Incorrect submission file path",
+   "description": "The script saves the submission file to a subdirectory (`./submission/submission.csv`) instead of the standard root directory expected by the evaluation framework (`./submission.csv`), causing a critical 'submission file not found' runtime error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df.to_csv(\"./submission/submission.csv\", index=False)"
+  },
+  {
+   "name": "Shallow copy of PyTorch state_dict",
+   "description": "The agent attempts to implement early stopping by saving `best_state = net.state_dict().copy()`. Because this is a shallow copy, the underlying parameter tensors are updated in-place during subsequent epochs. As a result, the model always loads the weights from the final epoch rather than the best epoch.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "best_state = net.state_dict().copy()"
+  },
+  {
+   "name": "TF-IDF tokenization drops single-digit categories",
+   "description": "The agent label-encodes categorical variables into integers and concatenates them into strings for TF-IDF. However, the default `TfidfVectorizer` token pattern (`(?u)\\b\\w\\w+\\b`) ignores single-character tokens. Consequently, all categorical values encoded as 0-9 are silently dropped from the text features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=800, stop_words=\"english\", ngram_range=(1, 2))"
+  },
+  {
+   "name": "Hardcoded submission ID column name",
+   "description": "The agent dynamically detects the ID column name from the test set (e.g., 'OBJECTID') but hardcodes the output column name as 'id' in the submission file, which will cause evaluation failures if the platform strictly expects the original ID column name.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame({\"id\": test_ids, \"VOLT_CLASS\": test_labels})"
+  }
+ ],
+ "summary": "The agent developed a highly sophisticated pipeline featuring extensive feature engineering, multiple model types, and SLSQP-optimized ensembling, successfully avoiding all predefined failure modes. However, the solution contains critical implementation flaws, including a severe in-fold target encoding leak and an incorrect output file path that breaks the submission process.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,113 @@
+{
+ "task": "historical-earthquake-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "train_test_split(\n                X_train,\n                y,\n                test_size=0.2,\n                random_state=42,\n                stratify=y,\n            )",
+   "reasoning": "The dataset contains historical events with a date column, but the agent splits the data randomly instead of chronologically, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "except Exception:\n            pass",
+   "reasoning": "Due to a fatal error in the LightGBM model being caught by a bare except block, the validation step silently fails and no validation score is computed or reported.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Validation accuracy: {accuracy_score(y_val, val_pred):.6f}\")",
+   "reasoning": "The agent only computes accuracy and does not evaluate other metrics like F1-score to account for potential class imbalance in damage severity.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "DROP_COLS = [\n    TARGET,\n    \"Date (YYYY/MM/DD)\",\n    \"Location Name\",\n    \"Area\",\n    \"Comments\",\n    \"URL\",\n    \"OBJECTID\",\n    \"ID\",\n    \"DRAWING_ORDER\",\n    \"x\",\n    \"y\",\n]",
+   "reasoning": "The agent drops highly predictive columns like spatial coordinates (x, y) and dates without extracting any meaningful features from them, completely discarding the spatial and temporal aspects of the task.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "invalid_api_usage",
+   "description": "The agent passes invalid arguments to a library API (e.g., prefixing column names with 'name:' for LightGBM's categorical_feature parameter), which causes a fatal runtime error that prevents the primary model from training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "categorical_feature = [\n        f\"name:{col}\" for col in categorical_cols if col in feature_cols\n    ]"
+  },
+  {
+   "name": "silent_exception_handling",
+   "description": "The code uses broad `except Exception:` blocks that silently swallow critical errors (like the fatal LightGBM error). This masks bugs in model initialization and causes the pipeline to silently skip validation and fall back to suboptimal models without warning.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "except Exception:\n            pass"
+  }
+ ],
+ "summary": "The agent implements a basic classification pipeline but completely fails to extract features from critical spatial and temporal columns, dropping them instead. Furthermore, an invalid API argument passed to LightGBM causes a fatal error that is silently swallowed by broad try-except blocks, causing the entire validation step to be skipped and forcing the script to silently use a fallback model.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

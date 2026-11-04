@@ -1,0 +1,148 @@
+{
+ "task": "communities-and-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]\n...\ntrain_data = lgb.Dataset(X_train, label=y_train)",
+   "reasoning": "The agent makes no effort to clean the data or handle missing values, relying entirely on LightGBM's internal handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM with objective='regression') is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation to evaluate the model during training.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, satisfying the requirement for multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = mean_squared_error(y_val_fold, val_pred)",
+   "reasoning": "The agent evaluates the model using only Mean Squared Error (which it mislabels as RMSE) and does not verify performance with any other metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "exclude_cols = [\"state\", \"county\", \"community\", \"fold\", target]\nfeature_cols = [col for col in train_df.columns if col not in exclude_cols]",
+   "reasoning": "The agent simply drops identifier columns and uses the raw features as-is without engineering any derived features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Crash due to Mismatched Samples",
+   "description": "The script attempts to compute a final test metric using an empty slice of training labels and the full test predictions, which will raise a ValueError and crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "np.sqrt(mean_squared_error(y_train.iloc[:0], test_pred))"
+  },
+  {
+   "name": "Invalid Cross-Validation Aggregation (Data Leakage)",
+   "description": "When computing the final average validation score, the code incorrectly uses the single model trained on the final fold to predict on all folds. This evaluates the model on its own training data for all but the last fold.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "mean_squared_error(y_train.iloc[val_idx], model.predict(X_train.iloc[val_idx]))\n        for fold_idx, (train_idx, val_idx) in enumerate(\n            KFold(n_splits=5, shuffle=True, random_state=42)\n        )"
+  },
+  {
+   "name": "Suboptimal Ensembling (Best Fold Selection)",
+   "description": "The agent selects the single 'best' model out of the cross-validation folds to generate test predictions instead of averaging the predictions of all fold models, which can lead to overfitting on that specific validation fold.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_rmse < best_score:\n        best_score = fold_rmse\n        best_model = model\n...\ntest_pred = best_model.predict(X_test)"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM model with 5-fold cross-validation but completely neglects data cleaning and feature engineering. Furthermore, the solution is severely compromised by two major coding errors: a data leakage bug when aggregating CV scores (using the final fold's model for all predictions) and an execution-crashing bug when evaluating the test set against empty labels.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

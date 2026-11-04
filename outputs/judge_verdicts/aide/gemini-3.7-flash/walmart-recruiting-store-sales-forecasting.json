@@ -1,0 +1,142 @@
+{
+ "task": "walmart-recruiting-store-sales-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute statistics on or otherwise inspect the test set during feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[col] = df[col].fillna(0.0)",
+   "reasoning": "The agent explicitly handles missing values in the MarkDown columns, and LightGBM natively manages any remaining missing data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no automated feature selection applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[col] = df[col].fillna(0.0)",
+   "reasoning": "Missing value imputation is done using constants, which avoids any leakage of dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series, but the agent uses a random K-Fold split, introducing severe look-ahead bias by allowing future sales to predict past sales.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The task is a regression problem and the agent correctly uses a regression model.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly utilizes an out-of-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(train_df)):",
+   "reasoning": "The model is evaluated across multiple cross-validation folds, satisfying the requirement for repeated evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def calculate_wmae(y_true, y_pred, is_holiday):",
+   "reasoning": "The agent evaluates using WMAE, which is the specific and most appropriate metric required for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "y_train = X_train_df[\"Weekly_Sales\"].values",
+   "reasoning": "The agent correctly frames the problem as predicting weekly sales via regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[\"Week_sin\"] = np.sin(2 * np.pi * df[\"Week\"] / 52.0)",
+   "reasoning": "The agent engineers multiple relevant features, including cyclical dates, holiday distances, and target aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_te) / n_splits",
+   "reasoning": "The agent averages cross-validation folds, which is standard practice and does not constitute a naive ensemble of disparate models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unregularized Target Encoding",
+   "description": "The agent computes target encoding statistics (mean, median, etc.) directly on the entire training fold without employing additive smoothing or inner cross-validation. This makes the model highly susceptible to overfitting on categorical combinations with very few sample points.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "store_dept_stats = (\n        X_train_df.groupby([\"Store\", \"Dept\"], observed=False)[\"Weekly_Sales\"]\n        .agg([\"mean\", \"median\", \"std\", \"min\", \"max\"])"
+  }
+ ],
+ "summary": "The agent successfully engineers many domain-appropriate features and correctly optimizes the custom WMAE metric using sample weights. However, a critical failure occurs because the agent ignores the temporal nature of the dataset, utilizing a randomly shuffled K-Fold cross-validation instead of a time-based split. Furthermore, the target encodings are computed without any form of regularization, which can lead to severe overfitting.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

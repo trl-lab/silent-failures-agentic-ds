@@ -1,0 +1,155 @@
+{
+ "task": "drug-consumption",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data during the setup or training phases.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values\ny_train = train_df[target_col].values",
+   "reasoning": "The agent directly uses raw columns without any data cleaning, missing value handling, or outlier removal.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a multiclass objective is appropriate for the multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, which evaluates multiple runs to account for variance (despite bugs in the implementation).",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_train[val_idx], val_preds)",
+   "reasoning": "The agent only reports accuracy and does not consider other metrics like F1-score or multi-logloss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent uses the raw features exactly as provided without any feature engineering or derived features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid LightGBM metric for multiclass",
+   "description": "The agent specifies 'accuracy' as the metric for a LightGBM multiclass model, which is not natively supported and causes a fatal execution error. Supported metrics include 'multi_error' or 'multi_logloss'.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"metric\": \"accuracy\","
+  },
+  {
+   "name": "Length mismatch in evaluation metric computation",
+   "description": "The agent computes a metric by comparing the target values of only the last fold against the accumulated predictions from all folds, resulting in a length mismatch and execution failure.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_train[val_idx], val_preds)"
+  },
+  {
+   "name": "Missing argmax for multiclass predictions",
+   "description": "The agent fails to apply argmax to the multiclass probability predictions returned by the model. This causes execution failures when computing accuracy with discrete labels and when assigning the 2D prediction array to a 1D column in the submission dataframe.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": test_ids, \"cannabis\": test_pred})"
+  },
+  {
+   "name": "Using only the last fold's model for inference",
+   "description": "The agent trains models in a cross-validation loop but overwrites the model variable in each iteration, ultimately using only the model from the final fold to generate test predictions instead of ensembling predictions from all folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_pred = model.predict(X_test)"
+  }
+ ],
+ "summary": "The agent attempts to train a LightGBM multiclass classifier using 5-fold cross-validation but completely omits data cleaning and feature engineering. The solution is plagued by several critical execution bugs, including an invalid LightGBM metric, shape and length mismatches in evaluation due to accumulating predictions without aligning labels, and failing to convert probabilities to class indices. Additionally, only the model from the last cross-validation fold is used for test predictions.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "bank-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed in the final solution.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "model = XGBClassifier(**xgb_params)",
+   "reasoning": "While the agent explicitly handles a few anomalous values (like pdays == -1), it generally relies on XGBoost's native handling for missing values without an explicit overall cleaning or imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[\"month_num\"] = combined[\"month\"].astype(str).str.lower().map(month_map).fillna(0).astype(int)",
+   "reasoning": "The only imputation before splitting uses a constant value (0), which does not leak test set statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "XGBClassifier is appropriate for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the stochastic model across multiple data splits rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_auc = roc_auc_score(y, oof_preds)\nprint(f\"OOF ROC-AUC: {oof_auc:.6f}\")",
+   "reasoning": "The agent only computes and reports ROC-AUC, without verifying other metrics like precision, recall, or log loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple derived features, including cyclical encodings, interaction terms, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across CV folds, which is standard practice and does not require complex tuning, rather than naively ensembling different model types.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via group aggregation",
+   "description": "Group-level statistics (e.g., mean) are computed on the combined train and test dataset before splitting. This leaks the feature distribution of the test set into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([df_train, df_test], axis=0).reset_index(drop=True)\n...\ndur_mean = combined.groupby(g_col)[\"duration\"].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a solid baseline using XGBoost with StratifiedKFold and good feature engineering. However, it introduces data leakage by computing group-level aggregations on the combined train/test dataset before splitting. Additionally, it relies heavily on XGBoost's native missing value handling without a comprehensive cleaning strategy and reports only a single evaluation metric.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

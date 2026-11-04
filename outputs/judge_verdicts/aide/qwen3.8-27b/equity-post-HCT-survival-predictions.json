@@ -1,0 +1,98 @@
+{
+ "task": "equity-post-HCT-survival-predictions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=200,\n    valid_sets=[val_data],\n    callbacks=[lgb.log_evaluation(-1)],\n)",
+   "reasoning": "The agent trains a stochastic LightGBM model (with subsampling enabled) and evaluates it on a single train-validation split without using cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "c_index = concordance_index(time_val.values, y_val.values, val_pred)\nprint(f\"Concordance Index: {c_index:.4f}\")",
+   "reasoning": "The agent computes only the Concordance Index for evaluation, without considering secondary metrics to gain a comprehensive view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\n    \"objective\": \"binary\",\n...\ntrain_data = lgb.Dataset(X_train_processed, label=y_train, categorical_feature=cat_cols)",
+   "reasoning": "The agent frames the survival analysis problem as a standard binary classification task, completely ignoring the time-to-event variable during training and discarding crucial survival signal.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col not in [\"efs\", \"efs_time\", \"ID\"]]",
+   "reasoning": "The agent trains directly on raw columns (with only basic median/mode imputation and categorical casting) without generating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent correctly handles data splitting and applies imputation without causing data leakage. However, it critically misframes the survival analysis task by training a standard binary classifier to predict the event indicator, completely ignoring the time-to-event variable during training. Furthermore, the solution lacks feature engineering and relies on a single evaluation run of a stochastic model.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

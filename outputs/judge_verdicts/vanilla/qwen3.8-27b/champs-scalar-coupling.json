@@ -1,0 +1,101 @@
+{
+ "task": "champs-scalar-coupling",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_model = LGBMRegressor(... subsample=0.8, colsample_bytree=0.8, random_state=RANDOM_STATE ...)\nval_model.fit(X_train_val, y_train_val)",
+   "reasoning": "The agent trains a stochastic LightGBM model only once and evaluates it without multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overwriting test set IDs",
+   "description": "The agent drops the ID column from the test dataset and creates fake sequential IDs for the submission file. This will cause the submission to fail evaluation because the predictions will not align with the true test IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_raw = test_raw.drop(columns=[ID_COL], errors=\"ignore\") ... \"id\": np.arange(len(test_pred), dtype=int)"
+  },
+  {
+   "name": "Data leakage via random validation split",
+   "description": "The agent uses a random train/validation split rather than grouping by molecule. This leaks molecule-level information into the validation set (exacerbated by target encoding the molecule name), leading to overly optimistic validation scores since the actual test set typically contains unseen molecules.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_test_split(train_raw, test_size=0.15, random_state=RANDOM_STATE, shuffle=True)"
+  }
+ ],
+ "summary": "The agent builds a well-structured feature engineering pipeline, correctly isolating statistics (like target encoding and medians) to the training set. However, it commits a critical error by dropping the test set IDs and replacing them with sequential integers, which will invalidate the submission. Additionally, using a random rather than grouped train/validation split will lead to validation leakage for molecule-specific features.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

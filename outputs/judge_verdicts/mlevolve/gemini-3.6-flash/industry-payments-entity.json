@@ -1,0 +1,156 @@
+{
+ "task": "industry-payments-entity",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts(normalize=True).to_dict()\ndf_all[col + \"_freq\"] = df_all[col].map(freq).fillna(0).astype(np.float32)",
+   "reasoning": "The agent calculates frequency encodings on the combined train and test dataset, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning and missing value imputation are performed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fitted only on the training folds inside the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies only on the training dataset, avoiding test set leakage (though it causes CV leakage).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit temporal ordering requirement is provided for this task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network includes dropout and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated using 5-fold cross-validation, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "curr_val_rmse = root_mean_squared_error(y_va_num_f, val_preds_arr)",
+   "reasoning": "The agent evaluates its models solely on RMSE without verifying if other metrics like MAE might provide additional insight, though RMSE is the explicitly targeted metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task formulation is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Date parts, frequency encoding, and summary statistics are engineered.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An SLSQP optimizer is used to find optimal blending weights.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation leakage during imputation",
+   "description": "Imputation statistics are calculated on the entire training dataset before cross-validation splitting, which leaks information from validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_median = df_all.iloc[:n_train][col].median()\ndf_all[col] = df_all[col].fillna(train_median).astype(np.float32)"
+  },
+  {
+   "name": "Invalid treatment of categorical variables in Neural Network",
+   "description": "Categorical variables are label-encoded into arbitrary integers, standard-scaled, and fed directly into a neural network as continuous variables, which imposes an unintended ordinal relationship.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_num[col] = X_train_num[col].cat.codes\n...\nscaler = StandardScaler()\nX_tr_sc = scaler.fit_transform(X_tr_num_f.values)"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline with cross-validation, feature engineering, and a sophisticated blending ensemble. However, it introduces data leakage by computing frequency encodings on the combined train and test sets, and causes cross-validation leakage by imputing missing values using the median of the entire training dataset before splitting. Additionally, it label-encodes categorical variables, standard-scales them, and feeds them into a neural network as continuous features, which is mathematically unsound.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

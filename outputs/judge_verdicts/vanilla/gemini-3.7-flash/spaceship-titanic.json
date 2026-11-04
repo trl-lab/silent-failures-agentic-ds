@@ -1,0 +1,152 @@
+{
+ "task": "spaceship-titanic",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by filling missing values in expenditure columns and handling categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalizing is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants, so no dataset-wide statistics are leaked during imputation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (LGBMClassifier, CatBoostClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs an internal Stratified K-Fold cross-validation, satisfying the split requirement.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report a single evaluation score; in fact, it reports no score at all.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No metrics are reported, meaning this failure mode does not apply.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs appropriate feature engineering, extracting group and cabin details.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_probs = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent ensembles the predictions using a naive, unweighted average (50-50) without optimizing or searching for the best blend ratio.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "InvalidSubmissionFormat",
+   "description": "The agent drops the target ID column needed for submission during preprocessing and substitutes an arbitrary integer range with the wrong column name, which will cause the submission file to be completely rejected.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "output_df = pd.DataFrame({\n    'id': np.arange(len(test_df)),\n    'Transported': final_preds\n})"
+  },
+  {
+   "name": "NoValidationScoreComputed",
+   "description": "Despite implementing cross-validation and importing an evaluation metric, the agent never computes or reports any validation scores on the holdout folds, leaving no way to estimate the model's generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import accuracy_score\n# ... (accuracy_score is never called in the loop)"
+  },
+  {
+   "name": "InconsistentGroupFeatures",
+   "description": "Group-level statistics (e.g. group size) are computed separately on the train and test sets. This leads to incorrect counts for groups that span across both sets, corrupting the feature.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "group_sizes = df.groupby('Group_Id')['PassengerId'].transform('count')"
+  }
+ ],
+ "summary": "The agent implements a reasonable feature engineering pipeline and trains a 5-fold cross-validated ensemble using LightGBM and CatBoost. However, the solution relies on naive 50-50 ensembling, incorrectly computes group features by isolating the train and test sets, and fails entirely at the execution stage by generating an invalid submission file with generated integer IDs instead of the required PassengerIds.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

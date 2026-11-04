@@ -1,0 +1,102 @@
+{
+ "task": "schools",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "group_std = enroll_numeric.groupby(df_all[group_col]).transform(\"std\").fillna(0)\n        df_all[f\"{enroll_col}_GROUP_Z\"] = (enroll_numeric - group_mean) / (\n            group_std + 1e-5\n        )",
+   "reasoning": "The agent computes group means and standard deviations on the combined train and test set for Z-score normalization, leaking test data statistics into the training set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].fillna(df_all[col].median())",
+   "reasoning": "Missing values are imputed using the median of the combined train and test dataset before splitting, which leaks test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"Validation Metric: {cv_rmse:.5f}\")",
+   "reasoning": "The agent evaluates the model using only RMSE and does not verify if it is the most appropriate metric or consider secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage during feature encoding",
+   "description": "Categorical feature encoding (such as frequency encoding) is computed on the combined train and test datasets before splitting, leaking test set distribution statistics into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts(normalize=True)\n            df_all[f\"{col}_FREQ\"] = df_all[col].map(freq)"
+  }
+ ],
+ "summary": "The agent implements a 5-fold cross-validated CatBoost model with sensible feature engineering and post-processing. However, it critically fails by combining the train and test sets before applying median imputation, frequency encoding, and Z-score normalization, which causes severe data leakage.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "tmdb-box-office-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use or inspect test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and handles missing string/list values appropriately.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed before splitting; the transformer is correctly fit on the training split only.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like medians) are learned strictly inside the TMDBTransformer's fit method using only the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_fit_raw, X_val_raw, y_fit, y_val = train_test_split(train_features_raw, y_train, test_size=0.2, random_state=RANDOM_STATE)",
+   "reasoning": "The dataset contains a temporal component (release date), but the agent uses a random split, which leaks future trends (like inflation or changing genres) into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for this continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split and computes the validation RMSLE.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_fit_raw, X_val_raw, y_fit, y_val = train_test_split(..., random_state=RANDOM_STATE)",
+   "reasoning": "The agent evaluates its stochastic ensemble exactly once using a single fixed random seed for the split and models, without cross-validation or multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmsle = float(np.sqrt(mean_squared_error(y_val_log, val_pred_log)))",
+   "reasoning": "The agent evaluates the model solely on RMSLE without reporting any secondary metrics (like R-squared or MAE) to contextualise the model's performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem, which the agent correctly frames.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, parsing JSON/lists and extracting top genres, directors, and text lengths.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_pred_log = np.mean(val_preds, axis=0)",
+   "reasoning": "The agent ensembles predictions using a simple unweighted average rather than optimising blend weights or stacking, which leaves performance on the table.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Two-digit year parsing bug",
+   "description": "When parsing dates with two-digit years, pandas' `to_datetime` by default assumes years '00'-'68' are in the 2000s. This causes older dates (e.g., a movie from 1968) to be incorrectly parsed as future dates (2068), significantly distorting temporal features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dates = pd.to_datetime(s, errors=\"coerce\")"
+  }
+ ],
+ "summary": "The agent implements a solid, leak-free pipeline with good feature engineering and categorical processing. However, it relies on an unweighted ensemble, evaluates on a single random split which ignores the dataset's temporal nature, and suffers from a common pandas date-parsing bug that maps 20th-century dates into the future.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

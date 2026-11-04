@@ -1,0 +1,134 @@
+{
+ "task": "car-evaluation",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_vals = pd.concat([train_df[col], test_df[col]]).astype(str)\n    le.fit(combined_vals)",
+   "reasoning": "The agent fits the LabelEncoder on a concatenation of the training and test sets, leaking test set category statistics into the preprocessing phase.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n...\ntarget_col = \"car\" if \"car\" in train_df.columns else \"class\"\nfeature_cols = [c for c in train_df.columns if c != target_col]",
+   "reasoning": "The agent directly proceeds to encode the dataset after loading it, without making any checks or applying handling strategies for missing values, duplicates, or anomalies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No numerical scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multi-class classification setup via a PyTorch MLP with CrossEntropyLoss.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent includes proper regularization by using Dropout layers and weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold Stratified Cross-Validation to validate the model's performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using cross-validation (5 separate runs), which accounts for variance over different dataset splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y_train_full, oof_pred_labels)\nprint(f\"Validation Metric (5-Fold CV Accuracy): {cv_accuracy:.5f}\")",
+   "reasoning": "The agent reports and evaluates only accuracy, without examining additional metrics like precision, recall, or F1-score which would confirm robust performance across classes.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for idx, col in enumerate(feature_cols):\n    le = LabelEncoder()",
+   "reasoning": "The agent relies entirely on raw categorical features mapped to embeddings and makes no effort to create domain-informed derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds_folds += np.concatenate(fold_test_preds, axis=0) / 5.0",
+   "reasoning": "The agent ensembles the predictions from the 5 CV folds using a simple unweighted arithmetic mean, without exploring optimized blending weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent builds a robust deep learning model with proper cross-validation, regularization, and model checkpointing. However, it introduces minor data leakage by fitting the LabelEncoder on both train and test sets prior to modeling. Furthermore, it completely skips exploratory data cleaning and feature engineering, relies on a naive unweighted ensemble of the fold predictions, and reports only a single metric (accuracy).",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

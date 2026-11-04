@@ -1,0 +1,133 @@
+{
+ "task": "contract-awards-investment-project-financing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([...])\n...\nfor c in cat_cols:\n    freq = df_all[c].value_counts().to_dict()\n    df_all[c + '_freq'] = df_all[c].map(freq).fillna(0)",
+   "reasoning": "Frequency encoding is computed on the combined train and test datasets, which leaks the test set distribution into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.replace([np.inf, -np.inf], np.nan)\n...\nmodel_lgb.fit(\n        X_tr, y_tr,",
+   "reasoning": "The agent makes no explicit effort to handle missing values or outliers, relying entirely on the gradient boosting models' default capabilities to handle NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Constant column dropping is correctly fitted on the training split only.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Contract awards inherently possess a temporal component (as evidenced by the date feature extraction), but the agent uses a random K-Fold split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation scheme is used to train and validate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates using a 5-fold cross-validation ensemble, which accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "objective='regression'\n...\nloss_function='RMSE'\n...\nobjective='reg:squarederror'",
+   "reasoning": "The agent optimizes the models solely using RMSE without evaluating other metrics like MAE that might be more robust to outliers in contract amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the contract amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date features and performs both frequency and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_preds = lgb_preds * 0.4 + cat_preds * 0.3 + xgb_preds * 0.3",
+   "reasoning": "The agent combines the three models using hardcoded, arbitrary weights instead of tuning the blend ratio or using a stacking model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent builds a robust cross-validated ensemble using LGBM, XGBoost, and CatBoost with target and frequency encoding. However, it leaks the test distribution into the training set via frequency encoding on the combined dataset, ignores the temporal nature of contract awards by using a randomized split, relies entirely on the models to handle missing values, and naively blends the models using hardcoded weights.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

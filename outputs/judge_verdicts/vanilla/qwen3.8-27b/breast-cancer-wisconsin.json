@@ -1,0 +1,141 @@
+{
+ "task": "breast-cancer-wisconsin",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans data by dropping constant and high-cardinality columns, replacing infinities, and applying imputers via a pipeline.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within a scikit-learn Pipeline, meaning it is fit only on the training set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature dropping (constant columns, high cardinality) is calculated strictly on X_train, preventing test leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is handled safely inside a scikit-learn Pipeline.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (LGBMClassifier, LogisticRegression) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data into internal train and validation sets using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42, stratify=y_train)",
+   "reasoning": "The model is evaluated only once on a single static train/test split, rather than using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "roc_auc_score(y_val, val_proba[:, val_pos_idx])",
+   "reasoning": "The agent only computes the ROC AUC score and ignores other metrics like accuracy, precision, recall, or F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = [c for c in train_df.columns if c not in drop_cols]\nX_train = train_df[features].copy()",
+   "reasoning": "The agent passes raw features directly to the model without creating any derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded synthetic IDs in predictions",
+   "description": "The script discards the original ID column from the test set and generates a synthetic sequence of IDs (e.g. `np.arange(n_rows)`) for the prediction file. This will break evaluation pipelines that join predictions to ground truth using the original IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pd.DataFrame({\"id\": np.arange(n_rows), \"Diagnosis\": y_pred}).to_csv(\"predictions.csv\", index=False)"
+  },
+  {
+   "name": "Silent validation",
+   "description": "The script computes a validation score but does not print, log, or save it anywhere, rendering the validation step useless for assessing model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "roc_auc_score(y_val, val_proba[:, val_pos_idx])\n        except Exception:\n            pass"
+  }
+ ],
+ "summary": "The agent builds a correct and leak-free machine learning pipeline with appropriate preprocessing steps. However, it fails to engineer any new features, evaluates its stochastic model only once on a single unlogged validation split, and critically, replaces test set IDs with a synthetic sequence which will likely cause evaluation failures.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

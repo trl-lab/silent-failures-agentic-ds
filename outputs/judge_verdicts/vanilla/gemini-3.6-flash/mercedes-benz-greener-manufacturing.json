@@ -1,0 +1,140 @@
+{
+ "task": "mercedes-benz-greener-manufacturing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of peeking at test data during exploratory data analysis.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = train_df[train_df['y'] < 170].reset_index(drop=True)\n...\nusable_cols = [c for c in df_all.columns if df_all[c].nunique() > 1]",
+   "reasoning": "The agent actively cleans the data by removing target outliers, dropping constant columns, and filling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical scalers (like StandardScaler or MinMaxScaler) are applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([X_train_raw, X_test_raw], axis=0).reset_index(drop=True)\n...\nusable_cols = [c for c in df_all.columns if df_all[c].nunique() > 1]\n...\npca = PCA(n_components=n_comp, random_state=42)\npca_results = pca.fit_transform(binary_data)",
+   "reasoning": "The agent applies variance thresholding (dropping constant columns) and dimensionality reduction (PCA, ICA, SVD) on the combined train and test dataset, leaking test information into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = df_all.fillna(0)",
+   "reasoning": "Missing values are filled with a constant (0) rather than a fitted statistic, so no missing-value statistics are leaked from the test set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses a regression model for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=10, shuffle=True, random_state=42)\n...\nfor fold, (trn_idx, val_idx) in enumerate(kf.split(X_train, y_train)):",
+   "reasoning": "The agent sets up a 10-fold cross-validation scheme to validate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=10, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 10-fold cross-validation, meaning the stochastic model would be evaluated multiple times, not just once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code truncates before any evaluation metric is computed or printed, making it impossible to determine if only one metric is used.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = train_df['y'].values\n...\nmodel_lgb.fit(X_tr, y_tr",
+   "reasoning": "The problem is correctly formulated as predicting the continuous target variable 'y'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all['row_sum_ones'] = binary_data.sum(axis=1)\n...\npca_results = pca.fit_transform(binary_data)",
+   "reasoning": "The agent performs extensive feature engineering including row statistics and multiple dimensionality reduction techniques.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "Frequency encoding is calculated on the concatenated train and test dataset. This leaks the distribution of categorical variables from the test set into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([X_train_raw, X_test_raw], axis=0).reset_index(drop=True)\n...\nfreq = df_all[c].value_counts()\ndf_all[f'{c}_freq'] = df_all[c].map(freq)"
+  },
+  {
+   "name": "Incomplete Code / Syntax Error",
+   "description": "The script abruptly truncates before the training loop is finished, resulting in a SyntaxError that prevents the code from executing.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_lgb.fit(X_tr, y_tr, eval"
+  }
+ ],
+ "summary": "The agent sets up a reasonable pipeline with good feature engineering and cross-validation, but commits critical data leakage by applying PCA, ICA, SVD, and frequency encoding on the concatenated train and test sets. Furthermore, the provided code is incomplete and ends abruptly with a syntax error, making it non-functional.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

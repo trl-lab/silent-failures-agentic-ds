@@ -1,0 +1,141 @@
+{
+ "task": "petfinder-pawpularity-score",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [\"Pawpularity\", \"id\"]]\n\n# Split training data for validation\nX_train = train_df[feature_cols]",
+   "reasoning": "The agent makes no effort to clean the data or handle missing values, relying entirely on the LightGBM model to manage them implicitly.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a regression objective is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses both a holdout validation split and a 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the stochastic model across multiple folds and computes the mean and standard deviation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_val = np.sqrt(mean_squared_error(y_val, y_pred_val))\nprint(f\"Validation RMSE: {rmse_val:.4f}\")",
+   "reasoning": "The agent evaluates the model solely using RMSE without considering other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [\"Pawpularity\", \"id\"]]",
+   "reasoning": "The agent uses the raw columns as features without creating any derived features or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Early stopping without validation set",
+   "description": "The early stopping callback is configured during model training, but no validation dataset (valid_sets) is provided to evaluate the metric, which will lead to a ValueError execution crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "callbacks = [lgb.early_stopping(50), lgb.log_evaluation(-1)]\nmodel = lgb.train(\n    params,\n    lgb.Dataset(X_train, label=y_train),\n    num_boost_round=500,\n    callbacks=callbacks,\n)"
+  },
+  {
+   "name": "Suboptimal final model training",
+   "description": "The final model used to generate test set predictions is trained on only a subset of the available training data (the training split of the holdout validation) instead of being retrained on the full dataset.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    X_train_full, y_train_full, test_size=0.3, random_state=42, shuffle=False\n)\n...\nmodel = lgb.train(\n    params,\n    lgb.Dataset(X_train, label=y_train),\n    num_boost_round=500,\n    callbacks=callbacks,\n)\n...\ntest_predictions = model.predict(X_test)"
+  }
+ ],
+ "summary": "The agent correctly frames the task as a regression problem and applies cross-validation. However, it fails to provide a validation set to LightGBM's early stopping callback, which will result in an execution failure. Furthermore, the agent bypasses data cleaning and feature engineering, relying entirely on raw features, and trains its final model on only a subset of the available data.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

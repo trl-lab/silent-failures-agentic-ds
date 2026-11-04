@@ -1,0 +1,160 @@
+{
+ "task": "terms-cc-plans",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed using test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled during date processing and categorical separation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputer is fit before splitting; only constant value filling is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Date columns are present, but it is unclear if the specific task requires temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "5-fold cross-validation is used.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test set is not used to evaluate model variants; out-of-fold predictions are used for blending.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Model is evaluated using 5-fold cross-validation, which inherently averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = root_mean_squared_error(y, blend_oof)",
+   "reasoning": "Only RMSE is used for evaluation without checking secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task formulation is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Date components are extracted and frequency/target encoding is applied.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An optimal weighted blending strategy is used rather than naive averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Misaligned Categorical Encoding",
+   "description": "Casting string columns to pandas 'category' dtype independently on train, validation, and test splits assigns different integer codes to the same categories across splits if unique values differ. This destroys the meaning of the categorical feature for models like LightGBM that rely on these integer codes.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_lgb[c] = X_tr_lgb[c].astype(\"category\")\n        X_va_lgb[c] = X_va_lgb[c].astype(\"category\")\n        X_te_lgb[c] = X_te_lgb[c].astype(\"category\")"
+  },
+  {
+   "name": "In-Fold Target Encoding Leakage",
+   "description": "Target encoding is applied to the training set using the target statistics of the same training set without out-of-fold or leave-one-out techniques. This causes target leakage and leads tree-based models to heavily overfit the encoded features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_df = pd.DataFrame({c: X_tr[c], \"target\": y_tr})\n        stats = tr_df.groupby(c)[\"target\"].agg([\"count\", \"mean\"])\n...\n        X_tr[te_col_name] = X_tr[c].map(te_map).fillna(global_mean).astype(float)"
+  },
+  {
+   "name": "Test Data Leakage via Frequency Encoding",
+   "description": "Frequency encoding is computed on the concatenated train and test datasets before splitting. This leaks the test set distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train, X_test], axis=0, ignore_index=True)\n...\nfor col in cat_cols:\n    freq_map = combined[col].value_counts(normalize=True).to_dict()\n    combined[f\"{col}_freq\"] = combined[col].map(freq_map).astype(float)"
+  }
+ ],
+ "summary": "The agent builds a solid cross-validation and ensembling pipeline but introduces critical bugs in categorical data handling and target encoding. Independent categorical casting causes feature misalignment across splits, and in-fold target encoding introduces severe target leakage.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

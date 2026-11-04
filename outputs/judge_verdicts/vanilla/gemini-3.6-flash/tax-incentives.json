@@ -1,0 +1,141 @@
+{
+ "task": "tax-incentives",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].astype(str).fillna('missing')",
+   "reasoning": "The agent explicitly handles categorical missing values and relies on the robust native missing value handling of LightGBM and CatBoost for numeric features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalization to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use any imputers that are fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Without knowledge of the specific dataset, it is not possible to determine if there is a temporal component requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train, y)):",
+   "reasoning": "The agent uses KFold cross-validation to evaluate generalization, rather than training and reporting on the same data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent evaluates the stochastic models across 5 folds, avoiding a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses models whose default optimization metrics align with the task metric (RMSE) and does not inappropriately optimize for an incorrect metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train[f'{col}_year'] = X_train[col].dt.year",
+   "reasoning": "The agent performs feature engineering by extracting date components from datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * preds_lgb + 0.5 * preds_cb",
+   "reasoning": "The agent combines LightGBM and CatBoost predictions using a simple unweighted 50/50 average without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure due to unsafe datetime accessor",
+   "description": "The agent assumes `pd.to_datetime` always returns a datetimelike dtype. However, for columns with mixed timezones or certain unparseable formats, it can return an object dtype containing datetime objects. Calling `.dt` on this raises an AttributeError, crashing the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[f'{col}_year'] = X_train[col].dt.year"
+  }
+ ],
+ "summary": "The agent builds a standard regression pipeline using LightGBM and CatBoost evaluated via 5-fold cross-validation. However, it implements a naive ensemble by simply averaging the predictions without tuning the weights. Additionally, the code crashes during execution because it assumes `pd.to_datetime` always returns a type compatible with the `.dt` accessor, which fails on object arrays (e.g., columns with mixed timezones).",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,65 @@
+{
+ "task": "bank-marketing",
+ "failure_modes": {
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_nn_train = scaler.fit_transform(X_fold_train)",
+   "reasoning": "The agent correctly fits the StandardScaler only on the training fold inside the cross-validation loop, completely avoiding train-test and train-validation leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "col_median = X_train_final[col].median()\n...\nX_train_final[col] = X_train_final[col].fillna(col_median)\nX_test_final[col] = X_test_final[col].fillna(col_median)",
+   "reasoning": "The agent computes the imputation median strictly on the training set (X_train_final) rather than the combined dataset, so test statistics do not leak into the training data.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_result = minimize(\n    blend_loss,\n    initial_weights,",
+   "reasoning": "The agent uses scipy.optimize to systematically find the optimal blending weights based on out-of-fold predictions, which is a sophisticated and correct ensembling approach.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Train-Validation Data Leakage",
+   "description": "The agent computes dataset-level statistics (e.g., imputation medians, category frequencies, and group aggregations) on the entire training set prior to K-Fold cross-validation. This causes information from the validation folds to leak into the training folds, making the out-of-fold validation scores slightly optimistic.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "col_median = X_train_final[col].median()\n... X_train_final[col] = X_train_final[col].fillna(col_median)"
+  },
+  {
+   "name": "Use of Leaky Feature",
+   "description": "The agent includes the 'duration' (last contact duration) feature in the model. In practical bank marketing scenarios, call duration is unknown before the call occurs and highly correlates with the target, meaning its inclusion constitutes a target leak for prospective predictions (as noted in the dataset's original documentation).",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "duration = pd.to_numeric(df[\"duration\"], errors=\"coerce\").fillna(0)\ndf[\"duration_log\"] = np.log1p(np.maximum(0, duration))"
+  }
+ ],
+ "summary": "The agent provides an exceptionally robust and well-structured solution, featuring advanced feature engineering, leak-free out-of-fold target encoding, a custom PyTorch deep learning architecture, and optimized OOF blending. None of the predefined critical failure modes are present. However, there is minor train-validation leakage due to computing some global aggregations before CV splitting, and the agent uses the notoriously leaky 'duration' feature which is standard in Kaggle but invalid for real-world prospective deployment.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "online-news-popularity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "data = data.replace([np.inf, -np.inf], np.nan)\n    data = data.fillna(0)",
+   "reasoning": "The agent explicitly handles infinite values and missing data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "data = data.fillna(0)",
+   "reasoning": "The imputation uses a constant value (0) rather than dataset-level statistics, so no information leaks from test to train.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "While the domain involves news publication, the standard formulation of this UCI task does not typically mandate a strict temporal split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses a regression model for the continuous target 'shares'.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The agent evaluates multiple models across 5 CV folds rather than relying on a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))",
+   "reasoning": "The agent relies solely on RMSE to evaluate the model, which is highly sensitive to extreme outliers present in the 'shares' target, without verifying if a more robust metric like MAE would be appropriate.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "target_col = \"shares\"\ny = train_df[target_col].values",
+   "reasoning": "The task is correctly formulated as a regression problem on the 'shares' column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "data[\"content_title_ratio\"] = data[\"n_tokens_content\"] / (\n            data[\"n_tokens_title\"] + 1e-5\n        )",
+   "reasoning": "The agent implements several domain-informed derived features and summary statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent simply averages the predictions of the 5 cross-validation folds using an equal-weight scheme, without attempting any weighted blending or model stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation for skewed distribution",
+   "description": "The target variable has a heavily right-skewed distribution (e.g. counts or popularity metrics), but the model is trained directly on the raw values using a squared-error objective. This causes the model to focus excessively on extreme outliers, degrading overall performance. A log or power transformation should be applied before training.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train_df[target_col].values\n...\nmodel = lgb.LGBMRegressor(**lgb_params)"
+  }
+ ],
+ "summary": "The agent implements a solid foundational pipeline with good feature engineering, proper cross-validation, and appropriate handling of missing/infinite values. However, it fails to account for the highly skewed nature of the target variable, relying solely on RMSE and not applying any target transformation to mitigate the effect of extreme outliers. Additionally, the ensembling of cross-validation folds is done naively with equal weights.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "bank-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le = LabelEncoder()\n    combined = pd.concat(\n        [train_eng[col].astype(str), test_eng[col].astype(str)], axis=0\n    )\n    le.fit(combined)",
+   "reasoning": "The agent fits a LabelEncoder on the combined train and test sets, leaking test set categories into the training process.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by standardizing column names and handling numerical nulls.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on the training folds inside the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models used are appropriate for binary classification.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes dropout layers and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not used for model selection or tuning, only for final predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_va, val_probs)",
+   "reasoning": "The agent only uses ROC AUC for evaluation and optimization, without reporting secondary metrics like precision or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers numerous domain-specific and interaction features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the best weighted blend of models.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature Leakage across CV folds",
+   "description": "Computing aggregate features (like group means or frequencies) on the entire training dataset before cross-validation leaks information from validation folds into training folds, which can cause overfitting and overly optimistic CV scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq_map = train_eng[col].value_counts(normalize=True).to_dict()\n    train_eng[f\"{col}_freq\"] = train_eng[col].map(freq_map).fillna(0.0)"
+  },
+  {
+   "name": "Categorical features treated as numerical in tree models",
+   "description": "The agent label-encodes categorical features into integers but does not specify them as categorical when passing to tree models (like CatBoost, LightGBM, or XGBoost), causing the models to treat them as continuous ordinal variables, which can degrade performance.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cb_model = cb.CatBoostClassifier(\n        iterations=1500,\n        learning_rate=0.03,\n        depth=6,\n        eval_metric=\"AUC\",\n        loss_function=\"Logloss\",\n        l2_leaf_reg=3.0,\n        random_seed=42 + fold,\n        verbose=0,\n        thread_count=-1,\n        early_stopping_rounds=50,\n    )"
+  }
+ ],
+ "summary": "The agent provides a strong solution with extensive feature engineering, target encoding, a PyTorch TabularResNet, and optimized ensembling. However, it suffers from data leakage by fitting a LabelEncoder on the combined train and test sets, and by computing frequency and mean aggregations on the entire training set before cross-validation splitting. Additionally, categorical variables are not properly declared to tree models.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

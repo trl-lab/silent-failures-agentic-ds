@@ -1,0 +1,138 @@
+{
+ "task": "breast-cancer-wisconsin",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_series = pd.concat([X[col], X_test[col]]).astype(str)\n    cat_le.fit(full_series)",
+   "reasoning": "The agent fits a LabelEncoder on the combined training and test data, leaking test set category information into the training process.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles categorical encoding and missing values via SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within a Pipeline during cross-validation, avoiding train/test leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fit only on the training data (X), not on the full dataset (train + test), so test missing-value statistics do not leak into train.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses appropriate classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_imputed.iloc[val_idx], y[val_idx]",
+   "reasoning": "The agent creates cross-validation splits and extracts validation sets, but never uses them to evaluate model performance or compute a validation score.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages test predictions over 5 cross-validation folds, which inherently accounts for variance in the stochastic models.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate any metrics at all, so this specific failure mode of evaluating with only one inappropriate metric does not apply.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task outputting probabilities.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "imputer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent performs only basic imputation and categorical encoding, completely omitting any derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_pred = 0.35 * pred_lr + 0.25 * pred_lgb + 0.25 * pred_cb + 0.15 * pred_et",
+   "reasoning": "The agent ensembles the models using arbitrarily hardcoded weights without any tuning, weight search, or validation scores to justify the chosen proportions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Data transformations (such as imputation) are applied to the entire training dataset before splitting it into cross-validation folds, causing information from the validation folds to leak into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_imputed = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_imputed, y)):"
+  }
+ ],
+ "summary": "The solution suffers from critical evaluation flaws and data leakage. The agent fits a LabelEncoder on the combined train and test sets (leaking test data) and imputes missing values before cross-validation (leaking validation data). Furthermore, while the agent sets up cross-validation, it entirely fails to evaluate the validation sets or compute any metrics, making its hardcoded ensemble weights completely arbitrary.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

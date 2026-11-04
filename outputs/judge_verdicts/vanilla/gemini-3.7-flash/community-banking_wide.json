@@ -1,0 +1,149 @@
+{
+ "task": "community-banking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent concatenates train and test data only for uniform preprocessing and does not peek at test statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a custom function to clean numeric strings and handles categorical missing values explicitly.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before or after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fills categorical missing values with a constant ('missing'), which does not leak statistics across the split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the community-banking_wide dataset has a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with an internal evaluation set for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates across 5 cross-validation folds, mitigating variance from a single random split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent relies on the default MSE metric for early stopping, which is appropriate for minimizing the target RMSE metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in combined.columns:\n    cleaned = clean_numeric_str(combined[col])",
+   "reasoning": "The agent performs basic string cleaning and type conversion but fails to extract any derived features, ratios, or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent combines the two models using a hardcoded, naive equal-weight average without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded sequential IDs in submission",
+   "description": "The agent generates the submission file using a hardcoded sequence (range) for the 'id' column instead of retaining and using the actual identifier column from the test dataset. This will likely cause a submission failure or mismatched predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(final_preds))"
+  },
+  {
+   "name": "No validation metric calculated",
+   "description": "The agent sets up cross-validation and early stopping but never calculates or logs the evaluation metric on the validation folds, making it impossible to estimate generalization performance before submitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_preds += cb_model.predict(X_test_cb) / kf.n_splits"
+  }
+ ],
+ "summary": "The agent provides a structurally sound pipeline with cross-validation, reasonable data cleaning, and gradient boosting models. However, it falls short by using a naive 50/50 ensemble without tuning and neglecting feature engineering entirely. Critically, the agent overrides the test set's true identifiers with a hardcoded range in the submission file, which will likely result in an invalid submission.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

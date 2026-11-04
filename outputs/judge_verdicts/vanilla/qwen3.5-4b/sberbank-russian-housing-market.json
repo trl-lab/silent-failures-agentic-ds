@@ -1,0 +1,152 @@
+{
+ "task": "sberbank-russian-housing-market",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled via median/mode imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before or after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is performed separately on the train and test dataframes, not on a combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Since no validation split is performed, a temporal splitting strategy is not violated (this is instead covered by the lack of validation altogether).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (CatBoostRegressor) is appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "eval_set=(X_train, np.array(y_log_train)) if len(X_train) > 0 else None",
+   "reasoning": "The model is evaluated only on the training set and no separate validation set or cross-validation is used to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = cb.CatBoostRegressor(\n        iterations=500,\n        learning_rate=0.05,\n        verbose=False,\n        eval_metric='RMSE', # Optimizing RMSE on log scale works well for RMSLE\n        random_state=42,\n        silent=True\n    )",
+   "reasoning": "The stochastic CatBoost model is trained exactly once, without any averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "eval_metric='RMSE'",
+   "reasoning": "The model optimizes for a single metric (RMSE on the log scale) and no other metrics are computed or verified.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as predicting a continuous target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [target_col]]\n    \n    # Preprocess Train Data\n    X_train = train_df[feature_cols]",
+   "reasoning": "The agent passes all raw features directly into the model without attempting to derive any features (e.g., extracting components from dates), despite the domain's obvious potential for feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Failure (Hardcoded Path)",
+   "description": "The script hardcodes an incorrect path for the test dataset, leading to a FileNotFoundError and preventing the code from running successfully.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TEST_PATH = '/path/to/user/workspace/ds_fit/datasets/kaggle/sberbank-russian-housing-market/data/test.parquet'"
+  },
+  {
+   "name": "Discarding Original Test IDs",
+   "description": "The agent drops the original ID column from the test set and replaces it with a newly generated sequence starting from 0, which will completely misalign predictions with the expected submission format.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = test_df.drop([id_col], axis=1)\n...\nids = list(range(len(test_df)))"
+  },
+  {
+   "name": "Imputing using test set statistics",
+   "description": "The agent imputes missing values in the test set using the median and mode computed from the test set itself, rather than using the statistics learned from the training set. This is a form of data leakage.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test[col] = X_test[col].fillna(X_test[col].median())"
+  }
+ ],
+ "summary": "The agent provides a basic CatBoost solution with severe execution and logic flaws. Crucially, it hardcodes an incorrect path causing an execution failure, overwrites the original test IDs (which would render the final submission invalid), and fails to perform any train/validation split or feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

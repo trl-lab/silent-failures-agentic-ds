@@ -1,0 +1,146 @@
+{
+ "task": "recipient-executed-grants-commitments-disbursements",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for EDA or to inform preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by handling missing values (median imputation) and infinite values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is applied after the train/test split, calculating the median only on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While there are dates in the dataset, it is unclear if the train/test split requires temporal ordering to avoid look-ahead bias or if it's a random historical slice.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses 10-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models and optimizes the ensemble using out-of-fold predictions, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates its stochastic models through 10-fold cross-validation, implicitly averaging over variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE, which is the specified and appropriate metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task on the correct target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, text SVD, out-of-fold target encoding, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal blending weights for its ensemble.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Using execution time for historical temporal features",
+   "description": "The agent calculates time-based features (e.g., elapsed days, remaining days, or project expiration status) using the current system time (`pd.Timestamp.now()`) instead of a fixed reference date from the dataset context. This creates arbitrary feature values that drift depending on when the code is executed and destroys the temporal relationship with the historical target variable.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "now_ts = pd.Timestamp.now()\nelapsed_days = (now_ts - combined_df[eff_col]).dt.total_seconds() / (24 * 3600)\nremaining_days = (combined_df[close_col] - now_ts).dt.total_seconds() / (24 * 3600)"
+  }
+ ],
+ "summary": "The solution is generally well-structured, employing safe out-of-fold target encoding, train-only TF-IDF/SVD fitting, and robust cross-validation with an optimized ensemble. However, there is a critical flaw in the temporal feature engineering: the agent uses the runtime timestamp (`pd.Timestamp.now()`) to calculate elapsed and remaining project days. Since the dataset is historical, this introduces extreme drift and renders these duration features meaningless, changing the model's output depending purely on the date the script is executed.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

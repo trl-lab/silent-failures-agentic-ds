@@ -1,0 +1,146 @@
+{
+ "task": "rasff_window",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent separates train and test data and does not perform EDA or use test data statistics before processing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values using SimpleImputer and fillna methods.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fits the StandardScaler only on the training set and transforms the test set separately, avoiding test-to-train leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fits the SimpleImputer only on the training set, not the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is based on a time window of RASFF notifications, but the agent uses a randomized StratifiedKFold, ignoring temporal ordering and causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models (e.g., LGBMClassifier, XGBClassifier) and appropriate loss functions.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes Dropout, LayerNorm, weight_decay, and LabelSmoothingCrossEntropy for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 cross-validation folds, which evaluates the stochastic models multiple times.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates using accuracy but correctly optimizes ensemble weights using multi-class log loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date extractions, text TF-IDF/SVD, target encoding, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes ensemble weights using a Nelder-Mead search to minimize log loss, rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Transformers such as scalers, imputers, and TF-IDF vectorizers are fit on the entire training dataset before cross-validation fold splitting. This leaks information from the validation folds into the training folds, making out-of-fold validation scores overly optimistic.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_tfidf = tfidf.fit_transform(train_text) ... followed by ... clf.fit(train_tfidf[tr_idx], y[tr_idx]) AND imputer.fit_transform(X_train_combined) ... followed by ... X_tr_tab, y_tr = X_train_imputed.iloc[train_idx], y[train_idx]"
+  }
+ ],
+ "summary": "The agent creates a robust pipeline with multiple gradient boosting models and a neural network, applying extensive feature engineering and ensemble optimization. However, it completely ignores the temporal nature of the dataset by using a random StratifiedKFold split, resulting in look-ahead bias. Additionally, it suffers from severe cross-validation leakage by applying global transformations (TF-IDF, imputation, and scaling) to the full training set before performing CV splitting.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "electrical-grid-stability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(np.nan)",
+   "reasoning": "The agent relies entirely on LightGBM's native handling of missing values without implementing an explicit cleaning or imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted on the dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classification model (LGBMClassifier) for the classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Make predictions\ny_pred_proba = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without creating a holdout set or using cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(\n    n_estimators=500,\n    ...\n    random_state=42,\n)",
+   "reasoning": "The agent configures a single training run for a stochastic model without averaging over multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics internally.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses raw columns directly without performing any feature engineering or deriving new features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Predicting hard classes instead of probabilities",
+   "description": "The agent uses `predict()` rather than `predict_proba()` to generate predictions for a task evaluated by ROC AUC, which requires continuous probabilities to properly rank predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred_proba = model.predict(X_test)"
+  },
+  {
+   "name": "Type error from thresholding string predictions",
+   "description": "Because the target column contains string class labels (e.g., 'stable', 'unstable'), `predict()` outputs strings. The agent mistakenly treats these outputs as probabilities and attempts a numerical comparison (>= 0.5), causing a fatal TypeError during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred_classes = (y_pred_proba >= 0.5).astype(int)"
+  }
+ ],
+ "summary": "The agent's solution fails entirely during execution because it attempts to threshold string class labels as if they were numeric probabilities. Additionally, the agent fails to implement internal validation, applies no feature engineering, and incorrectly uses `predict()` instead of `predict_proba()` for an ROC AUC optimization task.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

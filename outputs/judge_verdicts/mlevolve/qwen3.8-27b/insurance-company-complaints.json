@@ -1,0 +1,138 @@
+{
+ "task": "insurance-company-complaints",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data exploration and feature fitting are explicitly restricted to the training split.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning handles missing values, inf values, and string normalisation appropriately before model building.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature scaling and normalisation transforms are fitted on the train split only.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (e.g., dropping zero-variance columns) is applied based on the training split statistics.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median, min/max) are computed strictly on the training split and applied to validation/test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly performs a train/validation split and evaluates the models on the validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_idx, val_idx = train_test_split(\n        np.arange(len(train)),\n        test_size=VAL_FRACTION,\n        random_state=RANDOM_STATE,\n        shuffle=True,\n    )",
+   "reasoning": "The agent trains stochastic models (LightGBM, XGBoost) and evaluates them on a single train/validation split rather than using cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = float(criterion(y_val, val_pred))\n...\nprint(f\"Final Validation Score: {score}\")",
+   "reasoning": "The agent evaluates its performance solely using RMSE and does not compute secondary metrics (like MAE or R-squared) to verify the robustness of its model.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a straightforward regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including interaction terms, TF-IDF for text, date parts, and categorical encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent avoids a naive equal-weight average by tuning the ensemble blend ratio using Non-Negative Least Squares (NNLS).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-fold Target Leakage during Target Encoding",
+   "description": "Target encoding is computed on the training set and applied directly to the same training instances without using out-of-fold (OOF) cross-validation or leave-one-out techniques. This causes the target variable to leak into the training features, leading to severe overfitting for tree-based models.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sums = (\n    pd.DataFrame({\"__cat__\": cat_series, \"__y__\": y.to_numpy(dtype=float)})\n    .groupby(\"__cat__\")[\"__y__\"]\n    .agg([\"sum\", \"count\", \"mean\"])\n)\n...\nout[f\"{col}__target_enc\"] = (\n    s.map(target_enc).fillna(global_mean).astype(float)\n)"
+  }
+ ],
+ "summary": "The agent implements a robust pipeline with extensive feature engineering and successfully prevents test set leakage by splitting the data prior to fitting transformations. However, it introduces a critical target leakage flaw by applying in-fold target encoding without cross-validation, which will cause the models to overfit. Furthermore, the agent evaluates its stochastic models using a single data split and a single metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

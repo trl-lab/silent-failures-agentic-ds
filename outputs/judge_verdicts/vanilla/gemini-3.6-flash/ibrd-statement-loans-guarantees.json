@@ -1,0 +1,148 @@
+{
+ "task": "ibrd-statement-loans-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no exploratory data analysis peeking at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[col + '_timestamp'] = timestamps\n# (No other explicit missing value handling for numericals is present)",
+   "reasoning": "The agent makes no explicit effort to handle missing values or outliers, relying entirely on the tree-based models to handle them natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains loan records with temporal components (dates of approval/disbursement), but the agent uses random shuffling for cross-validation rather than a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models over 5 cross-validation folds, which accounts for variance, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any explicit evaluation metrics during the script (beyond the default early stopping loss).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements date parsing, row-wise aggregate features for financial columns, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_preds + 0.3 * xgb_preds + 0.3 * cat_preds",
+   "reasoning": "The agent combines model predictions using arbitrary, hardcoded weights without any tuning, cross-validated weight search, or blend-ratio optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "Features that are mathematically related to or components of the target variable are left in the dataset. This allows the model to trivially reverse-engineer the target, failing in real-world scenarios where these components are unknown.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_df = train_df.drop(columns=[target_col])\n...\namount_cols = [c for c in num_cols if any(k in c.lower() for k in ['amount', 'us$', 'repaid', 'disbursed', 'due', 'held', 'cancelled', 'obligation'])]"
+  },
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "Frequency encoding is applied to the combined train and test datasets before splitting. This leaks the distribution and presence of categories in the test set directly into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts().to_dict()\ncombined[col + '_freq'] = combined[col].map(freq)"
+  }
+ ],
+ "summary": "The solution implements a robust modeling pipeline with three gradient boosting models and feature engineering, but it suffers from severe target leakage by failing to drop highly correlated financial components (e.g., Disbursed Amount, Cancelled Amount) that sum to the Original Principal Amount. It also introduces data leakage by computing frequency encodings across the combined train and test sets before splitting. Additionally, it relies entirely on the models to handle missing values and uses an arbitrary manual weighting for its final ensemble.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

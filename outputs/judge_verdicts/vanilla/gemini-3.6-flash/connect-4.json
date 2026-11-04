@@ -1,0 +1,144 @@
+{
+ "task": "connect-4",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].fillna('missing').astype(str)",
+   "reasoning": "The agent makes an explicit attempt to handle missing values by filling them.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].fillna('missing').astype(str)",
+   "reasoning": "Although imputation is done on the combined dataset, it uses a constant value ('missing') which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb = LGBMClassifier(...)\ncb = CatBoostClassifier(...)\nxgb = XGBClassifier(...)",
+   "reasoning": "The agent correctly uses classification models for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.fit(X_train_enc, y_train)\n... p_lgb = lgb.predict_proba(X_test_enc)",
+   "reasoning": "The model is trained on the entire training set and predicts on the test set without any internal validation split to evaluate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb = LGBMClassifier(...random_state=42...)\nlgb.fit(X_train_enc, y_train)",
+   "reasoning": "Stochastic models (LGBM, XGBoost, CatBoost) are trained only once with a fixed random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No internal evaluation is performed, so the agent does not report or optimize using any single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "target_col = 'class'\ny_train_raw = train[target_col]",
+   "reasoning": "The task is appropriately formulated as a standard classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].fillna('missing').astype(str)\nle = LabelEncoder()\ndf_all[col] = le.fit_transform(df_all[col])",
+   "reasoning": "The agent uses the raw columns as-is, applying only basic imputation and label encoding, without creating any derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "p_ens = (p_lgb + p_cb + p_xgb) / 3.0",
+   "reasoning": "The agent uses a simple, unweighted average to combine the predictions of three different models.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure due to categorical imputation",
+   "description": "The code crashes when attempting to fill missing values in a pandas Categorical column with a new category that has not been explicitly added to the categorical dtype. This results in a TypeError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].fillna('missing').astype(str)"
+  },
+  {
+   "name": "Categorical encoding leakage",
+   "description": "Fitting a categorical encoder (like LabelEncoder) on the combined train and test datasets leaks information about the categories present in the test set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([X_train, X_test], axis=0, ignore_index=True)\n... le.fit_transform(df_all[col])"
+  }
+ ],
+ "summary": "The agent implements a basic machine learning pipeline with a naive ensemble of gradient boosting classifiers but completely fails to establish a validation set. Additionally, the script fails to execute due to a pandas TypeError when imputing missing values on categorical columns with unrecognized categories. The agent also misses out on feature engineering and leaks categorical distributions by encoding the combined dataset.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

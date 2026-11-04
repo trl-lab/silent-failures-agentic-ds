@@ -1,0 +1,142 @@
+{
+ "task": "drug-consumption",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data distributions; it only intersects column names to ensure consistency.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans data by dropping missing targets and setting up imputation pipelines for features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting (and no scaling is used at all).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly contained within a scikit-learn Pipeline and fit only on training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classifiers for the classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates an internal validation set using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models on a dedicated validation set, reserving the actual test set only for final predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y)",
+   "reasoning": "The agent evaluates stochastic models (LGBM, XGB, CatBoost) on a single train-test split without any cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "accuracy_score(y_val, np.argmax(ensemble_proba, axis=1))",
+   "reasoning": "The agent only calculates accuracy for model selection, ignoring other metrics like F1-score which are critical for verifying performance on imbalanced datasets like drug consumption.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(transformers=transformers, remainder=\"drop\")",
+   "reasoning": "The agent applies only basic imputation and encoding without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ensemble_proba = np.mean(val_probs, axis=0)",
+   "reasoning": "The agent combines models using a simple unweighted average rather than tuning the blending weights or using a meta-model.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "discarded_test_ids",
+   "description": "The agent drops the identifier column from the test set during preprocessing and generates a synthetic sequential ID (e.g., 0 to N-1) for the final submission file. If the original test IDs are non-sequential or strictly required by the evaluator, this will cause the submission to be misaligned or rejected.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_X = test_X.drop(columns=id_cols, errors=\"ignore\") ... \"id\": np.arange(len(test_pred), dtype=int)"
+  }
+ ],
+ "summary": "The agent implements a structurally sound machine learning pipeline with appropriate validation and no data leakage. However, it relies on naive ensembling, lacks feature engineering, and evaluates models on a single validation split. Critically, it discards the original test set IDs and substitutes them with a synthetic sequence, which will likely invalidate the final submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

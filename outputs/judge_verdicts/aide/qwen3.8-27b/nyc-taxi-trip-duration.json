@@ -1,0 +1,149 @@
+{
+ "task": "nyc-taxi-trip-duration",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for EDA or fitting preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a geo_mask to filter outliers and invalid values, actively cleaning the data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed; missing values are left for the model to handle.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a temporal component (pickup_datetime) but the agent uses a random shuffled split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regression is an appropriate model type for predicting a continuous trip duration.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmsle = np.sqrt(np.mean((val_pred_log - y[val_idx]) ** 2))",
+   "reasoning": "The agent only computes and reports RMSLE, without verifying performance with other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem on the log-transformed trip duration.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including datetime components, distances, and bearing.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / 5",
+   "reasoning": "The agent naively averages the predictions from the 5 folds without any tuning or weighting.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "target_leakage",
+   "description": "The model uses a feature derived directly from the target variable (or variables that perfectly calculate the target), causing data leakage and guaranteeing artificially high performance during training but making the model useless for real-world inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[\"ts_diff\"] = (df[\"dropoff_datetime\"] - df[\"pickup_datetime\"]).dt.total_seconds()"
+  },
+  {
+   "name": "dropping_test_samples_and_invalid_ids",
+   "description": "The agent filters out rows from the test set during data cleaning and generates arbitrary IDs for the submission file instead of using the original test IDs. This guarantees a submission shape mismatch and complete misalignment with the expected output.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test = test[geo_mask(test)].reset_index(drop=True)\nsubmission = pd.DataFrame({\"id\": range(len(test_preds)), \"trip_duration\": test_preds.astype(int)})"
+  }
+ ],
+ "summary": "The agent implements a cross-validated LightGBM model with appropriate feature engineering but makes two critical errors. First, it introduces severe target leakage by calculating the time difference between dropoff and pickup and using it as a feature. Second, it applies an outlier mask to the test set and uses a generated sequence of IDs for the submission, which drops required rows and invalidates the submission file.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

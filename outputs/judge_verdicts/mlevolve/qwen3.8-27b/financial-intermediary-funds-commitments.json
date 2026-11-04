@@ -1,0 +1,142 @@
+{
+ "task": "financial-intermediary-funds-commitments",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly fits the FeatureBuilder exclusively on the training split before transforming the validation and test sets.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive data cleaning, including type inference, imputation, and missing value indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling parameters (mean and std) are calculated during the fit stage on the training data and then applied to transform sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Features are dropped (e.g. largely missing or constant features) during the fit method which only observes training data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics like medians are computed solely on the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts a chronological split if a reliable datetime column is found, thereby respecting temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a regression problem, and the agent uses LGBMRegressor and XGBRegressor.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created using make_train_valid_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent loops over three different random seeds (42, 43, 44) to evaluate the stochastic models.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = safe_rmse(y_val_np, val_pred)\n...\nprint(f\"Final Validation Score: {score}\")",
+   "reasoning": "The agent only computes and outputs RMSE, failing to use secondary metrics like MAE which would provide better insight into performance on outliers in USD amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is framed correctly as a standard tabular regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent generates a substantial number of derived features, including datetime components, cyclic features, and categorical encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "raw_pred = np.mean(raw_preds, axis=0) if raw_preds else np.zeros_like(y_val)\nlog_pred = np.mean(log_preds, axis=0) if log_preds else raw_pred\nens_pred = (raw_pred + log_pred) / 2.0",
+   "reasoning": "The agent ensembles models and targets using simple unweighted averages rather than optimizing weights based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target encoding without cross-validation",
+   "description": "Applying target encoding using the entire training fold without out-of-fold (K-fold) estimation causes severe data leakage, as tree models will heavily overfit to the overly optimistic encoded features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sums = tmp.groupby(\"cat\")[\"y\"].sum()\ncnts = tmp.groupby(\"cat\")[\"y\"].count()\ntarget_enc = (sums + global_mean * self.smoothing) / (cnts + self.smoothing)"
+  }
+ ],
+ "summary": "The agent provides a mostly well-structured pipeline that correctly splits data prior to feature engineering and evaluates an ensemble of models across multiple seeds. However, it relies on naive unweighted ensembling, computes only a single metric (RMSE), and critically introduces target leakage by calculating categorical target encodings over the whole training fold without cross-validation.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

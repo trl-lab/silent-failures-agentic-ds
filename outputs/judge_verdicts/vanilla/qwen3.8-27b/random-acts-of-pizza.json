@@ -1,0 +1,109 @@
+{
+ "task": "random-acts-of-pizza",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(X_train, y_train, test_size=0.2, random_state=42, stratify=stratify)",
+   "reasoning": "The dataset has temporal features (unix_timestamp_of_request), but the validation split is performed randomly rather than chronologically, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_pipeline.fit(X_train_split, y_train_split, ...)",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model exactly once without using multiple random seeds or cross-validation to estimate variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val_split, val_pred)",
+   "reasoning": "The agent evaluates the model exclusively on ROC AUC without reporting other relevant metrics like log-loss, precision, or recall to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "TfidfVectorizer Input Dimension Error in ColumnTransformer",
+   "description": "Passing a single text column as a list (e.g., `[\"text_col\"]`) to a TfidfVectorizer inside a ColumnTransformer causes it to receive a DataFrame instead of a 1D Series. The vectorizer then iterates over the column names rather than the rows, resulting in a 1-row output and a fatal array concatenation dimension mismatch. The agent catches this and falls back to dropping the text features entirely.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "transformers.append((\"text\", TfidfVectorizer(...), [\"combined_text\"]))"
+  },
+  {
+   "name": "Incorrect Submission ID Format",
+   "description": "The agent drops the original identifier column (`request_id`) and generates synthetic sequential IDs (`np.arange(n)`) for the submission file. This will cause the submission to fail downstream evaluation or be scored incorrectly because the predictions will not map to the original instances.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pd.DataFrame({\"id\": np.arange(n, dtype=int), \"requester_received_pizza\": probs}).to_csv(\"predictions.csv\", index=False)"
+  }
+ ],
+ "summary": "The agent implements a reasonable feature engineering pipeline but makes a critical error by passing a DataFrame instead of a Series to TfidfVectorizer, causing a fatal dimension mismatch that forces a fallback discarding all TF-IDF features. Furthermore, the agent drops the original 'request_id' and writes sequential IDs to the submission file, which will break evaluation. Standard data science practices like chronological splitting and multiple model evaluations are also missing.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

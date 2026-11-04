@@ -1,0 +1,149 @@
+{
+ "task": "KDDCup09_appetency",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = pd.to_numeric(train_df[col], errors=\"coerce\")",
+   "reasoning": "The agent relies entirely on the tree-based models to natively handle missing values in numeric columns without any explicit imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant columns) is correctly fitted on the training split only.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed, so no imputation statistics can leak.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models (LGBM, XGBoost, CatBoost) for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is implemented using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates model variants on an internal validation set, not the final test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_part, val_part, y_train, y_val = train_test_split(train_df, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y)",
+   "reasoning": "The agent performs a single train/validation split and evaluates each stochastic model exactly once without using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "validation_scores[name] = roc_auc_score(y_val, val_proba)",
+   "reasoning": "The agent evaluates and selects models based solely on ROC AUC without computing any secondary metrics to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard binary classification problem and is framed correctly by the agent.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = pd.to_numeric(train_df[col], errors=\"coerce\")",
+   "reasoning": "The agent uses raw columns directly (with basic type coercion/encoding) and makes no effort to create derived features or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "predictions = np.mean(final_predictions, axis=0)",
+   "reasoning": "The agent combines multiple model predictions using a naive, unweighted average without attempting to optimize the blending weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "DataFrame Fragmentation",
+   "description": "The agent populates a new DataFrame column by column in a loop, which creates a highly fragmented DataFrame. This triggers pandas PerformanceWarnings and can severely degrade performance on wide datasets.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train[col] = pd.to_numeric(train_df[col], errors=\"coerce\")"
+  },
+  {
+   "name": "Missing Categorical Features Declaration in CatBoost",
+   "description": "While categorical features are passed to LightGBM, they are not explicitly declared for CatBoost or XGBoost. Consequently, label-encoded categorical variables will be incorrectly treated as continuous numeric features by these models.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "models[\"catboost\"] = CatBoostClassifier(iterations=1000, learning_rate=0.05, depth=6, random_seed=RANDOM_STATE, verbose=0)"
+  }
+ ],
+ "summary": "The agent implements a functionally robust pipeline with no data leakage and a sound validation split, but it falls short in data preparation and optimization. It bypasses explicit missing value imputation, skips all feature engineering, aggregates ensemble predictions naively, and performs a single validation run instead of cross-validation. Furthermore, loop-based DataFrame assignments introduce memory fragmentation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

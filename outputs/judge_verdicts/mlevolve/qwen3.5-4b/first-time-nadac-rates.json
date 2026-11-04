@@ -1,0 +1,138 @@
+{
+ "task": "first-time-nadac-rates",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Test columns: {test_df.columns.tolist()}\")",
+   "reasoning": "The agent only prints the test columns but does not use test data statistics for training or preprocessing decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_cols = [col for col in train_df.columns if train_df[col].dtype in ['int64', 'float64']]",
+   "reasoning": "The agent makes no effort to clean the data, relying entirely on LightGBM to handle any missing values without an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(...)\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train_split)",
+   "reasoning": "The scaler is correctly fitted only on the training split after the train/validation split is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_cols = [col for col in train_df.columns if train_df[col].dtype in ['int64', 'float64']]",
+   "reasoning": "Filtering by data type is a structural operation, not a statistical feature selection that would leak information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the specific dataset requires a time-based split without inspecting the actual columns and task structure, though NADAC rates are historically temporal.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'objective': 'regression'",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(...)",
+   "reasoning": "The agent creates a validation split and uses it for early stopping and evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(..., seed=42)",
+   "reasoning": "The LightGBM model is trained and evaluated exactly once with a fixed random seed, without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = mean_squared_error(y_val_split, val_predictions, squared=False)",
+   "reasoning": "The agent evaluates the model solely on RMSE without considering other metrics (like MAE or R^2) to provide a fuller picture of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = 'NADAC Rate'",
+   "reasoning": "The problem is correctly framed as predicting the NADAC rate via regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_cols = [col for col in train_df.columns if train_df[col].dtype in ['int64', 'float64']]\n...\nX_train = train_df[numeric_cols].copy()",
+   "reasoning": "The agent completely drops all non-numeric columns (discarding potential dates or categorical features) and uses the raw numeric features without any derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target inclusion in features / KeyError on test set",
+   "description": "The agent extracts all numeric columns from the training set to use as features, failing to explicitly exclude the target column. This causes a KeyError when trying to subset the test set with the same column list (since the target is not in the test set), leading to a crash. Even if it didn't crash, it would cause massive target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "numeric_cols = [col for col in train_df.columns if train_df[col].dtype in ['int64', 'float64']]\nX_train = train_df[numeric_cols].copy()\n...\nX_test = test_df[numeric_cols].copy()"
+  }
+ ],
+ "summary": "The agent commits a critical error by failing to remove the target column ('NADAC Rate') from the list of numeric features, which causes a KeyError and crashes the script when applying the same feature subset to the test data. Furthermore, the agent ignores data cleaning and feature engineering entirely, indiscriminately dropping all non-numeric columns without processing them. The stochastic model is also only evaluated once with a single metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

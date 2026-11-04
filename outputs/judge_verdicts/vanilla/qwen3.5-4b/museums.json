@@ -1,0 +1,138 @@
+{
+ "task": "museums",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no test data peeking occurred.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "imputer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipe.fit(X_train_raw, train_df[TARGET_COL])",
+   "reasoning": "Imputation is correctly applied within a pipeline fitted only on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform a local split and uses the provided train/test files directly.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "LGBMRegressor(objective='regression', metric='rmse', verbose=-1, max_depth=5, n_estimators=500, random_state=42)",
+   "reasoning": "The agent uses a regression model for a regression task, which is appropriate.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipe.fit(X_train_raw, train_df[TARGET_COL])\n...\npredictions = pipe.predict(X_test_trans)",
+   "reasoning": "The agent fits the pipeline on the full training data and predicts on the test data without any internal validation split to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "LGBMRegressor(objective='regression', metric='rmse', verbose=-1, max_depth=5, n_estimators=500, random_state=42)",
+   "reasoning": "The agent uses a stochastic model (LGBM) but only runs it once with a fixed seed instead of averaging predictions over multiple initializations.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "metric='rmse'",
+   "reasoning": "The agent optimizes only for RMSE without checking other metrics (like MAE) that might be more informative or robust, and performs no local evaluation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_raw = train_df[feature_cols].copy()",
+   "reasoning": "The agent merely identifies numeric and categorical columns for basic imputation and encoding, applying no actual feature engineering or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Malformed ColumnTransformer Tuples",
+   "description": "The code constructs a ColumnTransformer using nested tuples that are not supported by scikit-learn (e.g., `('num', ('imputer', imputer, numeric_cols))`), leading to a ValueError when unpacking the tuples during fit.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "transformers=[\n            ('num', ('imputer', imputer, numeric_cols)),\n            ('cat', ('onehot', one_hot, categorical_cols))\n        ]"
+  }
+ ],
+ "summary": "The agent provides a basic regression pipeline using LGBMRegressor but fails to implement any internal validation to gauge model performance. It lacks feature engineering entirely, and a critical syntax error in the ColumnTransformer specification causes an immediate execution failure. Furthermore, the stochastic model is run only once without variance estimation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

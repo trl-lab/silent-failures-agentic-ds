@@ -1,0 +1,138 @@
+{
+ "task": "ashrae-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or preprocessing is fitted on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = preprocess(train_df.drop(columns=['meter_reading']))",
+   "reasoning": "The agent performs no data cleaning or missing value handling, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No internal train/validation split is performed, so temporal leakage in splitting does not apply.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Predict and transform back from log space\npreds_log = model.predict(X_test)",
+   "reasoning": "The agent trains directly on the full training set and predicts on the test set without any internal validation split to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n    objective='regression',\n    n_estimators=300,\n    learning_rate=0.08,\n    num_leaves=63,\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n    n_jobs=-1\n)",
+   "reasoning": "A stochastic model (LightGBM with column and row subsampling) is trained and evaluated exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally at all, which is captured by FM06 rather than relying on a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem using RMSLE (via log1p transformation of the target).",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df['hour'] = dt.dt.hour.astype(np.int8)\n        df['day'] = dt.dt.day.astype(np.int8)\n        df['dayofweek'] = dt.dt.dayofweek.astype(np.int8)",
+   "reasoning": "The agent extracts multiple datetime features from the timestamp column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring supplementary datasets",
+   "description": "The agent failed to load and merge supplementary relational datasets (e.g. building metadata, weather data) that contain crucial features for the prediction task, relying only on the main train/test files.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_path = '/path/to/user/workspace/ds_failures/datasets/kaggle/ashrae-energy-prediction/data/train.parquet'\ntest_path = '/path/to/user/workspace/ds_failures/datasets/kaggle/ashrae-energy-prediction/data/test.parquet'\n\ntrain_df = pd.read_parquet(train_path)"
+  }
+ ],
+ "summary": "The agent successfully implements a basic LightGBM pipeline with appropriate target log-transformation and temporal feature extraction. However, it critically fails to load supplementary building and weather data (which provide the bulk of predictive features in this task) and lacks any internal validation strategy, training blindly on the full dataset.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

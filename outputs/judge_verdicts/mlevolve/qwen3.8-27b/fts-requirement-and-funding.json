@@ -1,0 +1,105 @@
+{
+ "task": "fts-requirement-and-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y, test_size=0.15, random_state=42)",
+   "reasoning": "The dataset tracks funding and likely has a temporal component (e.g., years), but without inspecting the specific columns it cannot be determined if a random split improperly ignores temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = root_mean_squared_error(y_val, val_preds_orig)",
+   "reasoning": "The agent evaluates the model solely using RMSE without reporting or checking other metrics (like MAE) to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage during Cross-Validation",
+   "description": "Target encoding is calculated and applied to the entire training set before cross-validation is performed. This leaks the target values of the CV validation folds into the CV training folds through the encoded features, resulting in overly optimistic cross-validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr[f\"{col}_target_enc\"] = X_tr[col].map(...) \n... followed by ...\nfor fold, (tr_idx, va_idx) in enumerate(kf.split(X_train_np)):"
+  },
+  {
+   "name": "Flawed Manual One-Hot Encoding",
+   "description": "The agent applies `pd.get_dummies` with `drop_first=True` separately on the train, validation, and test sets. If the validation or test sets lack the training set's baseline category, a different category is dropped. This causes valid categories to be misaligned and erroneously treated as the training set's baseline by the model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "dummies = pd.get_dummies(X_tr[col], prefix=col, drop_first=True, dtype=float)\n... dummies_val = pd.get_dummies(X_val[col], prefix=col, drop_first=True, dtype=float)"
+  }
+ ],
+ "summary": "The agent implements a generally sound modeling pipeline with a proper train/validation split and solid feature engineering. However, it introduces target leakage during cross-validation by applying target encoding before the CV splits. Additionally, a severe bug exists in the manual one-hot encoding logic where `drop_first=True` applied separately to different splits risks critical category misalignment.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

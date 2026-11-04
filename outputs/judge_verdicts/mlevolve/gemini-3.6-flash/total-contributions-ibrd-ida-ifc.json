@@ -1,0 +1,170 @@
+{
+ "task": "total-contributions-ibrd-ida-ifc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by creating missingness indicators and imputing with medians.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is fit on the training set (df_train), not on the combined train/test dataset, avoiding leakage of test set statistics (though it does leak validation statistics, noted elsewhere).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is fit on the training set, not on the combined dataset, avoiding test set leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_idx, val_idx = next(\n    KFold(n_splits=5, shuffle=True, random_state=42).split(X_train_scaled)\n)",
+   "reasoning": "The dataset has a temporal component (as evidenced by the extraction of date features), but the agent uses a random KFold split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, ExtraTreesRegressor, and a custom MSE-based neural network) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch neural network includes Dropout layers and uses weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a train/validation split using KFold to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate multiple models on the held-out Kaggle test set; it uses the internal validation set for this purpose.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for epoch in range(40):\n...\nwith torch.no_grad():\n    nn_val_log = nn_model(X_va_t.to(device)).cpu().numpy().flatten()",
+   "reasoning": "The agent trains stochastic models (like the PyTorch neural network and ExtraTrees) exactly once and reports a single validation score, without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def objective(weights):\n    ...\n    return np.sqrt(np.mean((pred - y_va_raw) ** 2))",
+   "reasoning": "The agent optimizes blending weights using only RMSE on the raw scale, without checking if this metric is robust given the highly skewed target distribution (which they previously log-transformed).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers several features, including date parts, missingness indicators, categorical frequency encodings, and aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP to properly optimize blending weights rather than relying on a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in validation set via target encoding",
+   "description": "The target encoding is applied out-of-fold using a KFold split, but a single fold from that exact same split (same random state and n_splits) is later used as the validation set. This means the training set's target encoded features were partly computed using the validation set's targets, causing direct target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)\n... for train_idx, val_idx in kf.split(df_train): ... \nfollowed by: \ntrain_idx, val_idx = next(KFold(n_splits=5, shuffle=True, random_state=42).split(X_train_scaled))"
+  },
+  {
+   "name": "Validation data leakage during preprocessing",
+   "description": "The agent computes preprocessing statistics (such as scaling, median imputation, frequency encoding, and aggregations) on the entire training set before splitting it into training and validation subsets. This leaks validation set statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_medians = df_train[engineered_num_cols].median().to_dict()\n... \nscaler.fit_transform(df_train[final_feature_cols].values)\n... \ntrain_idx, val_idx = next(KFold(...).split(X_train_scaled))"
+  },
+  {
+   "name": "Overfitting blending weights to validation set",
+   "description": "The agent uses the same validation set for both early stopping of the base models and for optimizing the blending weights. Because the base models are already tuned to this validation set, their predictions are overly optimistic, leading to biased and overfitted blending weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_va, y_va_log)] used for early stopping, followed by optimizing blending weights with objective(weights) based on P_val (predictions on X_va)."
+  },
+  {
+   "name": "Improper handling of categorical features in neural network",
+   "description": "Categorical variables are label-encoded and standard-scaled alongside numerical features, then fed directly into the linear layers of the neural network. This improperly treats nominal categorical variables as ordinal and continuous, which can degrade neural network performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[c] = df_all[c].astype('category').cat.codes followed by X_train_scaled = scaler.fit_transform(...) which is then passed to TabularResNet."
+  }
+ ],
+ "summary": "The agent implements a solid modeling pipeline with diverse base models, extensive feature engineering, and an optimized blender. However, the solution suffers from severe data leakage because preprocessing, target encoding, and train/validation splits overlap improperly, causing validation targets and statistics to leak into training features. Additionally, the blending weights are overfitted to the same validation set used for early stopping, and the temporal structure of the data is ignored during splitting.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

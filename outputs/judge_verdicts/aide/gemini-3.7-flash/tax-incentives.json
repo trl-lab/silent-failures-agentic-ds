@@ -1,0 +1,142 @@
+{
+ "task": "tax-incentives",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_df[features], test_df[features]], axis=0).reset_index(drop=True)\n...\noe = OrdinalEncoder(handle_unknown=\"use_encoded_value\", unknown_value=-1)\ncombined[cat_cols] = oe.fit_transform(combined[cat_cols].astype(str))",
+   "reasoning": "The agent concatenates the train and test datasets, then fits an OrdinalEncoder and computes frequency encodings and group aggregations on the combined data, directly leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = combined.select_dtypes(include=[\"object\", \"category\"]).columns.tolist()\nnum_cols = combined.select_dtypes(include=[np.number]).columns.tolist()",
+   "reasoning": "The agent makes no explicit effort to clean the data, identify obvious outliers, or handle missing values, instead relying entirely on the native missing-value capabilities of the tree-based models.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any scaling or normalization.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any explicit feature selection before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any imputation.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the tax-incentives dataset has a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the model architecture over multiple data subsets, addressing the issue of single-evaluation variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_ensemble)",
+   "reasoning": "The agent evaluates and optimizes the ensemble using only the target metric (RMSE) without computing secondary metrics (such as MAE) to verify the models' robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent frames the problem correctly as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including group aggregations, frequency encoding, and numeric pairwise interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses scipy.optimize.minimize to find the optimal blending weights for the cross-validated predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Group Aggregations on Combined Data",
+   "description": "The agent computes group-based aggregations (mean, std, min, max) and frequency encodings on the concatenated train and test dataset before splitting. This explicitly leaks test set distributions into the training features, leading to overly optimistic cross-validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped = combined.groupby(cat_col)[num_col].agg([\"mean\", \"std\", \"min\", \"max\"])\n...\nfreq = combined[col].value_counts(dropna=False)"
+  }
+ ],
+ "summary": "The agent implements a robust multi-model ensemble using cross-validation and optimized weighted blending. However, the solution suffers from a critical data leakage flaw by concatenating the train and test sets to perform feature engineering (e.g., group aggregations, frequency encoding) before splitting. Furthermore, the agent fails to implement explicit data cleaning routines, blindly relying on the models to handle any missing values or outliers.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

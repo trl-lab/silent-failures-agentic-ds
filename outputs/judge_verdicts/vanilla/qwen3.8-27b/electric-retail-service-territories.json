@@ -1,0 +1,146 @@
+{
+ "task": "electric-retail-service-territories",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by replacing 'NOT AVAILABLE' with NaN and imputing missing values with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No numerical scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection algorithms are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train_full[col].median()\n    X_train_full[col] = X_train_full[col].fillna(median_val)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The agent computes the median for imputation on the full training set before splitting it into training and validation sets, leaking validation set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset contains a 'VAL_DATE' column, but it is unclear if the task requires a temporal split or if it is purely cross-sectional.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a dedicated validation split and evaluates models on it.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The agent evaluates the stochastic gradient boosting models on a single validation split without cross-validation or multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_val, val_pred))",
+   "reasoning": "The agent evaluates the models using only RMSE, without exploring other metrics like MAE or R^2 to better understand performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as predicting the TOTAL_MWH regression target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "drop_cols = ['OBJECTID', 'ID', 'NAME', 'ADDRESS', 'SOURCE', 'VAL_DATE', 'WEBSITE', target]",
+   "reasoning": "The agent drops the 'VAL_DATE' column entirely instead of extracting date components (year, month, etc.) and uses raw categorical/numeric columns as-is.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ensemble_val = np.mean(val_predictions, axis=0)",
+   "reasoning": "The agent uses a simple unweighted mean to combine predictions from LGBM, XGBoost, and CatBoost without optimizing the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage through categorical encoding on test data",
+   "description": "The agent fits a categorical encoder (e.g., LabelEncoder) on the combined train and test sets. In a realistic ML pipeline, the test data is strictly unseen during model training and preprocessing, so encoders should only be fit on the training data and configured to handle unseen categories gracefully.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_full[col], X_test[col]], axis=0).astype(str)\n    le.fit(combined)"
+  }
+ ],
+ "summary": "The agent builds a solid baseline using gradient boosting models and an ensemble, but commits several data science flaws. It leaks validation data statistics by imputing missing values before the validation split, and leaks test data information by fitting the LabelEncoder on the combined train and test sets. Additionally, the agent uses a naive unweighted average for the ensemble, performs no feature engineering (e.g., dropping the date column instead of parsing it), and evaluates the models using only a single metric and a single validation split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

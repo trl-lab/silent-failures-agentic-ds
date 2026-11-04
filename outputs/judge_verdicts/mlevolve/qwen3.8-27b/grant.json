@@ -1,0 +1,106 @@
+{
+ "task": "grant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "variances = (\n    combined.loc[: n_train - 1, key_numeric[:30]].var().sort_values(ascending=False)\n)",
+   "reasoning": "The agent computes feature variances on the entire training set before splitting it into training and validation sets, slightly leaking validation information into the feature selection process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_vals = combined.loc[: n_train - 1, col]\nmed = train_vals.median()\ncombined[col] = combined[col].fillna(med)",
+   "reasoning": "The agent computes the imputation medians on the full training set prior to the train/validation split, which leaks validation statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_orig = lgb.train(\n    params_orig,\n    train_ds_orig,\n    valid_sets=[val_ds_orig],\n...",
+   "reasoning": "The agent trains and evaluates its stochastic models (LightGBM, XGBoost) exactly once using a fixed seed, without multiple runs or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_orig_model = np.sqrt(mean_squared_error(y_val_split, val_pred_orig))",
+   "reasoning": "The agent only uses RMSE to evaluate model performance without checking other metrics (like MAE or RMSLE) that might be more robust to the likely skew in the monetary target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unused Target Transformation",
+   "description": "The agent computes a transformation for the target variable (e.g., log-transforming a highly skewed target) but fails to actually use it during model training, passing the raw target instead.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train_log = np.log1p(y_train_split)\ny_val_log = np.log1p(y_val_split)\n...\ntrain_ds_orig = lgb.Dataset(\n    train_X.values, label=y_train_split, feature_name=feature_names\n)"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline with extensive feature engineering and a weighted ensemble of LightGBM and XGBoost models. However, it computes imputation statistics and feature variances on the full training set prior to the train/validation split, causing validation leakage. Additionally, the agent creates a log-transformed target variable but mistakenly leaves it unused, training the models on the highly-skewed raw target instead.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

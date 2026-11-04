@@ -1,0 +1,141 @@
+{
+ "task": "journal-ranking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not used during data exploration or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df.drop(columns=[\"id\", \"H index\"])",
+   "reasoning": "The agent makes no effort to clean the data, relying entirely on LightGBM to handle missing values natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, which averages over multiple data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_scores.append(mean_squared_error(y_val_fold, val_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without using secondary metrics like MAE to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df.drop(columns=[\"id\", \"H index\"])",
+   "reasoning": "The agent uses the raw columns as-is without generating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Mixing LightGBM native and scikit-learn APIs",
+   "description": "The agent initializes a scikit-learn API model (`LGBMRegressor`) but passes native `lgb.Dataset` objects to its `fit()` method instead of array-like `X` and `y` arguments, which will cause an execution error. Additionally, native arguments like `valid_sets` and `num_boost_round` are passed to the scikit-learn `.fit()` method.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(\n        train_data, callbacks=callbacks, valid_sets=[val_data], num_boost_round=1000\n    )"
+  },
+  {
+   "name": "Overwriting test predictions in CV loop",
+   "description": "The agent generates test predictions inside a cross-validation loop but overwrites the prediction dictionary entry in each iteration instead of accumulating and averaging them. This means the final submission only uses the model trained on the final fold, discarding the rest of the ensemble.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "predictions[\"test\"] = test_pred"
+  }
+ ],
+ "summary": "The agent incorrectly mixes LightGBM's native and scikit-learn APIs, passing `lgb.Dataset` to `LGBMRegressor.fit()`, which will cause a fatal execution error. Beyond this, the agent fails to perform any data cleaning or feature engineering, evaluates using only one metric, and logically overwrites test predictions in each cross-validation fold instead of averaging them.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "orphan-designations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent uses SimpleImputer to explicitly handle missing values in both numerical and categorical pipelines.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is used before splitting; preprocessing is correctly fit only on the training set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_processed = transformer.fit_transform(X_train)\nX_test_processed = transformer.transform(X_test)",
+   "reasoning": "The imputer is properly fit only on the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset structure is unknown, and the agent uses pre-split train and test sets, so it is unclear if temporal order is relevant or ignored.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(",
+   "reasoning": "The agent uses a classification model for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train.values.ravel())\n    \n    # Predictions\n    print(\"Generating predictions...\")",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without establishing any internal validation split or computing cross-validation scores.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any scores, so this failure mode regarding single evaluation scores does not directly apply.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report or optimise any metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "y_train = y_train.replace({major_val: 1, minor_val: 0}).astype(int)",
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "transformer = ColumnTransformer(transformers=...",
+   "reasoning": "The agent only applies basic imputation and one-hot encoding, without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "hard_labels_for_auc",
+   "description": "The agent thresholds the predicted probabilities at 0.5 to output hard binary labels (0 or 1), despite the evaluation metric being ROC AUC. ROC AUC requires continuous probabilities or ranking scores to correctly evaluate the model's discriminative ability; using hard labels severely degrades the metric score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predicted_status = (proba[:, 1] >= 0.5).astype(int)"
+  },
+  {
+   "name": "synthetic_id_column",
+   "description": "The agent generates a synthetic 'id' column using an integer range instead of preserving the actual identifier column from the test dataset, which will likely cause submission failures if the evaluation system expects the original specific IDs.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "'id': range(len(X_test_processed))"
+  }
+ ],
+ "summary": "The agent successfully implements a standard preprocessing pipeline and trains an appropriate classification model without leaking test data. However, it fails to perform any internal validation (FM06) and completely ignores feature engineering (FM07). Crucially, it ruins its predictions for the target ROC AUC metric by converting probabilities into hard binary labels before saving them.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

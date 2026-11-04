@@ -1,0 +1,149 @@
+{
+ "task": "orphan-designations",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le.fit_transform(combined[col].fillna(\"Missing\").astype(str))",
+   "reasoning": "The agent fits a LabelEncoder and computes statistics (like minimum date and average word count) on the combined train and test datasets, leaking test information into preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled using median imputation for numerics and 'Missing'/empty string for categoricals/text.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fitted only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "SVD for text features is fitted only on the training set (tfidf_tr), not the combined dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Median imputation relies only on the median of the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not primarily a time-series forecasting problem, making random K-Fold splitting standard and acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models and BCE loss for the binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network includes Dropout and weight decay regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is purely used for final predictions and not for model selection or validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic neural network is evaluated across 5 folds, effectively ensembling multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for ROC AUC, which is the specified and appropriate metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date extraction, text statistics, TF-IDF, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs an advanced rank blending approach optimized via Nelder-Mead, rather than naive ensembling.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Cross-Validation Features",
+   "description": "The agent pre-computes out-of-fold features (like target encoding and Ridge predictions) on the training set using K-Fold, then uses these as static features in a subsequent cross-validation loop with identical folds (same random seed). This causes the target values of each validation fold to leak into its respective training features, severely biasing the model and invalidating the CV scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train.iloc[va_idx, X_train.columns.get_loc(te_col_name)] = ...\nfor fold, (tr_idx, va_idx) in enumerate(skf.split(X, y)):"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated pipeline with thorough feature engineering, deep learning, and Nelder-Mead rank blending. However, the solution contains a critical target leakage flaw: out-of-fold features (target encodings and Ridge predictions) are generated and then reused as features in a subsequent cross-validation loop that uses the exact same folds. This contaminates the training set of each fold with information from its validation set. Additionally, there is minor data leakage from fitting LabelEncoders on the combined train and test sets.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "global-power-plant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not inspected during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Basic data cleaning and formatting is performed, including handling of missing categorical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No data-driven feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant ('Missing'), which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is cross-sectional, not temporal.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "5-fold cross-validation is correctly set up and used for model training.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated and predictions averaged over 5 folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While only RMSE is used for early stopping, it perfectly matches the required task metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Derived features like plant age and number of fuels are engineered.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_test_preds + 0.5 * cat_test_preds",
+   "reasoning": "The agent combines LightGBM and CatBoost predictions using a naive equal-weight average without tuning the blend ratio or stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target/feature distribution leakage via frequency encoding",
+   "description": "Frequency encoding is calculated on the combined train and test datasets, which leaks the test set categorical distributions into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(normalize=True)\n        combined[f'{col}_freq'] = combined[col].map(freq).astype(float)"
+  },
+  {
+   "name": "No validation score computed or reported",
+   "description": "The agent trains models using cross-validation but never computes or reports an overall validation score (e.g. OOF RMSE), operating blindly without knowing its actual generalisation performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_lgb.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_va)],\n        callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)]\n    )\n    lgb_test_preds += model_lgb.predict(X_test) / n_splits"
+  }
+ ],
+ "summary": "The agent provides a structurally sound solution with appropriate feature engineering and cross-validation, but falls into a data leakage trap by computing frequency encodings globally on the combined train/test set. Furthermore, it naively ensembles the models with equal weights and completely fails to compute or report any overall validation score to estimate generalisation.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

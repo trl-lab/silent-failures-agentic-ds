@@ -1,0 +1,134 @@
+{
+ "task": "restaurant-revenue-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and drops unnecessary columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+   "reasoning": "The scaler is correctly fit only on the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_df, X_test_df], axis=0, ignore_index=True)\n\n# Encode City, City Group, Type\ncombined = pd.get_dummies(combined, columns=['City', 'City Group', 'Type'], drop_first=True)\n\n# Handle any missing values\ncombined = combined.fillna(combined.median(numeric_only=True))",
+   "reasoning": "The agent concatenates train and test data and imputes missing values using the median of the combined dataset, leaking test statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Although 'Open Date' exists, this is generally treated as a cross-sectional prediction task for new restaurants rather than a strict time-series forecasting problem.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X_tr_use):\n        X_tr, y_tr = X_tr_use[train_idx], y_train[train_idx]\n        model.fit(X_tr, y_tr)\n        fold_preds += model.predict(X_te_use) / kf.n_splits",
+   "reasoning": "The agent uses cross-validation folds to train models and predict on the test set, but entirely ignores `val_idx` and never calculates or reports a validation metric to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent does not report a single score, as it fails to evaluate the model on a validation set altogether.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics, so it cannot be faulted for using only one.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem, including a log transformation of the right-skewed target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df['Days_Open'] = (reference_date - df['Open Date']).dt.days\n    df['Open_Year'] = df['Open Date'].dt.year",
+   "reasoning": "The agent extracts several useful date-related features from the 'Open Date' column.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += fold_preds\n    total_weight += 1\n\ntest_preds /= total_weight",
+   "reasoning": "The agent ensembles six different models using a naive, unweighted average without attempting to optimize the combination weights or use a meta-model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent successfully engineered date features and log-transformed the target variable, which is good practice for this task. However, the solution suffers from critical data leakage by imputing missing values on the combined train and test sets (FM04). Additionally, the agent sets up a KFold cross-validation but entirely fails to compute any validation metrics, leaving no way to estimate model generalization (FM06), and uses a naive unweighted average for ensembling (FM12).",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

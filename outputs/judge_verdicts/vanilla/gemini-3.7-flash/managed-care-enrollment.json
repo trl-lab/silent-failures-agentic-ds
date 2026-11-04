@@ -1,0 +1,149 @@
+{
+ "task": "managed-care-enrollment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA code present that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by imputing missing values and stripping strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No numerical scaling or normalization is applied to the features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_svd_components, random_state=42)\nsvd_features = svd.fit_transform(tfidf_matrix)",
+   "reasoning": "TF-IDF and TruncatedSVD are fitted on the combined dataset (train + test), leaking test set vocabulary and variance structure into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_df[col] = combined_df[col].fillna(combined_df[col].median()).astype(float)",
+   "reasoning": "The median for numerical imputation is calculated over the combined train and test dataset, leaking test distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a 'Year' column indicating a temporal sequence, but the agent uses randomized KFold cross-validation, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression and the agent correctly uses LightGBM and CatBoost regressors.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently averages performance over multiple folds rather than relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "'metric': 'rmse'",
+   "reasoning": "The agent solely relies on RMSE for early stopping and evaluation without considering alternatives like MAE which might be more robust to enrollment outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates multiple derived features, including frequency encodings, text lengths, and TF-IDF/SVD components.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent uses a naive, unweighted 50/50 average for ensembling without tuning the blend ratio based on out-of-fold predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unbounded predictions for strictly positive target",
+   "description": "The target variable (e.g., Total Enrollment, counts, or prices) is strictly positive, but the standard regression models used can predict negative values. The agent does not clip the final predictions at zero or use a log-transform to guarantee positive outputs.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "output_df = pd.DataFrame({'id': np.arange(len(final_predictions)), 'Total Enrollment': final_predictions})"
+  },
+  {
+   "name": "Frequency encoding leakage",
+   "description": "The agent calculates frequency encodings using the combined train and test sets, which leaks test set distribution information into the training set features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].value_counts()\nfeatures_df[f'{col}_freq'] = combined_df[col].map(freq).astype(float)"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline using advanced categorical encodings, text dimensionality reduction, and an ensemble of gradient boosting models. However, it introduces critical data leakage by combining the train and test sets before performing median imputation, frequency encoding, and TF-IDF/SVD fitting. Furthermore, the agent ignores the temporal nature of the data (the 'Year' column) by using randomized cross-validation, and uses a naive unweighted average for its final ensemble.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

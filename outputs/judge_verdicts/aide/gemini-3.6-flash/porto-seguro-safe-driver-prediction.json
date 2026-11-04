@@ -1,0 +1,148 @@
+{
+ "task": "porto-seguro-safe-driver-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values by replacing '-1' with NaN for native GBDT handling and engineering a 'missing_count' feature.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is limited to dropping specific columns based on name/domain knowledge, not statistical selection on the full dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses appropriate classification models (XGBClassifier, LGBMClassifier, CatBoostClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions; blending weights are optimized on Out-Of-Fold (OOF) predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, which inherently averages over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for Normalized Gini (via AUC), which is the exact and appropriate evaluation metric specified for this highly imbalanced task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements derived features such as missing counts, frequency encoding, target encoding, and domain-specific interaction features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes blending weights using Nelder-Mead on rank-transformed OOF predictions, which is an advanced and appropriate ensembling technique.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Target Encoding",
+   "description": "The agent computes target encoding means on the training fold and maps them directly back to the same training fold. Because a sample's own target is included in its category's mean, this causes severe target leakage and overfitting. An out-of-fold or leave-one-out strategy within the training fold is required to prevent this.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped = pd.Series(y_tr).groupby(X_tr_orig[col].values)\ncounts = grouped.count()\nmeans = grouped.mean()\n...\nX_tr_fold[te_col_name] = X_tr_fold[col].map(te_map).fillna(global_mean).values"
+  },
+  {
+   "name": "Data Leakage from Test Set in Feature Engineering",
+   "description": "The agent concatenates the training and test datasets before calculating frequency encodings for categorical variables. This leaks the statistical distribution of the test set into the training features, which is an invalid practice for real-world generalization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([train[features], test[features]], axis=0).reset_index(drop=True)\n...\nfreq = df_all[col].value_counts(normalize=True).to_dict()\ndf_all[f\"{col}_freq\"] = df_all[col].map(freq)"
+  }
+ ],
+ "summary": "The solution employs a solid overall framework typical of competitive data science, including 5-fold stratified CV, advanced feature engineering, and rank-based OOF blending. However, it contains a critical target leakage bug where target encoding is applied naively to the training fold without an inner out-of-fold scheme. Additionally, frequency encodings are computed on the combined train and test sets, which technically constitutes data leakage.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

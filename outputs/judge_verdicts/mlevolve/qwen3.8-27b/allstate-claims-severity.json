@@ -1,0 +1,109 @@
+{
+ "task": "allstate-claims-severity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_idx, val_idx = train_test_split(range(len(train_features)), test_size=0.15, random_state=42)",
+   "reasoning": "The agent evaluates the models on a single validation split without cross-validation or averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mae = np.mean(np.abs(y_val_raw - val_pred))",
+   "reasoning": "The agent only calculates and reports the MAE metric for validation, without additional diagnostic metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_pred_log_ensemble = np.mean(val_preds_log, axis=0)",
+   "reasoning": "The agent combines the ensemble predictions using a simple unweighted average without any tuning or weighting optimization.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data-dependent feature engineering mismatch",
+   "description": "Feature engineering logic conditionally creates new features based on the minimum value of the current data split rather than the training set. If a feature's minimum value is > 0 in the train split but <= 0 in the validation or test split, the column will not be created, leading to shape mismatches and crashing models.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if col in df.columns and df[col].min() > 0:\n            df[f\"{col}_log\"] = np.log1p(df[col])"
+  },
+  {
+   "name": "Constant feature creation",
+   "description": "The agent computes scalar values (the number of unique categories for a column in the training set) and assigns them directly to the dataframe for all rows, creating features with zero variance that waste memory and compute.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cardinality[col] = df[col].nunique()\n    if cardinality is not None:\n        for col in cat_cols:\n            df[f\"{col}_nunique\"] = cardinality[col]"
+  }
+ ],
+ "summary": "The agent builds a diverse ensemble of LightGBM and XGBoost models but evaluates them on a single train/validation split and aggregates them using a naive unweighted average. Furthermore, the feature engineering implementation contains critical flaws: it creates useless zero-variance constant features and conditionally creates log-transformed features based on the local split's minimum value, creating a high risk of shape mismatches between train and test sets.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

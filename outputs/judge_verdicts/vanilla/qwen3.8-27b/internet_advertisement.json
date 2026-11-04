@@ -1,0 +1,145 @@
+{
+ "task": "internet_advertisement",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values and attempts type conversions.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalising is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting; categorical mappings use only train unique values.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classifier (LGBMClassifier) is correctly used for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if len(np.unique(y_val)) > 2:\n            val_score = validation_model.predict_proba(X_val)[:, 1]\n            _ = roc_auc_score(y_val, val_score)",
+   "reasoning": "The validation score calculation is hidden behind a logically impossible condition for a binary task (> 2 unique values) and its result is assigned to a dummy variable, meaning no internal validation score is actually computed or reported.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_model = make_model()\n    final_model.fit(X_train, y_train)",
+   "reasoning": "The stochastic LGBMClassifier is trained and evaluated only once without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "_ = roc_auc_score(y_val, val_score)",
+   "reasoning": "The agent only attempts to calculate ROC AUC and doesn't use or report any other metrics to evaluate performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def encode_features(X_train, X_test):",
+   "reasoning": "The agent uses raw columns as-is, applying only basic type casting and encoding, and creates no derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "inverted_positive_class",
+   "description": "The agent incorrectly assigns the negative class (e.g., 'noad' or 'nonad.') as the positive label. This causes the model to predict probabilities for the negative class, which strictly inverts the ROC AUC score (resulting in 1 - AUC) if evaluated against the true positive class.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if \"ad\" in labels and \"noad\" in labels:\n        return \"noad\"\n...\n    return sorted_labels[-1] if sorted_labels else \"1\""
+  },
+  {
+   "name": "label_encoding_continuous_features",
+   "description": "Continuous features that are parsed as object types (e.g. due to missing value string tokens like '?') bypass numerical coercion and are instead label-encoded by a fallback block, destroying their continuous nature and severely degrading model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "except (ValueError, TypeError):\n            mapping = {value: idx for idx, value in enumerate(train_series.unique())}\n            X_train[col] = train_series.map(mapping).astype(float)"
+  }
+ ],
+ "summary": "The agent implements a LightGBM classification pipeline but introduces critical bugs. The most severe issue is explicitly selecting the negative class ('noad'/'nonad.') as the positive label, which will invert the final ROC AUC score. Furthermore, continuous features containing missing value tokens bypass numerical conversion and are incorrectly label-encoded. Lastly, a bug in the validation condition (`> 2` classes) completely skips the evaluation step, meaning no validation score is computed.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

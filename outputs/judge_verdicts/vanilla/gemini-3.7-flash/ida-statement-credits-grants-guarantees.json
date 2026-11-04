@@ -1,0 +1,149 @@
+{
+ "task": "ida-statement-credits-grants-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or programmatic preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_feat.loc[d.isna(), col + '_ts'] = np.nan",
+   "reasoning": "The agent performs no explicit data cleaning or imputation, relying entirely on LightGBM's native ability to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scalers are used in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains multiple date columns indicating a strong temporal component, but the agent uses a randomized KFold split, ignoring temporal order and risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for this continuous target regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 folds, avoiding a single evaluation of a stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "model.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_va)],\n        callbacks=[]\n    )",
+   "reasoning": "The agent relies implicitly on LightGBM's default metric (L2) and neither specifies, tracks, nor reports performance using the required RMSE metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date parts (year, month, day) and computes useful durations between significant project dates.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent uses a simple, unweighted average to combine the predictions of the 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage / Lookahead Bias in Features",
+   "description": "Including features that are determined after the target variable is set introduces target leakage and artificially inflates model performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "date_cols = ['End of Period', 'First Repayment Date', 'Last Repayment Date', ... 'Closed Date (Most Recent)']"
+  },
+  {
+   "name": "Test Data Leakage in Categorical Encoding",
+   "description": "Aligning categorical levels by concatenating train and test sets directly leaks structural information about the test set's categories into the training preprocessing pipeline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined_cats = pd.concat([X_train[col].astype(str), X_test[col].astype(str)], axis=0).astype('category').cat.categories"
+  }
+ ],
+ "summary": "The agent implements a solid baseline LightGBM regression model with cross-validation and date-based feature engineering. However, it completely relies on the model to handle missing values (FM03) and fails to evaluate performance using the specified RMSE metric (FM15). Most critically, the agent ignores the temporal nature of the dataset during splitting (FM05) and explicitly engineers features from future events (like repayment and closing dates) to predict the original principal amount, resulting in massive target leakage.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}
