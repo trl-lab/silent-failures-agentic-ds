@@ -22,9 +22,9 @@ WORKLOADS=(
     TF01_goal_imbalance
     TF02_player_rep_norm
     TF03_correlation_causation
-    TF04_balance_torque
+    TF04_balance_torque_leakfree   # leak-free data and prompts (dsts_leakfree_data/), as reported in the paper
     TF05_credit_card_leakage
-    TF06_metric_select
+    TF06_metric_select_leakfree
 )
 AGENTS=(vanilla aide mlevolve)   # each has its own dsts_run_<agent>.py
 AIDE_STEPS=5
@@ -90,7 +90,7 @@ DSTS_ROOT="${DSTS_ROOT:-$PROJECT_DIR/dsts_suite}"
 if [ "$SKIP_JUDGE" = false ]; then
     for model in "${MODELS[@]}"; do
         for workload in "${WORKLOADS[@]}"; do
-            criteria="$PROJECT_DIR/judge_criteria/${workload}_eval.json"
+            criteria="$PROJECT_DIR/judge_criteria/${workload%_leakfree}_eval.json"
             if [ ! -f "$criteria" ]; then
                 echo "[SKIP judge] criteria not found: $criteria"
                 continue
@@ -98,6 +98,7 @@ if [ "$SKIP_JUDGE" = false ]; then
             for agent in "${AGENTS[@]}"; do
                 scratch_dir="$PROJECT_DIR/dsts_runs/${agent}/$(model_slug "$model")"
                 subfolder="$(judge_subfolder "$agent" "$model")"
+                [[ "$workload" == *_leakfree ]] && subfolder="Leakfree_$subfolder"
                 echo ""
                 echo ">>> judge  agent=$agent  workload=$workload  model=$model"
                 (

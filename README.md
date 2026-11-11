@@ -36,6 +36,7 @@ scripts/
   visualization/           Data loaders and scripts for figures (plot_*.py) and tables (build_*.py)
 analysis/hsc/              Task list for Kaggle first-place comparisons
 judge_criteria/            Test-suite per-test judge eval criteria (TF01-TF06)
+dsts_suite/                Curated failure-mode test suite (DSTS): task workloads, input data, metric scripts
 dsts_leakfree_data/        Leak-free data for the TF04 and TF06 test-suite tasks
 outputs/                   Released pipelines, judge verdicts, and human annotations
 docs/                      Dataset registry, source metadata, and licensing
@@ -73,7 +74,7 @@ Configure these based on the models and paths you intend to use. See `scripts/co
 | `OPENROUTER_API_KEY` | Required for Qwen or other OpenRouter models |
 | `GEMINI_JUDGE_MODEL_ID` / `OPENAI_JUDGE_MODEL_ID` / `GEMINI_MODEL_ID` | Override default model IDs |
 | `MLEVOLVE_ROOT` | Path to the MLEvolve clone (default: `external/agents/MLEvolve`) |
-| `DSTS_ROOT` | Path to the DSTS test suite checkout (default: `./dsts_suite`) |
+| `DSTS_ROOT` | Path to the DSTS test suite (default: the bundled `./dsts_suite`) |
 | `DS_DATASETS_DIR` | Override the default `datasets/` download directory |
 
 ### Kaggle Credentials
@@ -92,12 +93,22 @@ The agents frameworks are not included in this repo. Install them locally before
 4. **Run the Judge:** Execute `run_judge.py` to evaluate the agent outputs. 
 5. **Regenerate Figures and Tables:** Use the scripts in `scripts/visualization/` to parse the verdicts and output LaTeX tables to `results/` and figures to `analysis/figures/`.
 
+## Running the DSTS Test Suite
+
+```bash
+# set the API keys, and add your models to scripts/config/model_registry.json
+./scripts/dsts_run_all.sh                       # run all agents, judge, and score
+./scripts/dsts_run_all.sh --skip-run            # re-judge and re-score existing runs only
+```
+
+Edit `MODELS`, `WORKLOADS`, and `AGENTS` at the top of the script to narrow what runs. TF04 and TF06 run the leak-free versions (`*_leakfree`). Judge results go to `dsts_suite/llmjudge/judge_results/`, and the final table to `dsts_suite/llmjudge/table.csv`.
+
 ## Credits & License
 
 * **Code License:** MIT (`LICENSE`)
 * **Outputs License:** CC BY 4.0 (`outputs/LICENSE`)
 * **Data License:** Derived datasets (like Transfermarkt) retain their original licenses. See `docs/` for specifics. 
-* **Test Suite:** The curated failure-mode test suite (DSTS) was developed by Hongqian. This repository adapts it and releases the corresponding judge results.
+* **Test Suite:** The curated failure-mode test suite (DSTS, `dsts_suite/`) was developed by Hongqian Xia; it is a subset of the `tabular-agent-failures` repository (task workloads, input data, metric scripts). See `dsts_suite/NOTICE.md`.
 
 ## Citation
 
