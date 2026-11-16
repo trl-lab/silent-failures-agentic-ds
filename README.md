@@ -107,6 +107,3 @@ Edit `MODELS`, `WORKLOADS`, and `AGENTS` at the top of the script to narrow what
 * **Data License:** Derived datasets (like Transfermarkt) retain their original licenses. See `docs/` for specifics. 
 * **Test Suite:** The curated failure-mode test suite (DSTS) is bundled in `dsts_suite/` (task workloads, input data, metric scripts). See `dsts_suite/NOTICE.md`.
 
-## Citation
-
-Citation information is withheld for anonymous review.
