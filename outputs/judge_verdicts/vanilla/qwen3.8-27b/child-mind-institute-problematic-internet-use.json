@@ -1,0 +1,109 @@
+{
+ "task": "child-mind-institute-problematic-internet-use",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(\n        iterations=2000,\n        learning_rate=0.05,\n        depth=6,\n        l2_leaf_reg=3.0,\n        random_seed=RANDOM_STATE,",
+   "reasoning": "The agent trains and evaluates the stochastic CatBoost model exactly once with a single random seed, without utilizing cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "best_score = safe_qwk(y_val_rank, argmax_pred)",
+   "reasoning": "The agent evaluates the model solely using the Quadratic Weighted Kappa metric, without tracking other metrics like log-loss or accuracy to better diagnose model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c in test_df.columns]\n\n    kept_cols = []",
+   "reasoning": "The agent uses the raw columns directly (with basic missing value handling) and does not perform any domain-informed feature engineering or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "discarded_test_ids",
+   "description": "The agent drops the identifier column from the test dataset and replaces it with a synthetic sequence of integers in the submission file, which will result in misaligned predictions and a failed submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = test_df.drop(columns=[\"id\"], errors=\"ignore\")\n... \n\"id\": np.arange(len(test_df)),"
+  },
+  {
+   "name": "hardcoded_class_count",
+   "description": "The agent hardcodes logic that explicitly assumes a specific number of classes (e.g. 3) for threshold optimization, whereas the target variable actually has a different number (4 in this task), rendering the optimization dead code and forcing a sub-optimal fallback.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if val_probs.shape[1] == 3:\n        grid = np.linspace(0.0, 1.0, 21)"
+  }
+ ],
+ "summary": "The agent implements a basic CatBoost pipeline but commits a critical error by dropping the original test IDs and substituting them with an integer sequence, invalidating the submission file. Furthermore, the agent uses no feature engineering, evaluates the stochastic model only once, and includes threshold optimization logic that is hardcoded for 3 classes (which will be silently bypassed for this 4-class task).",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

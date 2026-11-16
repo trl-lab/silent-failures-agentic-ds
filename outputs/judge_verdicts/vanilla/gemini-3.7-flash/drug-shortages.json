@@ -1,0 +1,105 @@
+{
+ "task": "drug-shortages",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dates = pd.to_datetime(df['initial_posting_date'], errors='coerce')\n...\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a temporal component ('initial_posting_date'), but the agent uses a randomized StratifiedKFold rather than a time-based split, introducing potential look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_probs = 0.5 * test_preds_lr + 0.5 * test_preds_lgb",
+   "reasoning": "The agent combines two models using a hardcoded, unweighted average without any tuning or validation of the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target/Test Leakage via Global Frequency Encoding",
+   "description": "The agent concatenates the training and test sets to compute frequency encodings for categorical variables. This leaks the distribution of the test set into the training features before modeling.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_data = pd.concat([train_df.drop(columns=['availability']), test_df], axis=0, ignore_index=True)\n...\nfreq = ref[col].value_counts(normalize=True).to_dict()\nfeatures[f'{col}_freq'] = df[col].map(freq).fillna(0)"
+  },
+  {
+   "name": "Data Leakage into Validation Folds via Scaling",
+   "description": "The agent applies StandardScaler to the entire training dataset before splitting it into cross-validation folds. This leaks distribution statistics from the validation folds into the training folds during CV.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scaler.fit_transform(X_train_tab.fillna(0))\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train_tab, y_train)):"
+  }
+ ],
+ "summary": "The solution implements a reasonable baseline pipeline using TF-IDF, LightGBM, and Logistic Regression, but it suffers from significant data leakage. Crucially, categorical frequency encodings are computed on the concatenated train and test sets, leaking test distributions into the training process. Additionally, the agent uses a randomized cross-validation split despite the temporal nature of the data, scales features before the CV split, and blends models using a naive, untuned 50/50 average.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

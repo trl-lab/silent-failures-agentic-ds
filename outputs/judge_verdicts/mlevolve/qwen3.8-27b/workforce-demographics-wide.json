@@ -1,0 +1,149 @@
+{
+ "task": "workforce-demographics-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test dataset is isolated early and is not used to fit the feature builder or any other preprocessor.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data, categorises columns, and handles missing values through median imputation and missing indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Standardisation parameters (mean and scale) are calculated strictly on the training split inside the feature builder.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant columns) is performed only after the train/validation split has been made.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are derived solely from the training split during the `_fit_numeric_stats` step.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "strat = pd.qcut(train[TARGET], q=min(5, max(2, len(train) // 2)), duplicates=\"drop\")\n        train_raw, val_raw, y_train, y_val = train_test_split(..., stratify=strat)",
+   "reasoning": "The dataset likely contains year columns, suggesting a temporal component, but without knowing the exact test set split mechanism, it is unclear if a random stratified split introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression and the agent correctly utilises LightGBM and XGBoost regressors.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a hold-out validation set and additionally uses K-Fold cross-validation on the training set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across multiple K-Fold splits, effectively averaging out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = float(np.sqrt(np.mean((y_val_full - val_pred_avg) ** 2)))",
+   "reasoning": "The agent only computes and logs RMSE, omitting secondary metrics like MAE or R^2 that could provide additional insights into model robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs an excellent formulation by explicitly calculating the target when possible and modelling the residual, rather than ignoring this deterministic relationship.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is applied, including polynomial features, interaction terms, and targeted ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_pred = (lgb_val_pred + xgb_val_pred) / 2.0",
+   "reasoning": "The agent combines predictions from LightGBM and XGBoost using a naive unweighted average without tuning the blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fallback model feature domination",
+   "description": "The fallback model is trained on the full dataset to predict the target, but its features include a column (`direct_pct`) that perfectly predicts the target for a large subset of rows. The tree-based model will focus almost entirely on this feature, leading to poor generalization on rows where this feature is missing (and thus imputed as a constant median).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_fb_fit = X_train.iloc[fb_train_idx].reset_index(drop=True)\ny_fb_fit = y_train_full[fb_train_idx]"
+  },
+  {
+   "name": "Distorted target for residual model",
+   "description": "The agent trains a residual model on the entire training set but artificially sets the target to 0.0 for rows where the direct calculation is not possible. This forces the model to learn to predict 0.0 for these rows, distorting tree splits and feature distributions, instead of simply excluding these rows from the residual model's training subset.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train = np.where(\n    has_direct_train_arr,\n    y_train_full - direct_train_arr,\n    0.0,\n).astype(float)"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated solution with an intelligent residual task formulation that exploits the deterministic relationship between available count features and the percentage target. However, the implementation is flawed by failing to properly filter rows during model training: the residual model is trained on artificial 0.0 targets, and the fallback model suffers from severe feature domination because the calculated target is leaked as a feature. Additionally, the agent relies on naive unweighted ensembling and evaluates using only a single metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

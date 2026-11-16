@@ -1,0 +1,145 @@
+{
+ "task": "drug-ndc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Target column is cleaned and missing values are handled explicitly.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fit only on the training split (X_train_raw).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "TF-IDF, SVD, and frequency encoding are fit strictly on the training split (train_idx) before transforming the full dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No cross-sample imputation is applied before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is not a temporal/time-series forecasting task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models correctly use multiclass classification objectives.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, BatchNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "torch.manual_seed(42)\nnp.random.seed(42)",
+   "reasoning": "The models and ensemble are evaluated using a single random seed and single split, without cross-validation or multiple runs to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc_tmp = accuracy_score(y_val, val_preds_tmp)",
+   "reasoning": "The agent identifies the classes as imbalanced (using class_weight='balanced') but only evaluates using accuracy, ignoring metrics like F1-score which are more robust for imbalanced data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly formulated as multiclass classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Significant domain-specific feature engineering is performed.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses a grid search to optimize weights, not a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage in Ensembling",
+   "description": "The validation set is used for early stopping and model selection of the individual base models. The exact same validation set predictions are then used to optimize the ensemble weights. This causes the ensemble weights to overfit the validation set. Ideally, out-of-fold predictions should be used to fit the ensemble.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "xgb_model.fit(X_train, y_train, eval_set=[(X_val, y_val)], ...)\n...\nval_probs_xgb = xgb_model.predict_proba(X_val)\n...\nblend_val_probs = (w_nn * val_probs_nn + w_lgb * val_probs_lgb + w_xgb * val_probs_xgb)"
+  }
+ ],
+ "summary": "The agent developed a robust data science pipeline with thorough domain-specific feature engineering and appropriate preprocessing that strictly avoids data leakage during splits. However, there are minor methodological flaws: the agent relies on a single evaluation run and single metric (accuracy) despite dataset imbalance, and optimizes ensemble weights on the same validation set used for early stopping, which could lead to overfitting.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

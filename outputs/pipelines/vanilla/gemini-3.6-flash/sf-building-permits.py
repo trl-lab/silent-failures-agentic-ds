@@ -1,0 +1,1 @@
+combined.columns = [str(c).replace('[', '_').replace(']', '_').replace('<', '_').replace(':', '_').replace(',', '_') for c in combined.columns]

@@ -1,0 +1,138 @@
+{
+ "task": "churn",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA, as no EDA is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def load_and_preprocess_data():\n...",
+   "reasoning": "The agent makes no explicit effort to check for or handle missing values, duplicates, or outliers, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a binary objective is an appropriate model type for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is evaluated over 5 distinct cross-validation folds, not just exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y_train, oof_preds)",
+   "reasoning": "The agent reports only the ROC-AUC score and does not evaluate other relevant metrics like PR-AUC or F1-score which are valuable for potentially imbalanced churn datasets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly engineers new features such as totals, ratios, and averages in the 'add_features' function.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += (\n            model.predict(X_test, num_iteration=model.best_iteration) / n_splits\n        )",
+   "reasoning": "The agent ensembles the predictions from the 5 cross-validation folds using a naive unweighted average without attempting any tuning of the combination weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test data leakage during categorical encoding",
+   "description": "The agent concatenates the training and test sets to fit a LabelEncoder for categorical features. This leaks the categorical distribution of the test set into the preprocessing pipeline, making the model transductive and unable to handle completely unseen data in a true production setting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_series = pd.concat([X_train[col].astype(str), X_test[col].astype(str)])\n            le.fit(full_series)"
+  }
+ ],
+ "summary": "The agent provides a solid LightGBM solution with cross-validation and thoughtful feature engineering. However, it fails to explicitly clean the data, relies on a single evaluation metric, uses naive unweighted ensembling across CV folds, and leaks test data information by fitting the LabelEncoder on the combined train and test sets.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

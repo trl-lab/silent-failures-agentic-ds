@@ -1,0 +1,145 @@
+{
+ "task": "playground-series-s4e2",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or peeking at test data before modeling in the provided script.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing the median for numerical columns and 'Missing' for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for c in num_cols:\n        df_all[c] = df_all[c].fillna(df_all[c].median())",
+   "reasoning": "The agent calculates the median on the concatenated train and test dataset and uses it for imputation, leaking test statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold to create validation sets for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are trained over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any metrics, so it does not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features such as BMI, Age_BMI, and FAF_TUE_ratio.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += model_lgb.predict_proba(X_te) / (n_splits * 3)\n...\ntest_preds += model_xgb.predict_proba(X_te) / (n_splits * 3)\n...\ntest_preds += model_cb.predict_proba(X_te) / (n_splits * 3)",
+   "reasoning": "The agent ensembles the predictions from three different models using a naive, unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric reporting",
+   "description": "The agent trains models using cross-validation but never computes or reports a validation score, leaving them blind to the model's actual generalisation performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_val_f, y_val_f)],\n            callbacks=[early_stopping(50, verbose=False)],\n        )\n        test_preds += model_lgb.predict_proba(X_te) / (n_splits * 3)"
+  },
+  {
+   "name": "Categorical encoding before splitting",
+   "description": "Categorical variables are label encoded on the concatenated train and test datasets, which leaks the test set's categories into the training process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([X_train, X_test], axis=0, ignore_index=True)\n...\nfor c in cat_cols:\n        df_all[c] = df_all[c].fillna(\"Missing\").astype(str)\n        le = LabelEncoder()\n        df_all[c] = le.fit_transform(df_all[c])"
+  }
+ ],
+ "summary": "The agent provides a mostly well-structured solution with cross-validation, feature engineering, and a blend of gradient boosting models. However, it suffers from data leakage by concatenating train and test sets before performing median imputation and label encoding. Additionally, the ensemble approach is a naive equal-weight average, and the agent fails to compute or report any validation metrics to estimate generalisation performance.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

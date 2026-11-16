@@ -1,0 +1,136 @@
+{
+ "task": "spaceship-titanic",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or peeking at test data is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"NumMissingExp\"] = df[exp_cols].isna().sum(axis=1).astype(float)",
+   "reasoning": "The agent explicitly extracts information about missing values (NumMissingExp) and relies on tree-based models (CatBoost/LGBM/XGB) which natively handle remaining NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit; missing values are either filled with a constant (0) or left for the model to handle.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code is incomplete and does not instantiate or train any model.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)",
+   "reasoning": "The agent sets up a 10-fold stratified cross-validation split, although the implementation loop is incomplete.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code ends before any evaluation metric is computed or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = train[\"Transported\"].astype(bool).values",
+   "reasoning": "The binary classification task formulation is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"TotalSpent\"] = df[exp_cols].sum(axis=1, skipna=True)",
+   "reasoning": "The agent performs extensive feature engineering, creating features like group sizes, total spent, and cabin extraction.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM14": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature Engineering Leakage",
+   "description": "Calculating aggregate statistics (like means, counts, or frequencies) on a combined dataset of train and test samples leaks test distribution information into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train.drop(columns=[\"Transported\"]), test], ignore_index=True)\n...\ngroup_exp = df.groupby(\"Group\")[\"TotalSpent\"].transform(\"mean\")"
+  },
+  {
+   "name": "Incomplete Code Execution",
+   "description": "The script ends abruptly without completing model training, inference, or evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):\n  X_tr, y_tr = X.iloc[train_idx], y[train_idx]\n  X_va, y_va = X.iloc[val_idx], y[val_idx]"
+  }
+ ],
+ "summary": "The agent performs extensive and thoughtful feature engineering and correctly sets up cross-validation. However, the solution suffers from critical data leakage by calculating aggregate statistics (e.g., group means and value counts) across the combined train and test sets. Additionally, the script is fundamentally broken as it terminates unexpectedly inside the cross-validation loop without actually training a model or making predictions.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": false
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

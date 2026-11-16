@@ -1,0 +1,146 @@
+{
+ "task": "aca-federal-upper-limits-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_full[col], X_test[col]], axis=0).astype(str)\n    le.fit(combined)",
+   "reasoning": "The agent fits a LabelEncoder on the combined train and test sets, which constitutes using test data to inform preprocessing, even though for label encoding the leakage is relatively minor.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by handling missing values via median and constant imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the script.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_full[col] = X_train_full[col].fillna(X_train_full[col].median())\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.15, random_state=42)",
+   "reasoning": "The agent computes the median for imputation on the entire training dataset before performing the train-validation split, causing statistical leakage from the validation set into the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "numeric_cols = ['Product Group', 'Package Size', 'Year', 'Month']\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.15, random_state=42)",
+   "reasoning": "The dataset contains clear temporal features (Year, Month), but the agent uses a random split instead of a time-based split, which introduces look-ahead bias and invalidates the validation score.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates and evaluates on an explicit internal validation split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Model variants are evaluated on the internal validation set, not the final test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_model = LGBMRegressor(..., random_state=42)",
+   "reasoning": "The agent evaluates stochastic models on a single random train/validation split with a single random seed, without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgbm_rmse = np.sqrt(np.mean((lgbm_val_pred - y_val) ** 2))",
+   "reasoning": "The agent only computes RMSE and does not verify if it is robust enough for the target variable distribution (e.g., ACA FUL prices which might be highly skewed).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives new features such as frequency encoding for high-cardinality categorical variables.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent avoids naive ensembling by using an inverse-RMSE weighted average based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing Early Stopping",
+   "description": "The agent trains gradient boosting models with a large number of estimators (2000) and passes an evaluation set, but fails to configure early stopping. This wastes computational resources and risks severe overfitting on the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgbm_model.fit(\n    X_tr, y_tr,\n    eval_set=[(X_val, y_val)],\n    callbacks=[]\n)"
+  }
+ ],
+ "summary": "The agent provides a structurally complete pipeline with imputation, categorical encoding, and a well-reasoned weighted ensemble. However, the solution suffers from critical temporal leakage by randomly splitting time-series data, and introduces statistical leakage by computing imputation medians and frequency encodings prior to the internal validation split. Additionally, the agent omits early stopping for its gradient boosting models despite setting high iteration counts.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

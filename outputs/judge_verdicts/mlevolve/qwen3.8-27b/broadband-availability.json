@@ -1,0 +1,156 @@
+{
+ "task": "broadband-availability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly imputes missing values with median and mode.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is performed appropriately after the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are calculated solely on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The target is for a specific year (2019), implying cross-sectional rather than time-series data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (TabularMLP with MSE loss) for the regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates Dropout and Weight Decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and evaluated.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for epoch in range(1, EPOCHS + 1): ... val_rmse = np.sqrt(mean_squared_error(y_val_np, val_preds))",
+   "reasoning": "The PyTorch model is trained and evaluated exactly once without using multiple seeds or cross-validation to account for random initialisation variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val_np, val_preds))",
+   "reasoning": "The agent relies entirely on RMSE for evaluation and does not compute other metrics like MAE or R\u00b2 to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates interaction features, group statistics, and polynomial transformations.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage via In-Sample Target Encoding",
+   "description": "Target encoding is computed on the training set using the training target directly without out-of-fold calculation or smoothing, leading to severe target leakage and overfitting to the encoded features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "group_mean = pd.DataFrame({\"group\": X_train[gcol], \"target\": y_train}).groupby(\"group\")[\"target\"].mean(); X_train[f\"{gcol}_target_mean\"] = X_train[gcol].map(group_mean).fillna(y_train.mean())"
+  },
+  {
+   "name": "ID Column Leakage",
+   "description": "The unique identifier column is identified but never dropped from the feature matrix. It is fed directly into the model as a feature, which can lead to overfitting or learning spurious correlations.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "id_col = None ... if id_col and id_col in numeric_cols: numeric_cols.remove(id_col) ... X_train_np = X_train.values.astype(np.float32)"
+  },
+  {
+   "name": "Potential AttributeError on Model Load",
+   "description": "If the model diverges during training and validation RMSE becomes NaN, the `best_model_state` variable remains `None`. Attempting to call `model.load_state_dict(None)` will raise an AttributeError, crashing the script.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "best_model_state = None ... if val_rmse < best_val_rmse: best_model_state = ... model.load_state_dict(best_model_state)"
+  }
+ ],
+ "summary": "The agent implements a structured pipeline with a PyTorch TabularMLP, but it introduces severe target leakage by performing in-sample target encoding directly on the training set. Furthermore, it fails to drop the ID column from the feature matrix, allowing it to leak into the model training. The script also lacks robustness to model divergence, which likely caused the execution failure noted in the logs.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

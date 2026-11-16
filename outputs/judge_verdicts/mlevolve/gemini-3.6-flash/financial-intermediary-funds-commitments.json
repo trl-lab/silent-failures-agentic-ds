@@ -1,0 +1,145 @@
+{
+ "task": "financial-intermediary-funds-commitments",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "avg_len = (\n            df_all[col].astype(str).str.len().mean() if len(df_all[col]) > 0 else 0\n        )\n        if avg_len > 30 and df_all[col].nunique() > 100:\n            text_cols.append(col)",
+   "reasoning": "The agent uses distribution statistics (mean string length and unique value counts) from the combined train and test dataset to decide whether columns should be processed as text or categorical features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values, imputes numericals, and processes categorical/text data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is fitted only on the training set (X_train), preventing leakage from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains dates and commitments over time, but the agent uses a randomized StratifiedKFold cross-validation, which ignores temporal order and can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a custom NN) for the continuous target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes dropout layers and weight decay in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The base models are evaluated using a 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, which inherently averages performance and reduces variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes and reports RMSE, which is the exact metric specified for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including datetime extraction, TF-IDF + SVD, and group statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A RidgeCV meta-learner is used to stack the predictions, rather than naive averaging.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-sample evaluation of stacking meta-learner",
+   "description": "The meta-learner in a stacking ensemble is trained on the out-of-fold predictions of base models, but then evaluated on those exact same predictions rather than using a secondary cross-validation loop. This results in the final reported validation score being an in-sample error, which is overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "meta_learner.fit(meta_X_train, y_train_raw)\n\noof_stacked = np.maximum(0, meta_learner.predict(meta_X_train))\n...\nfinal_score = root_mean_squared_error(y_train_raw, final_oof_preds)"
+  }
+ ],
+ "summary": "The agent implements a complex solution with strong feature engineering, multiple regression models, and neural networks. However, there are a few flaws: it slightly leaks test statistics during preprocessing design by checking unique counts and string lengths on the combined dataset. It also ignores the temporal aspect of the financial commitments data by using a random split. Crucially, the final reported score is overly optimistic because the stacking meta-learner is evaluated on its own training data.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

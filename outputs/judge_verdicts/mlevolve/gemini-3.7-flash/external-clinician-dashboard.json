@@ -1,0 +1,153 @@
+{
+ "task": "external-clinician-dashboard",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if train_df[col].isna().sum() > 0 or test_df[col].isna().sum() > 0:",
+   "reasoning": "The agent uses the test dataset to determine whether to create a missingness indicator for a column.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data is cleaned by replacing inf values and imputing missing values with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fit only on the training dataset, not the combined dataset, so test statistics do not leak.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset contains datetime columns, but without more context it is unclear if a time-based split is strictly required to prevent look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final inference, not for model tuning or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse_lgb = np.sqrt(mean_squared_error(y_val, oof_lgb[val_idx]))",
+   "reasoning": "The agent relies entirely on RMSE for evaluation without verifying if it is robust for the specific data distribution (e.g., checking for outliers).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date extraction, aggregations, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP to find optimal blend weights rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in out-of-fold encoding",
+   "description": "When computing out-of-fold target encodings, global statistics (like the overall mean) used for smoothing are calculated on the entire training dataset rather than just the training folds. This leaks validation target information into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "global_mean = float(train_df[target_col].mean())\n...\nsmoothed_mean = (stats[\"count\"] * stats[\"mean\"] + smoothing_weight * global_mean) / (stats[\"count\"] + smoothing_weight)"
+  },
+  {
+   "name": "Data leakage across cross-validation folds",
+   "description": "Imputation medians, frequency encoding, and groupby aggregations are computed on the entire training dataset before the cross-validation loop. This leaks information from the validation folds into the training folds, resulting in overly optimistic out-of-fold validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = train_df[col].median()\n...\ntrain_df[col] = train_df[col].fillna(median_val).astype(\"float32\")"
+  }
+ ],
+ "summary": "The agent implemented a highly sophisticated pipeline with advanced feature engineering, robust out-of-fold logic, and optimal ensemble blending. However, there are minor issues with peeking at the test set to determine missingness indicators, and moderate data leakage across cross-validation folds due to global statistics being computed on the entire training set before CV splitting.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

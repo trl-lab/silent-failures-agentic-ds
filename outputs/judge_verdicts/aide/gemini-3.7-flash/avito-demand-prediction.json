@@ -1,0 +1,102 @@
+{
+ "task": "avito-demand-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "price_cat_mean = (\n        df.groupby(\"category_name\")[\"log_price\"].transform(\"mean\").astype(np.float32)\n    )\n    price_cat_std = (\n        df.groupby(\"category_name\")[\"log_price\"]\n        .transform(\"std\")\n        .fillna(0)\n        .astype(np.float32)\n    )\n    df[\"price_to_cat_diff\"] = df[\"log_price\"] - price_cat_mean\n    df[\"price_to_cat_zscore\"] = (\n        df[\"price_to_cat_diff\"] / (price_cat_std + 1e-5)\n    ).astype(np.float32)",
+   "reasoning": "The agent manually standardizes prices (calculating z-scores) grouped by category on the concatenated train and test data, leaking test distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"activation_date\"] = pd.to_datetime(df[\"activation_date\"])\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a clear temporal component (activation_date) where test data occurs sequentially after the training period, but the agent uses random cross-validation instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y_train, oof_preds_clipped)",
+   "reasoning": "The agent only computes and reports RMSE, without evaluating secondary metrics like MAE or R-squared that might provide a more robust understanding of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target/Future leakage via global frequency encoding",
+   "description": "Counting occurrences of a categorical variable (such as user ID) across the combined train and test sets leaks future information into the training data. The model can learn from test set frequencies that would not be available at inference time.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"user_item_count\"] = (\n        df.groupby(\"user_id\")[\"item_id\"].transform(\"count\").astype(np.int32)\n    )"
+  }
+ ],
+ "summary": "The agent develops a strong LightGBM baseline with good text feature extraction using out-of-fold Ridge predictions. However, the solution suffers from data leakage due to calculating grouped statistics (price z-scores) and user counts on the combined train and test sets. Furthermore, the validation strategy is poorly aligned with the dataset's structure, ignoring both the temporal nature of the data and the presence of repeated users by using random KFold instead of time-based or grouped splits.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

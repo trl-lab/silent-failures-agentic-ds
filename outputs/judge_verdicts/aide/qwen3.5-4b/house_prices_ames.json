@@ -1,0 +1,138 @@
+{
+ "task": "house_prices_ames",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data before splitting/training.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df.drop(columns=[target_col])\ntest_features = test_df",
+   "reasoning": "The agent makes no effort to clean the data, handle outliers, or explicitly manage missing values, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While the Ames dataset contains temporal features (e.g., Year Sold), it is fundamentally a cross-sectional dataset and random splitting is standard practice.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with 'objective': 'regression') for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data into an 80/20 train/validation set and uses it for early stopping and evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_dataset,\n    num_boost_round=1000,\n    valid_sets=[val_dataset],\n    valid_names=[\"val\"],\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)",
+   "reasoning": "The agent trains a stochastic model (LightGBM with bagging/feature fraction) exactly once without cross-validation or multiple seed averaging.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(val_y, val_pred))\nprint(f\"Validation RMSE: {val_rmse:.4f}\")",
+   "reasoning": "The agent only computes and reports RMSE, without looking at other metrics like MAE or R-squared which could provide more context on model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as predicting a continuous target variable using regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df.drop(columns=[target_col])\ntest_features = test_df",
+   "reasoning": "The agent uses raw features directly without applying any domain-informed feature engineering (like total square footage, age at sale, etc.).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation",
+   "description": "For right-skewed target variables like house prices, it is standard practice to log-transform the target before training (and exponentiate predictions) to stabilize variance and prevent high-priced outliers from dominating the MSE loss.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_y = train_df.iloc[:train_size][target_col]"
+  }
+ ],
+ "summary": "The agent implements a basic but functional LightGBM regression pipeline with a valid holdout split. However, it lacks any data cleaning, missing value handling, or feature engineering, relying entirely on the tree-based model to handle the raw data. Additionally, it fails to log-transform the heavily skewed target variable and only trains a single stochastic model run, limiting the robustness and performance of the solution.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

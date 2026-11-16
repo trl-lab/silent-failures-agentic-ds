@@ -1,0 +1,152 @@
+{
+ "task": "sf-building-permits",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or peeking at the test set is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.mean())",
+   "reasoning": "The agent makes an attempt to clean the data by imputing missing values with the mean.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the combined dataset before splitting (train and test are handled separately).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a random shuffled split for a building permits dataset, completely ignoring the temporal sequence of permit applications and approvals, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM regressor is appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):",
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.mean(cv_scores)",
+   "reasoning": "The stochastic model is evaluated over 5 cross-validation folds and the scores are averaged.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_val_fold, y_pred_fold))",
+   "reasoning": "The agent solely calculates RMSE and does not compute any secondary metrics like MAE or R-squared to better understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem predicting time_to_approve.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_cols = [col for col in train_df.columns if col != \"time_to_approve\"]",
+   "reasoning": "The agent feeds the raw columns directly into the model without any feature engineering, failing to parse date columns or derive meaningful geographic/permit features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test set statistics leakage",
+   "description": "The agent imputes missing values in the test set using the test set's own column means instead of the training set's means. This violates the assumption that test samples should be processed independently using only information learned from the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.mean())"
+  },
+  {
+   "name": "Unhandled categorical/string features",
+   "description": "The agent passes the dataframe directly to LightGBM without encoding categorical features or casting string columns to pandas 'category' dtypes. LightGBM cannot natively handle raw object/string columns and will crash during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  },
+  {
+   "name": "Invalid mean computation on non-numeric columns",
+   "description": "Calling `.mean()` directly on a DataFrame containing non-numeric (string/object) columns without specifying `numeric_only=True` raises a TypeError in recent versions of Pandas, which will cause the script to fail before training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train.fillna(X_train.mean())"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM pipeline with cross-validation but fails to perform any feature engineering, passing raw date and string columns directly to the model. This will result in execution failures due to unhandled categorical types and invalid mean computations on strings. Furthermore, the agent introduces look-ahead bias by randomly shuffling a temporal dataset and leaks information within the test set by using test-set means for imputation.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

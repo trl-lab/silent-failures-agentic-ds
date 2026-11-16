@@ -1,0 +1,134 @@
+{
+ "task": "steel-plates-fault",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Missing (test) : {int(test_df.isnull().sum().sum())}\")",
+   "reasoning": "The agent peeks at the test data by printing the total count of missing values in the test set during data exploration.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)",
+   "reasoning": "The agent explicitly handles missing values by replacing them with 0.0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_val = scaler.transform(X_val)",
+   "reasoning": "The scaler is correctly fit only on the training split before transforming the validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)",
+   "reasoning": "The agent replaces missing values with a constant (0.0) without computing dataset statistics, avoiding leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\n    \"objective\": \"multiclass\",",
+   "reasoning": "The agent correctly uses a multiclass classification objective for the m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    X, y, test_size=0.15, random_state=42, stratify=y\n)",
+   "reasoning": "The agent performs a stratified train/validation split to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    X, y, test_size=0.15, random_state=42, stratify=y\n)",
+   "reasoning": "The LightGBM model incorporates stochasticity (feature and bagging fractions) but is evaluated on only a single validation split rather than through cross-validation or multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_val, val_pred)\nprint(f\"Validation Accuracy: {val_accuracy:.6f}\")",
+   "reasoning": "The agent evaluates and reports only accuracy, without checking secondary metrics like F1-score or log-loss to better understand performance across classes.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The standard multiclass classification formulation is appropriate for this task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[feature_cols].values.astype(np.float64)",
+   "reasoning": "The agent relies entirely on raw feature columns and does not engineer any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "suboptimal_full_retraining",
+   "description": "The agent retrains the model on the full training dataset using the exact early stopping iteration found on a smaller training split. This is generally suboptimal because a larger dataset typically requires a different (usually higher) number of training iterations.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_full = lgb.train(\n    params,\n    dtrain_full,\n    num_boost_round=best_iter,"
+  }
+ ],
+ "summary": "The agent provides a structurally sound implementation with proper data splitting, scaling, and target encoding. However, it fails to perform any feature engineering, evaluates a stochastic model only once, and uses a potentially suboptimal retraining strategy on the full dataset by reusing the exact early stopping iteration.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

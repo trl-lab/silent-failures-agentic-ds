@@ -1,0 +1,141 @@
+{
+ "task": "nyc-taxi-trip-duration",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_coords = np.vstack(\n    [pickup_coords_train, dropoff_coords_train, pickup_coords_test, dropoff_coords_test]\n)\n\npca = PCA(n_components=2, random_state=42)\npca.fit(all_coords)",
+   "reasoning": "The agent fits transformers (PCA and KMeans) on test data before establishing the train/test split, leaking test distribution information.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed to filter out unrealistic trip durations and coordinates outside the NYC region.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pca = PCA(n_components=2, random_state=42)\npca.fit(all_coords)",
+   "reasoning": "PCA is explicitly fit on the combined train and test coordinates, leaking test spatial information into feature creation.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is used before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features (pickup_datetime) but the agent uses a randomized K-Fold split, ignoring temporal order and potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An LGBMRegressor is appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation is used to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages test predictions over 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The chosen metric (RMSLE) is the standard and appropriate metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as regression on the log-transformed trip duration.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including distance metrics, cyclical encodings, and spatial clustering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensembling is standard k-fold averaging, which is appropriate.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Target Encoding",
+   "description": "The agent computes target encoding on the training data without using out-of-fold or leave-one-out techniques, meaning the target of a row is included in its own encoded feature, leading to severe target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_te_cp = compute_te_single(train_fold, train_fold, \"cluster_pair\", \"log_trip_duration\", global_mean)"
+  }
+ ],
+ "summary": "The solution employs extensive and creative feature engineering but suffers from critical target leakage due to naive target encoding within training folds. Furthermore, spatial transformers are fit on test data, and randomized cross-validation ignores the temporal nature of the trips.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

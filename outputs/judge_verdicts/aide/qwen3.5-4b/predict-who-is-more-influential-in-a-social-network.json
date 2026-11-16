@@ -1,0 +1,141 @@
+{
+ "task": "predict-who-is-more-influential-in-a-social-network",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_features = train_features.fillna(0)",
+   "reasoning": "The agent fills missing values with a constant (0), which does not compute dataset statistics and therefore causes no leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification objective in LightGBM for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model multiple times across 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_acc = accuracy_score(y_val_fold, val_pred)",
+   "reasoning": "The agent uses accuracy as the sole evaluation metric without checking if the classes are balanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses raw A and B feature columns without deriving obvious interaction features like ratios or differences, which are crucial for a pairwise comparison task.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overfitting due to ignored early stopping iterations",
+   "description": "The agent uses early stopping during cross-validation but trains the final model on the full dataset for the maximum number of boosting rounds without using the optimal number of iterations found during CV. This will cause the final model to overfit heavily.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    best_params,\n    lgb.Dataset(X_train_full, label=y_train_full),\n    num_boost_round=1000,\n    callbacks=[lgb.log_evaluation(-1)],\n)"
+  },
+  {
+   "name": "Misunderstanding of cross-validation",
+   "description": "The agent uses cross-validation to select the 'best model' based on fold accuracy, but the hyperparameters are constant. Cross-validation should be used to estimate generalization performance or tune hyperparameters, not to pick a lucky validation fold to copy identical static parameters from.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_acc > best_acc:\n        best_acc = fold_acc\n        best_params = params.copy()\n        best_model = model"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM model with 5-fold cross-validation. However, it fails to engineer obvious derived features (like differences or ratios between user A and user B's attributes) which are critical for pairwise comparison tasks. Critically, it introduces a severe overfitting risk by training the final model for 1,000 boosting rounds without early stopping, completely ignoring the optimal iteration count that should have been extracted from the cross-validation phase.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

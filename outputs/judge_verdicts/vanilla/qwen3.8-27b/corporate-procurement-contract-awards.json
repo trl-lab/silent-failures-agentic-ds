@@ -1,0 +1,146 @@
+{
+ "task": "corporate-procurement-contract-awards",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_df[col].astype(str), test_df[col].astype(str)], axis=0)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on a concatenation of both training and test data, utilizing test set information during preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning by dropping high-cardinality columns, parsing dates, and imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = train_df[col].median()\n    train_df[col] = train_df[col].fillna(median_val)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The agent calculates the median for imputation on the entire training dataset before performing the validation split, leaking validation set statistics into the training subset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "Despite parsing an 'Award Date' temporal feature, the agent uses a random split for validation instead of a time-based split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a train/validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates on a validation set and generates final test predictions without reusing the test set for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr, y_tr)\n    val_pred = model.predict(X_val)",
+   "reasoning": "The stochastic models are trained and evaluated exactly once on a single validation split without any cross-validation or multiple seed runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((y_val - val_pred) ** 2))",
+   "reasoning": "The agent only evaluates the models using RMSE and does not verify performance with any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates derived temporal features (Award_Year, Award_Month) from the Award Date column.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = np.mean(test_predictions, axis=0)",
+   "reasoning": "The agent creates an ensemble using a simple, unweighted average of predictions without attempting to tune the combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation for skewed target",
+   "description": "The target variable is a monetary amount, which is typically highly right-skewed. The agent predicts it directly without applying a log transformation or using a suitable objective function, which can cause the model to be overly sensitive to extreme outliers and degrade overall performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "target = 'Contract Award Amount (USD)'"
+  }
+ ],
+ "summary": "The agent provides a structurally complete solution but introduces several critical and moderate data leakage issues. Notably, it random-splits a temporal dataset (introducing look-ahead bias), fits a LabelEncoder on test data, and computes imputation medians before the validation split. Furthermore, the agent uses a naive unweighted ensemble and fails to apply target transformations for a potentially highly skewed financial target.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

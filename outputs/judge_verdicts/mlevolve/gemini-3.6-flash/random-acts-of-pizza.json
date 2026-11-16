@@ -1,0 +1,157 @@
+{
+ "task": "random-acts-of-pizza",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or feature extraction; all stateful transformers are fitted exclusively on training subsets.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via fillna() across all feature extraction functions.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fitted only on the training folds (X_tr) inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection and dimensionality reduction (e.g., TruncatedSVD) are properly fitted inside the CV loop, avoiding leakage from the test set or validation folds.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Only constant imputation (fillna with 0.0) is performed globally, which is stateless and does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains explicit temporal information (unix_timestamp_of_request_utc), but the agent uses random stratified splitting, which ignores the chronological order of requests and introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (LGBMClassifier, XGBClassifier, CatBoost, etc.) for this binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout layers, LayerNorm, weight decay in the optimizer, and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent rigorously evaluates models using 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for inference; validation folds are used for early stopping and out-of-fold evaluations.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages the predictions of stochastic models across 5 cross-validation folds, which inherently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent targets and evaluates on ROC-AUC, which is the official and appropriate metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and highly domain-specific feature engineering (lexical, temporal, user history, and subreddit statistics).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a RidgeClassifier meta-model to intelligently blend out-of-fold predictions, avoiding naive averaging.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Numerical Instability in PyTorch Loss",
+   "description": "Using `nn.BCELoss()` combined with a sigmoid activation function in the forward pass can cause numerical instability (e.g., log(0) errors) during training. It is best practice to output raw logits and use `nn.BCEWithLogitsLoss()`.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "out = torch.sigmoid(self.head(x)) \n ... \n criterion = nn.BCELoss()"
+  },
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The submission file replaces the original test identifiers with an arbitrary generated sequence (np.arange). This will break downstream evaluation systems that align predictions using the original request IDs.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(final_test_preds))"
+  }
+ ],
+ "summary": "The agent's solution is highly sophisticated, demonstrating excellent ML engineering practices including deep domain feature extraction, nested out-of-fold meta-features, robust cross-validation, and stacking. The only minor structural ML failure is relying on random splitting for temporal data (FM05). Additionally, there are minor technical missteps regarding PyTorch loss stability and hardcoding submission IDs.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

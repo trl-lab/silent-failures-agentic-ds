@@ -1,0 +1,144 @@
+{
+ "task": "media-ranking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or use test data statistics to inform preprocessing decisions prior to modeling.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by dropping missing targets, extracting datetime features, handling infinities, and properly encoding categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any standard scaling or normalization.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit an imputer on the full dataset (missing values are either left as NaNs or explicitly replaced with NaNs for the tree models).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor, XGBRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly sets up a 5-fold cross-validation scheme to evaluate the models and triggers early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic models multiple times across 5 cross-validation folds and averages the predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent relies on the default early stopping metric (RMSE) which aligns with the task's objective metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic feature engineering by extracting year, month, day, and dayofweek from datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_preds + 0.3 * cat_preds + 0.3 * xgb_preds",
+   "reasoning": "The agent combines the predictions of three different models using arbitrary, hardcoded weights instead of tuning the combination using out-of-fold validation scores.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Test Set Vocabulary",
+   "description": "The categorical encoding vocabulary is constructed by taking the union of unique values from both the training and test sets. This leaks knowledge of the test data distribution into the training pipeline, which violates strict test-set isolation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categories = sorted(list(set(s_tr.dropna().unique()).union(set(s_te.dropna().unique()))))"
+  },
+  {
+   "name": "Improper Submission ID Generation",
+   "description": "The agent fails to extract and preserve the actual identifier column from the test dataset for the submission file. Instead, it generates a sequential range of IDs, which will cause the submission to be misaligned or invalid if the test dataset uses specific non-sequential IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({'id': np.arange(len(test_df)), 'Overall': final_preds})"
+  }
+ ],
+ "summary": "The agent implements a generally solid 5-fold cross-validation pipeline utilizing three gradient boosting frameworks (LightGBM, CatBoost, XGBoost) and performs reasonable data cleaning and datetime extraction. However, the final ensemble relies on naive, hardcoded weights rather than tuning them using validation predictions. Additionally, there are critical flaws in how the agent constructs the categorical vocabulary (leaking test data information) and how it generates the submission file IDs (hallucinating sequential numbers rather than using actual test IDs).",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

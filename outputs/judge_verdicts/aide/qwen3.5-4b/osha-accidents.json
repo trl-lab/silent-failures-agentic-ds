@@ -1,0 +1,166 @@
+{
+ "task": "osha-accidents",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df[cat_cols] = train_df[cat_cols].fillna(train_df[cat_cols].mode().iloc[0])",
+   "reasoning": "The agent handles missing values using mode and constant imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df[cat_cols] = test_df[cat_cols].fillna(train_df[cat_cols].mode().iloc[0])",
+   "reasoning": "The agent correctly fits the imputation statistics (mode) on the training data and applies them to the test data, avoiding train/test leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the specific columns in the osha-accidents dataset contain temporal components that require time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\"objective\": \"binary\", ...}",
+   "reasoning": "The agent correctly uses a binary classification objective for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):",
+   "reasoning": "The agent evaluates the model using cross-validation over 5 folds, not just a single evaluation run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"metric\": \"binary_logloss\"",
+   "reasoning": "The agent optimizes using binary_logloss for early stopping while reporting ROC AUC, which are appropriate metrics for this binary classification task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = (...)\nnum_cols = (...)",
+   "reasoning": "The agent uses raw columns directly, applying only basic imputation and LabelEncoding, with no derived features or domain-informed transforms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unseen categorical labels in test set",
+   "description": "The agent uses LabelEncoder's transform method on the test set without handling potentially unseen categories. If the test set contains labels not present in the training set, this will raise a ValueError and crash the execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df[col] = le.transform(test_df[col])"
+  },
+  {
+   "name": "Categorical features treated as continuous",
+   "description": "The agent encodes categorical features into integers using LabelEncoder but fails to pass the `categorical_feature` argument to LightGBM. Consequently, the tree model treats them as continuous numerical features, incorrectly assuming an ordinal relationship between categorical levels.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  },
+  {
+   "name": "Cross-validation data leakage (Preprocessing)",
+   "description": "Label Encoding and mode imputation are computed on the entire training dataset before cross-validation splitting. This leaks information from the validation folds into the training folds, making CV estimates artificially optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df[col] = le.fit_transform(train_df[col])\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)"
+  },
+  {
+   "name": "Optimistic CV aggregation",
+   "description": "The agent calculates performance across 5 cross-validation folds but reports the maximum score (`best_auc`) instead of the mean. This provides an overly optimistic and high-variance estimate of model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if auc > best_auc:\n    best_auc = auc\n...\nprint(f\"Best ROC AUC: {best_auc:.4f}\")"
+  },
+  {
+   "name": "Discarding CV fold models",
+   "description": "The agent uses only the single best-performing model from the cross-validation folds to predict on the test set. It is standard practice to ensemble (average) the predictions of all fold models for greater robustness and lower variance.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "y_test_pred = best_model.predict(X_test)"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM model with 5-fold cross-validation but falls into several critical and moderate pitfalls. It entirely skips feature engineering and applies LabelEncoder directly to the test set, which will cause a crash if unseen labels are present. Furthermore, categorical features are not properly declared to LightGBM (causing them to be treated as continuous), preprocessing is applied globally before the CV split (causing validation leakage), and the reported metric is the overly optimistic maximum score across folds rather than the true mean.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

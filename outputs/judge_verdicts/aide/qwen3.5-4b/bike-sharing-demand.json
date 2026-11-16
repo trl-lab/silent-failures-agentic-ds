@@ -1,0 +1,152 @@
+{
+ "task": "bike-sharing-demand",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or exploratory analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\n# Apply feature engineering\ntrain_df = create_features(train_df)",
+   "reasoning": "The agent makes no explicit effort to handle missing values, duplicates, or outliers, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a temporal component (datetime) but the agent splits randomly using KFold with shuffle=True, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a regression model (LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, which accounts for variance in the data split, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmsle_fold = np.sqrt(\n        np.mean((np.log(y_val_fold + 1) - np.log(y_pred_fold + 1)) ** 2)\n    )",
+   "reasoning": "The agent calculates and reports only RMSLE, without considering other metrics like MAE or MSE to comprehensively understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering by extracting date parts and encoding categorical features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Model Reference Overwrite Bug",
+   "description": "The agent assigns `best_model = model` inside a cross-validation loop where `model` is instantiated outside the loop. Because `best_model` only stores a reference to the `model` object, subsequent `model.fit()` calls overwrite it in-place. As a result, `best_model` will always be the model trained on the final fold, not the fold with the best validation score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(...)\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):\n    model.fit(...)\n    if rmsle_fold < best_rmsle:\n        best_model = model"
+  },
+  {
+   "name": "Unclipped predictions in RMSLE calculation",
+   "description": "The agent calculates RMSLE using `np.log(y_pred_fold + 1)` without clipping predictions. Since the model optimizes MSE and can output negative values, any prediction <= -1 will result in a NaN value from the logarithm, potentially causing runtime warnings and breaking the validation loop.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "rmsle_fold = np.sqrt(np.mean((np.log(y_val_fold + 1) - np.log(y_pred_fold + 1)) ** 2))"
+  },
+  {
+   "name": "Optimizing MSE for RMSLE evaluation",
+   "description": "The task metric is RMSLE, but the model is trained using the default MSE objective on the raw target. The standard practice to optimize for RMSLE is to apply a logarithmic transformation (e.g., `np.log1p`) to the target before training, and then exponentiate (`np.expm1`) the predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train = train_df[\"count\"]"
+  }
+ ],
+ "summary": "The agent provides a basic LightGBM solution with date-based feature engineering but makes several critical errors. It improperly uses random shuffling for time-series cross-validation (look-ahead bias) and contains a serious reference assignment bug that overwrites the best model during the CV loop. Additionally, it computes RMSLE unsafely without clipping negative predictions and trains on the raw target instead of log-transforming it to align with the evaluation metric.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

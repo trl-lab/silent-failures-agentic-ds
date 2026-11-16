@@ -1,0 +1,156 @@
+{
+ "task": "local-government-renewable-action",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit EDA or statistical peeking on the test set is performed, though test data is present during type inference.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_cols = df_all.select_dtypes(include=[np.number]).columns.tolist()",
+   "reasoning": "The agent makes no effort to impute missing values for numeric columns, relying entirely on the gradient boosting models to handle them.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global imputer is fit before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset requires temporal splitting, though local government actions might have a time dimension.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent sets up 5-fold cross-validation and uses the validation sets for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The use of 5-fold cross-validation ensures the models are evaluated across multiple data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import mean_squared_error",
+   "reasoning": "The agent imports the metric but never calculates or reports any validation score, relying implicitly on the default metric inside early stopping.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "drop_cols = ['Ref. No.', 'Source 1', 'Source 2', 'Source 3', 'Source 4', 'Source 5', 'Notes']",
+   "reasoning": "The agent uses raw columns as-is and simply drops several columns without attempting any domain-informed feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent uses a naive, hardcoded equal-weight average to combine the LightGBM and CatBoost models without any tuning or optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test data leakage in preprocessing logic",
+   "description": "The agent uses the combined train and test dataset to calculate global dataset statistics to decide how to process features, leaking test set distributions into the preprocessing pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if numeric_series.notna().sum() > 0.4 * len(df_all):"
+  },
+  {
+   "name": "No validation score reported",
+   "description": "Although the agent uses cross-validation to train the models, it completely fails to calculate, aggregate, or print any validation metrics. This makes it impossible to assess model performance prior to submission.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cb_preds += cb_model.predict(X_test_cb) / n_splits"
+  },
+  {
+   "name": "Hardcoded ID column in submission",
+   "description": "The agent creates a sequential ID column for the submission file instead of preserving the actual identifier column from the test set, which risks misaligned predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(final_predictions))"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold cross-validation setup using LightGBM and CatBoost but fails to execute fundamental data science steps. It neglects feature engineering, relies entirely on models to handle numeric missing values, and blends the models using a naive equal-weight average. Furthermore, it leaks test data statistics during column type inference and fails to calculate or report any validation scores.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

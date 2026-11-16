@@ -1,0 +1,149 @@
+{
+ "task": "financial-intermediary-funds-commitments",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not interactively peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and 'Missing' string replacements.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use a standard numerical scaler before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=svd_dim, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD is applied to the combined training and test sets, leaking test set variance information into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "features[col] = combined[col].fillna(combined[col].median())",
+   "reasoning": "Missing values are imputed using the median computed over the combined train and test sets, leaking test distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset involves financial commitments with temporal components (extracted as year, month, etc.), but the agent uses random shuffling for cross-validation, introducing look-ahead bias by training on future events.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, meaning the stochastic model is trained and evaluated across multiple folds rather than just once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))\nprint(f\"5-Fold CV RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent only computes RMSE and does not evaluate any other regression metrics (like MAE or R-squared) to verify model performance robustly.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is a standard regression approach which matches the goal.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs significant feature engineering, including datetime extraction, frequency encoding, and TF-IDF.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent's only ensembling is standard CV fold averaging, which is appropriate and not considered naive.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage through text feature extraction before splitting",
+   "description": "Fitting text vectorizers like TfidfVectorizer on the combined dataset before splitting leaks the test set vocabulary and document frequencies into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(s)"
+  },
+  {
+   "name": "Leakage through frequency encoding before splitting",
+   "description": "Computing value counts for frequency encoding on the combined train and test sets leaks test set category distribution frequencies into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "features[f\"{col}_freq\"] = s.map(s.value_counts(normalize=True))"
+  }
+ ],
+ "summary": "The agent heavily leaks test data into the training process by executing all data preprocessing steps (median imputation, frequency encoding, TF-IDF, and SVD) on the concatenated train and test sets. Furthermore, it ignores the temporal nature of financial commitments by applying randomly shuffled KFold cross-validation, risking severe look-ahead bias.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

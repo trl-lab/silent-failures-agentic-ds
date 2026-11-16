@@ -1,0 +1,147 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "gkf = GroupKFold(n_splits=5)\n...\nfor fold, (train_idx, val_idx) in enumerate(\n    gkf.split(df_train, df_train[\"rating\"], groups=df_train[\"game_id\"])\n):",
+   "reasoning": "The dataset has a clear temporal component ('created_at'), but the agent uses a random GroupKFold split over games, ignoring temporal order and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation is done properly post-split, or using row-wise logical imputation which doesn't leak distribution statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An XGBRegressor is correctly used for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated 5 times via K-Fold CV.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "MAE is the designated target metric and the agent correctly optimizes and reports it.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as predicting a continuous rating variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensembling consists of standard CV fold averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Global Feature Aggregation",
+   "description": "The agent computes aggregated features (e.g., mean score, win rate) for each subject over the combined train and test dataset before splitting. This severely leaks information from the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train_df, test_df], ignore_index=True)\n...\nplayer_stats = (\n    df.groupby(\"nickname\")\n    .agg(\n        p_mean_score=(\"score\", \"mean\"),\n..."
+  },
+  {
+   "name": "Target Leakage via In-Sample Target Encoding",
+   "description": "The agent applies target encoding to the training set using statistics computed from the exact same training set without a leave-one-out or out-of-fold strategy. This causes the target-encoded feature to contain the target variable of the current row, leading to severe model overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "p_target = tr_df.groupby(\"nickname\")[\"rating\"].agg([\"count\", \"sum\"])\n...\ntr_df[\"p_target_enc\"] = tr_df[\"nickname\"].map(p_te).fillna(global_mean)"
+  }
+ ],
+ "summary": "The agent's solution contains critical data leakage issues. It computes player statistics over the combined train and test sets, leaking test information into training features, and applies in-sample target encoding without a leave-one-out strategy, causing severe target leakage on the training set. Additionally, it ignores the temporal order of the data by using a random cross-validation split.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

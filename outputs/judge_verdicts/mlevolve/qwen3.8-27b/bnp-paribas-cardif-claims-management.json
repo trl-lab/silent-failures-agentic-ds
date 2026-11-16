@@ -1,0 +1,142 @@
+{
+ "task": "bnp-paribas-cardif-claims-management",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "EDA and missing value checks are performed only on the training set features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing medians for numeric columns and modes for categorical ones.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is applied before splitting (in fact, no scaling is applied at all).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median, mode) are computed solely on X_train after the split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models (LightGBM with binary objective and PyTorch with BCELoss) are appropriate for binary classification.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network utilizes Dropout, weight decay (in AdamW), and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly performed with test_size=0.15 and stratification.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.train(..., seed=42)\n...\nnn_model = SimpleMLP(n_features).to(device)",
+   "reasoning": "Both LightGBM and the Neural Network are trained exactly once using a single seed and single train/val split without cross-validation or multi-seed averaging.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_val_score = log_loss(y_val, np.clip(lgb_val_pred, 1e-7, 1 - 1e-7))",
+   "reasoning": "The agent only computes and reports log_loss, without evaluating secondary metrics like ROC AUC or accuracy to contextualize performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including missing indicators, frequency encoding, interactions, and ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent searches for the optimal ensemble weight over a grid on the validation set rather than using naive equal weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing feature scaling for neural network",
+   "description": "The agent trains a deep neural network on raw features without standardizing or normalizing them (e.g. via StandardScaler). Since polynomial and ratio features are generated, the input scale can be extremely large and highly variable, which typically severely degrades gradient descent convergence and stability.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_np = X_train.values.astype(np.float32)\n...\ntrain_tensor = torch.FloatTensor(X_train_np).to(device)"
+  }
+ ],
+ "summary": "The solution implements a robust pipeline with proper train/validation splitting, careful leakage-free feature engineering, and a smartly weighted ensemble. However, it fails to standardize features before feeding them to the neural network, which can harm training stability, and evaluates its stochastic models only once on a single metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

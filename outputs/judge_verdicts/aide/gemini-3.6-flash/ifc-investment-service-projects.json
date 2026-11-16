@@ -1,0 +1,141 @@
+{
+ "task": "ifc-investment-service-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(col_str)",
+   "reasoning": "The agent fits the TF-IDF vectorizer on the combined train and test dataset (df_all), leaking the test set vocabulary and frequency statistics into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic cleaning by filling NaNs in strings, parsing dates, and relying on LightGBM's native missing value handling for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=svd_components, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (a form of PCA/dimensionality reduction) is fit on the combined dataset before splitting, leaking test set variance information into the extracted training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputer is fit on the combined data; only a constant 'Missing' string fill is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains projects which are typically approved chronologically, but the agent uses a random K-Fold split instead of a time-based split, potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates across 5 cross-validation folds, which inherently accounts for some variance compared to a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))",
+   "reasoning": "The agent only calculates RMSE and does not verify performance with other metrics like MAE, which would be informative given that financial investment amounts often contain significant outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering by extracting date components and applying TF-IDF and SVD to text columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test_proc) / kf.n_splits",
+   "reasoning": "The agent blends the 5 fold models using a simple unweighted average without attempting to optimize the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Environment Threading Crash",
+   "description": "The code causes a hard crash in certain environments (like macOS) due to threading conflicts when forking processes, often related to underlying hardware acceleration libraries (e.g., Apple MPS) initializing before a fork.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "objc[72010]: +[MPSGraphObject initialize] may have been in progress in another thread when fork() was called. ... RuntimeError: REPL child process died unexpectedly"
+  }
+ ],
+ "summary": "The agent develops a LightGBM regression pipeline with automated feature extraction for dates and text. However, a critical data leakage flaw exists because the agent fits both the TF-IDF vectorizer and TruncatedSVD on the combined train and test sets prior to splitting. Furthermore, the use of random cross-validation on project data may introduce look-ahead bias, and the script appears to crash due to environment-specific threading issues during execution.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

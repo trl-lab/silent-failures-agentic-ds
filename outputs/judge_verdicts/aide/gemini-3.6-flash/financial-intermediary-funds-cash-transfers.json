@@ -1,0 +1,141 @@
+{
+ "task": "financial-intermediary-funds-cash-transfers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data inspection is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Concatenate for feature engineering\ndf = pd.concat(\n    [train_df.drop(columns=[target_col], errors=\"ignore\"), test_df], ignore_index=True\n)",
+   "reasoning": "The agent makes no explicit effort to handle missing values or outliers, relying entirely on LightGBM's default handling without any cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date features (indicating temporal order of financial transfers), but the agent uses a randomized KFold split instead of a time-based split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for predicting a continuous target (Amount in USD).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Cross-validation is used to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, not a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))\nprint(f\"5-Fold Cross-Validation RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "Only RMSE is used for evaluation without verifying if it's the most appropriate metric or supplementing it with others (like MAE, which could be more robust to outliers in financial transfers).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem predicting the amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Date parts and categorical frequencies are extracted as features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The only ensembling is the standard averaging of CV fold predictions for the test set, which is appropriate and standard practice.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via target/feature encoding before splitting",
+   "description": "The agent computes categorical frequency features on the concatenated train and test sets before splitting. This leaks information about the test set distribution into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train_df.drop(columns=[target_col], errors=\"ignore\"), test_df], ignore_index=True)\n...\nfreq = df[col].value_counts().to_dict()\ndf[f\"{col}_freq\"] = df[col].map(freq)"
+  }
+ ],
+ "summary": "The solution correctly sets up a LightGBM regression model with cross-validation and basic feature engineering. However, it suffers from data leakage because frequency encoding is calculated on the combined train and test sets. It also relies completely on LightGBM to handle raw uncleaned data and ignores temporal ordering by using a randomized split despite the presence of transaction dates.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

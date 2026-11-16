@@ -1,0 +1,145 @@
+{
+ "task": "dont-overfit-ii",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in ['id', 'target']]\nX = train_df[feature_cols].values",
+   "reasoning": "The agent makes no effort to check for or handle missing values or outliers before modeling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The standard scaler is correctly fit on the training data only, not the full dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Logistic regression is appropriate for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in rskf.split(X_scaled, y):\n    X_train_fold, y_train_fold = X_scaled[train_idx], y[train_idx]",
+   "reasoning": "The agent performs cross-validation but completely ignores the validation folds, failing to compute or report any internal validation score to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are run multiple times within a cross-validation loop (ensemble), mitigating variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed at all, so this specific failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in ['id', 'target']]",
+   "reasoning": "The agent uses the raw features without any derived features or transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test_scaled)[:, 1]\n        total_models += 1\n\ntest_preds /= total_models",
+   "reasoning": "The agent simply averages the predictions of all models and folds without any weighted tuning or stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission ID generation",
+   "description": "The agent creates the submission file using a default integer range for IDs instead of preserving the actual identifier column from the test dataset. This typically leads to mismatched IDs and submission evaluation failures on platforms like Kaggle.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(test_preds))"
+  },
+  {
+   "name": "Wasted training data in cross-validation",
+   "description": "The agent splits the data into training and validation folds using cross-validation, but entirely ignores the validation folds (neither training on them nor evaluating on them), resulting in unnecessarily discarded training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in rskf.split(X_scaled, y):\n    X_train_fold, y_train_fold = X_scaled[train_idx], y[train_idx]"
+  }
+ ],
+ "summary": "The agent implements a robust cross-validation ensembling approach but completely fails to evaluate model performance, ignoring the generated validation folds entirely. Furthermore, it creates a functionally invalid submission file by fabricating an ID range rather than utilizing the original test IDs, and relies strictly on unweighted ensembling with no feature engineering.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

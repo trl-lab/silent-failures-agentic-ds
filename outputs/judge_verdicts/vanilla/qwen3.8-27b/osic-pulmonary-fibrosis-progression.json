@@ -1,0 +1,153 @@
+{
+ "task": "osic-pulmonary-fibrosis-progression",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during the EDA or preprocessing fitting stages.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing medians for numeric columns and 'Unknown' for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalizing is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The preprocessor is correctly fit only on the training split before transforming the validation set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly splits the dataset by unique 'Patient' groups rather than randomly, avoiding look-ahead bias for individual patient trajectories.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBM, XGBoost, CatBoost) for predicting the continuous FVC target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a dedicated train/validation split grouped by Patient.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"lgbm\": LGBMRegressor(..., random_state=RANDOM_STATE, ...)",
+   "reasoning": "The agent trains stochastic gradient boosting models exactly once per split with a fixed random seed, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "mae = mean_absolute_error(y_val, pred)",
+   "reasoning": "The agent evaluates the models using only MAE and does not compute or report any other metrics to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a regression task predicting FVC, aligning with the metric provided.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "NUMERIC_COLS = [\"Weeks\", \"Percent\", \"Age\"]\nCAT_COLS = [\"Sex\", \"SmokingStatus\"]",
+   "reasoning": "The agent uses raw columns directly and fails to derive critical baseline features (like baseline FVC or time since baseline) which are essential for predicting longitudinal progression.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a weighted average ensemble based on inverse validation MAE, which is a sensible heuristic rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "hardcoded_submission_id",
+   "description": "The agent ignores the test set's identifier column and hardcodes the submission IDs as a numerical range (e.g., `np.arange`), which will cause scoring to fail if specific string IDs (like Patient_Week) are expected by the evaluation system.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_df), dtype=int),"
+  },
+  {
+   "name": "improper_longitudinal_feature_usage",
+   "description": "The agent uses 'Percent' (a target-dependent variable) as a predictor and to rescale targets. Because this feature is typically only known at baseline, imputing missing future test values with a global median destroys patient-specific trajectories and severely corrupts predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "percent_test = X_test[\"Percent\"].to_numpy(dtype=float)\n...\npred = pred * percent_test"
+  }
+ ],
+ "summary": "The agent implements a regression pipeline with patient-grouped validation and a weighted ensemble of gradient boosting models. However, it critically fails to engineer necessary longitudinal features (like baseline FVC) and inappropriately relies on the 'Percent' feature, which acts as a target leak at baseline and will corrupt future predictions when imputed with a median. Furthermore, the agent hardcodes submission IDs, which will likely break task evaluation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "device-covid19serology",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or use test data to inform preprocessing before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive data cleaning, missing value imputation, and target normalization.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\ntrain_feat_scaled = pd.DataFrame(\n    scaler.fit_transform(train_feat),\n...",
+   "reasoning": "Scaling is correctly fitted only on the training set and then applied to validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_var = train_feat.var(ddof=0)\nnon_constant = train_var[train_var > 1e-12].index.tolist()",
+   "reasoning": "Feature selection (variance and correlation) is properly calculated using only the training split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_imputer = SimpleImputer(strategy=\"median\")\ntrain_feat = pd.DataFrame(\n    final_imputer.fit_transform(train_feat),",
+   "reasoning": "Imputation is correctly fit on the training data only.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It cannot be definitively determined if temporal ordering is strictly required for this specific device serology dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "criterion = WeightedBCEWithLogitsLoss(pos_weight=pos_weight)",
+   "reasoning": "The agent correctly formulates a binary classification model with appropriate BCE loss.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "dropout=dropout,\nweight_decay=weight_decay",
+   "reasoning": "The neural network employs dropout, weight decay, and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_idx = train_test_split(...)\nval_pred = predict_probabilities(model, val_loader)\nval_auc = official_roc_auc(y_val, val_pred)",
+   "reasoning": "A validation set is explicitly created and used for early stopping and model evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "seed_everything(SEED)\n...\nfor epoch in range(1, max_epochs + 1):",
+   "reasoning": "The agent trains a highly stochastic deep learning model exactly once with a single seed, without averaging over multiple runs to account for initialization variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def official_roc_auc(y_true: np.ndarray, y_prob: np.ndarray) -> float:\n...\nprint(f\"Final Validation Score: {best_val_auc:.6f}\")",
+   "reasoning": "The agent relies solely on ROC AUC for evaluation and early stopping, without reporting other metrics like Precision, Recall, or PR-AUC which are critical for medical diagnostic tasks.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TARGET = \"antibody_truth\"\nmetric: \"roc_auc\"",
+   "reasoning": "The task is appropriately modeled as a binary classification predicting antibody presence.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[f\"inter__{a}__{b}__prod\"] = da * db\n...\nsplit_feat[feat_name] = mapped.to_numpy(dtype=float)",
+   "reasoning": "The agent applies extensive feature engineering, including datetime expansion, group aggregates, and interaction terms.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Faulty correlation-based feature selection",
+   "description": "When dropping highly correlated features, the logic incorrectly adds both the column being evaluated and its highly correlated pairs to the drop set. This removes all instances of the correlated information from the dataset instead of retaining one representative feature.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "highly_corr = upper.index[upper[col] > 0.995].tolist()\nif highly_corr:\n    to_drop.add(col)\n    to_drop.update(highly_corr)"
+  },
+  {
+   "name": "No baseline model comparison",
+   "description": "The agent builds a custom deep learning architecture but fails to establish a baseline with simpler, robust models (like Logistic Regression or LightGBM). On tabular data, simpler models often outperform or match complex neural networks with less risk of overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = ContextGatedTabularNet(...)"
+  }
+ ],
+ "summary": "The agent implements a highly structured pipeline with robust scaling, imputation, and a sophisticated Context-Gated MLP that utilizes Stochastic Weight Averaging (SWA). However, it exhibits a critical logic error in the correlation-based feature selection that drops both features in a correlated pair, effectively deleting valuable signal. Additionally, the agent fails to evaluate the stochastic neural network across multiple seeds (FM14) and relies on a single metric (FM15) without establishing a simpler baseline model.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

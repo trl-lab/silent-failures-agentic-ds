@@ -1,0 +1,61 @@
+{
+ "task": "restaurant-revenue-prediction",
+ "failure_modes": {
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(mean_squared_error(y_vl_orig, np.maximum(ensemble_pred, 0)))",
+   "reasoning": "The agent relies solely on RMSE for evaluation without verifying if it's the most robust metric for the problem (e.g., MAE might handle revenue outliers better).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ensemble_pred_log = (lgb_pred + xgb_pred) / 2.0",
+   "reasoning": "The agent combines LightGBM and XGBoost predictions using a simple unweighted average, without attempting to optimize the combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage in Final Validation",
+   "description": "The agent trains the final models on the entire dataset (`X_full`) and then evaluates them on a validation set (`X_val`) that is a subset of the training data. This evaluates the model on its own training data, producing a meaningless and misleadingly optimistic final validation score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_lgb.fit(X_full, y_full)\n...\nval_pred_lgb = final_lgb.predict(X_val)\n...\nfinal_rmse = np.sqrt(mean_squared_error(y_val_orig, val_pred))"
+  },
+  {
+   "name": "Incomplete Imputation Logic",
+   "description": "The agent conditionally fills missing values in the validation and test sets only if the training set contains missing values for that column. If a column has no missing values in the training set but does in the test set, those test-set values remain un-imputed.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if train_feat[col].isna().any():\n    fill_val = train_feat[col].median()\n    ...\n    test_feat[col] = test_feat[col].fillna(fill_val)"
+  }
+ ],
+ "summary": "The agent correctly utilizes cross-validation for initial model evaluation but introduces a critical data leakage bug by scoring its final model on a validation set that was included in its training data. Additionally, it uses a naive unweighted ensemble and flawed imputation logic that may leave missing values in the test set unhandled.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

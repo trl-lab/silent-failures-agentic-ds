@@ -1,0 +1,160 @@
+{
+ "task": "contributions-to-financial-intermediary-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not inspected during EDA, and transformers are not fit on the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation for numericals and a dedicated string for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The standard scaler is correctly fit only on the training fold within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied to the dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation is based solely on the training data, so test statistics do not leak.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset contains dates, but it is not definitively known if the train/test split is temporal, so the random StratifiedKFold cannot be strictly judged as a failure without more context.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models (LightGBM and a Neural Network) are used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch neural network includes dropout layers and uses weight decay in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a robust 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models across 5 CV folds, effectively averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "final_score = np.sqrt(mean_squared_error(y_train_all, oof_final))",
+   "reasoning": "The agent only calculates RMSE, without checking if it is overly skewed by outliers in the 'Amount in USD' target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date extraction, target encoding, and interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal weighted combination of models.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation leakage during feature engineering",
+   "description": "Features that depend on the distribution of the dataset (such as frequency encoding, cross-entity diversity/nunique features, and median imputation) are computed on the entire training dataset before cross-validation splitting. This leaks information from the validation folds into the training folds, making the CV scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq_map = train_df[col].value_counts(normalize=True).to_dict()\n        train_df[f\"{col}_freq\"] = train_df[col].map(freq_map)"
+  },
+  {
+   "name": "Failure to drop high-cardinality raw date columns",
+   "description": "After extracting useful numerical features (year, month, day, etc.) from date columns, the agent fails to drop the original date strings. These are subsequently treated as categorical features, leading to massive cardinality, memory waste, and potential overfitting in models.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_out = df.copy()\n... (original date columns are kept and later appended to cat_cols)"
+  },
+  {
+   "name": "Failure to log-transform highly skewed target for training",
+   "description": "The target variable (e.g., 'Amount in USD') is likely highly right-skewed. While the agent creates a log-transformed version for fold stratification, it trains the models (including neural networks with MSE loss) directly on the raw target scale, making them overly sensitive to extreme outliers.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "y_train = train_df.loc[tr_mask, target_col].values"
+  }
+ ],
+ "summary": "The agent provides a sophisticated solution with deep learning, gradient boosting, and optimized ensembling. However, it computes several distribution-dependent features (like frequency encoding and median imputation) on the full training set before CV splitting, causing validation leakage. Additionally, it fails to drop raw date columns after extracting date components, leading to unnecessary high-cardinality categorical features, and trains directly on a highly skewed raw target instead of a log-transformed version.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

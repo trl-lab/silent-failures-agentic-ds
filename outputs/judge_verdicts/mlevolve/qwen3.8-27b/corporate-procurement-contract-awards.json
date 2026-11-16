@@ -1,0 +1,142 @@
+{
+ "task": "corporate-procurement-contract-awards",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during exploratory data analysis or feature design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_proc = X_train_proc.replace([np.inf, -np.inf], np.nan)",
+   "reasoning": "The agent makes no effort to impute or handle missing values directly, relying entirely on LightGBM's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the global dataset (missing values are left as NaN).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Procurement contract data typically contains temporal elements (e.g. contract dates), but without inspecting the columns, it is impossible to confirm if the random split violates temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for predicting a continuous target amount.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 15% validation set is created using train_test_split and used for early stopping.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent compares models and tunes performance on the validation set, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(params, dtrain, num_boost_round=5000, valid_sets=[dval], callbacks=[lgb.early_stopping(...)])",
+   "reasoning": "The agent trains stochastic LightGBM models (using feature/bagging fractions) exactly once per configuration without averaging multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val.values, val_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without evaluating metrics like MAE which might provide better insight given the highly skewed financial target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates extensive derived features including interactions, encodings, and binning.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Naive Target Encoding (In-Sample Leakage)",
+   "description": "Target encoding is computed directly on the training set without out-of-fold processing, cross-validation, or smoothing. This causes the target variable to leak directly into the training features, leading to severe model overfitting (especially for rare categories).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cat_target_mean = train_with_target.groupby(col)[\"_target\"].mean()\nall_data[f\"{col}_target_mean\"] = all_data[col].map(cat_target_mean).fillna(global_mean)"
+  }
+ ],
+ "summary": "The agent constructs an extensive feature engineering pipeline while correctly avoiding global leakage by splitting the data first. However, the solution suffers from severe in-sample target leakage due to naive target encoding computed directly on the training set. Additionally, the agent relies entirely on the model to handle missing values and does not account for variance by evaluating the stochastic model over multiple runs.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

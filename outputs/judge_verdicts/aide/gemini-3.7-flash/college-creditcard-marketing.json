@@ -1,0 +1,146 @@
+{
+ "task": "college-creditcard-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform explicit EDA or peek at the test set before the split is established, though it does inappropriately use test data during feature engineering (captured separately).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans currency columns and handles missing values for both categorical and numerical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()",
+   "reasoning": "Imputation statistics (median) are correctly computed only on the training set (X) and then applied to the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "No explicit temporal column is visible, so a random k-fold split is standard.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression and the agent appropriately uses regression models (CatBoostRegressor, LGBMRegressor).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def blend_obj(weights):\n    w1, w2 = weights\n    pred = w1 * oof_cb + w2 * oof_lgb",
+   "reasoning": "The test set is not reused to optimize models; ensemble weights are correctly optimized on out-of-fold (OOF) validation predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While models are run with a fixed random seed, the use of 5-fold cross-validation sufficiently accounts for variance across data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cb_rmse = root_mean_squared_error(y, oof_cb)",
+   "reasoning": "The agent relies entirely on RMSE, which can be highly sensitive to outliers in financial data (like PAYMENTS_BY_ISSUER) without checking a robust metric like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs frequency encoding and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "res = minimize(\n    blend_obj,\n    [0.5, 0.5],",
+   "reasoning": "The agent uses scipy.optimize to properly tune the ensemble weights based on OOF predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature Leakage via Test Set Concatenation",
+   "description": "The agent concatenates the training and test sets to compute feature distributions (e.g., frequency encoding and group aggregations). This leaks test set statistics into the training features, invalidating the evaluation and leading to overly optimistic results in production.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = pd.concat([X[col], X_test[col]], axis=0).value_counts(normalize=True)\n...\ncombined = pd.concat([X[[cat, num]], X_test[[cat, num]]], axis=0)\ngroup_stats = combined.groupby(cat)[num].agg([\"mean\", \"std\"]).reset_index()"
+  }
+ ],
+ "summary": "The agent develops a well-structured solution with string cleaning, 5-fold CV, and a properly tuned OOF ensemble. However, a critical failure mode occurs during feature engineering: train and test sets are concatenated to compute frequency encodings and group aggregations, causing test set leakage. Additionally, only RMSE is evaluated, which may be suboptimal for skewed financial targets.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

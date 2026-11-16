@@ -1,0 +1,145 @@
+{
+ "task": "national-average-drug-acquisition-cost",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or preprocessing on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df.drop(\"NADAC Per Unit\", axis=1)\ntest_features = test_df",
+   "reasoning": "The agent makes no effort to clean the data, handle missing values, or deal with inconsistencies before passing it directly to the model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses random shuffling for cross-validation, which would introduce look-ahead bias if the dataset has a temporal component (like pricing dates), but it is unclear from the code alone whether the test split is time-based.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated multiple times across 5 folds rather than exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(mean_squared_error(y_val, y_pred))",
+   "reasoning": "The agent only calculates RMSE and does not verify if it is the most appropriate metric or evaluate robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df.drop(\"NADAC Per Unit\", axis=1)",
+   "reasoning": "The agent uses raw columns directly without any feature engineering, derived features, or categorical encoding.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Suboptimal model selection from cross-validation",
+   "description": "Instead of ensembling predictions from all cross-validation folds or retraining on the entire dataset, the agent selects the single model from the fold with the lowest validation error for final test inference. This wastes training data and can overfit to a specific validation fold.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_rmse < best_rmse:\n        best_rmse = fold_rmse\n        best_model = model\n...\ntest_predictions = best_model.predict(test_features)"
+  },
+  {
+   "name": "Unhandled string/categorical features",
+   "description": "The agent passes the dataframe directly to LightGBM without converting string columns to pandas 'category' types or label encoding them. If the dataset contains text or string categorical columns, LightGBM will raise a TypeError during training.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "train_data = lgb.Dataset(X_train, label=y_train)"
+  }
+ ],
+ "summary": "The agent sets up a basic 5-fold cross-validation scheme with LightGBM but fails to apply any data cleaning, feature engineering, or categorical encoding, which will likely crash the model if unencoded string features are present. Furthermore, the agent incorrectly uses the single best-performing fold model for test set predictions rather than ensembling all folds or retraining on the full dataset.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

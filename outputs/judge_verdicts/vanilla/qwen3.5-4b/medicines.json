@@ -1,0 +1,148 @@
+{
+ "task": "medicines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis or test set peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].fillna(X_train[col].median())",
+   "reasoning": "The agent explicitly handles missing values by imputing with the median and mode.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].fillna(X_train[col].median())\n    X_test[col] = X_test[col].fillna(X_test[col].median())",
+   "reasoning": "Imputation is not done on the full dataset before splitting, although the test set is improperly imputed using its own statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(**params, num_leaves=31, min_data_for_leaf=5, random_state=42)",
+   "reasoning": "A classification model is appropriately used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Predict on Test Data",
+   "reasoning": "The model is trained on the entire training set without splitting any data for validation, and no validation score is computed.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally at all, so evaluating it exactly once is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated as a standard binary classification problem, which is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = df_train[feature_cols].copy()",
+   "reasoning": "The agent uses the raw columns with basic imputation and performs no feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unencoded_categorical_features",
+   "description": "Categorical features of 'object' dtype are passed directly to a model that cannot handle them without explicit conversion to 'category' dtype or label encoding, resulting in a crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "ValueError: pandas dtypes must be int, float or bool.\nFields with bad pandas dtypes: Category: object, Name of medicine: object"
+  },
+  {
+   "name": "hard_labels_for_auc",
+   "description": "The agent uses `.predict()` to output hard class labels instead of `.predict_proba()` to output continuous probability scores for a task evaluated by ROC AUC.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predictions = model.predict(X_test)\n\n# Create Output DataFrame\noutput_df = pd.DataFrame({\n    'id': range(len(X_test)),\n    'Medicine status': predictions.astype(int)\n})"
+  },
+  {
+   "name": "test_data_leakage_in_imputation",
+   "description": "The agent imputes missing values in the test set using statistics (median/mode) calculated from the test set itself, violating the independence of test samples and simulating a batch-level leakage.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test[col] = X_test[col].fillna(X_test[col].median())"
+  }
+ ],
+ "summary": "The agent failed to execute the code because it passed raw object-type columns directly into LightGBM without encoding or casting to 'category' dtype. Furthermore, it completely skipped creating a validation set, used test set statistics for test set imputation (data leakage), and erroneously predicted hard labels instead of probabilities for an ROC AUC task.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,110 @@
+{
+ "task": "sf-building-permits",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes no explicit effort to handle missing values (except for filling NaNs in the text column), relying entirely on LightGBM to handle them implicitly.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(desc_clean)\n    svd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD (equivalent to PCA) are fitted on the combined dataset (train + test) before splitting, leaking test data statistics into the feature space.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a strong temporal component (permit creation dates), but the agent uses random K-Fold cross-validation instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "'metric': 'rmse',",
+   "reasoning": "The agent only uses RMSE for early stopping and does not consider metrics like MAE which might be much more robust to outliers given the skewed nature of approval times.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent uses a naive, unweighted average of cross-validation fold predictions without any attempt to optimize combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The model uses features that are generated after or contemporaneously with the target event, which leak direct information about the target outcome into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "date_cols = [\n    'Permit Creation Date',\n    'Current Status Date',\n    'Completed Date',\n    'First Construction Document Date',\n    'Permit Expiration Date'\n]"
+  }
+ ],
+ "summary": "The agent implements a solid LightGBM modeling pipeline with cross-validation and feature engineering. However, the solution suffers from critical data leakage by fitting TF-IDF and SVD on the combined train/test dataset, and introduces target leakage by using future dates (like 'Completed Date' and 'Current Status Date') as predictive features. Additionally, it fails to respect the temporal structure of the data by using randomized cross-validation instead of a time-based split.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

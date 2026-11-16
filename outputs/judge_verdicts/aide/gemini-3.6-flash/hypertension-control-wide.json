@@ -1,0 +1,141 @@
+{
+ "task": "hypertension-control-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_cat = pd.concat([X_train_raw[cat_cols], X_test_raw[cat_cols]], axis=0)\nfor c in cat_cols:\n    ...\n    freq = combined_cat[c].astype(str).value_counts(normalize=True).to_dict()",
+   "reasoning": "The agent computes frequency encodings using the combined train and test sets, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and missing indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The median for imputation is correctly calculated only on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a strict temporal order that necessitates time-series splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a Stratified 5-Fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_score = roc_auc_score(y, oof_blend)\nprint(f\"Validation ROC AUC Score: {cv_score:.5f}\")",
+   "reasoning": "The agent evaluates the model solely using ROC AUC without examining other metrics like log loss or precision/recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent formats the target for binary classification, which aligns with the specified task type.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates date features, frequency encodings, missing indicators, and row-wise summary statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_blend = 0.4 * oof_lgb + 0.3 * oof_xgb + 0.3 * oof_cb\ntest_blend = 0.4 * test_lgb + 0.3 * test_xgb + 0.3 * test_cb",
+   "reasoning": "The agent manually hardcodes an arbitrary weighted average for the ensemble without tuning or optimizing the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent categorical encoding between train and test",
+   "description": "Applying Pandas `.astype(\"category\").cat.codes` (or just `.astype(\"category\")` for LightGBM) separately to the train and test sets causes identical string categories to be mapped to different integer codes if the unique values or their frequencies differ between the sets. This completely corrupts the categorical features for the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_num[c] = X_train_num[c].astype(\"category\").cat.codes\n    X_test_num[c] = X_test_num[c].astype(\"category\").cat.codes"
+  }
+ ],
+ "summary": "The solution employs a valid 5-fold CV setup with feature engineering and an ensemble of three gradient-boosted trees. However, it suffers from a critical bug where categorical features are encoded independently for train and test sets, leading to misaligned category mappings that will severely degrade test performance. Furthermore, it introduces minor data leakage by using the combined dataset for frequency encoding and relies on an untuned, arbitrary weighted average for its final ensemble.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

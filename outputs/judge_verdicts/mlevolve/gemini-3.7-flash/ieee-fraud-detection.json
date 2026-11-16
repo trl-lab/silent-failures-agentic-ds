@@ -1,0 +1,142 @@
+{
+ "task": "ieee-fraud-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "encoder = OrdinalEncoder(handle_unknown=\"use_encoded_value\", unknown_value=-1)\n    combined[col] = encoder.fit_transform(combined[[col]]).astype(np.int32)",
+   "reasoning": "The agent fits an OrdinalEncoder on the combined dataset containing both train and test data, leaking test set categories into the training process.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined[\"V_nan_count\"] = combined[v_cols].isna().sum(axis=1).astype(np.int16)",
+   "reasoning": "The agent makes no attempt to clean or impute missing values, relying entirely on the tree models' native handling of NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scalers or normalizers are applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "split_idx = int(0.80 * len(X_train_full))\nX_train = X_train_full.iloc[:split_idx].copy()",
+   "reasoning": "The agent sorts the data chronologically and uses a strict time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An out-of-time validation split is created and evaluated.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_preds = ensemble_model.fit(dtrain=dtrain, dval=dval, X_v=X_v, y_v=y_v)",
+   "reasoning": "The stochastic ensemble model is trained and evaluated only once, without multiple random seeds to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = compute_roc_auc_metric(y_v, val_preds)",
+   "reasoning": "Only ROC-AUC is used for evaluation; other relevant metrics like Average Precision (PR-AUC) or log-loss are missing.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive domain-specific feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "self.weights = [0.45, 0.35, 0.20]",
+   "reasoning": "The agent uses a weighted ensemble rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Lookahead Bias / Target Leakage",
+   "description": "The agent engineers features using future information (e.g. using `shift(-1)` to look at the next transaction) on a concatenated train and test dataset. This leaks the occurrence and characteristics of future test-set events into the training data, allowing the model to 'cheat' by knowing if a user will make another transaction in the future.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[f\"{uid_col}_dt_diff_next\"] = (combined.groupby(uid_col)[\"TransactionDT\"].shift(-1) - combined[\"TransactionDT\"]).astype(np.float32)"
+  }
+ ],
+ "summary": "The agent implements a strong temporal validation strategy and sophisticated feature engineering, but introduces a critical data leak by using `shift(-1)` on the combined train and test sets to compute differences to future transactions. Additionally, the agent fits an OrdinalEncoder on test data before splitting, ignores explicit missing value imputation, and only evaluates its stochastic models once using a single metric.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

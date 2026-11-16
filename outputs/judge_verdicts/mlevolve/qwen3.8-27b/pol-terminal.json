@@ -1,0 +1,150 @@
+{
+ "task": "pol-terminal",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or perform EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning and missing value handling are performed in the basic_feature_engineering function.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The RobustScaler is correctly fit only on the training data and then used to transform validation and test data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not performed on the full dataset before splitting (though it is done incorrectly after splitting).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a strict temporal order requiring a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses regression models (LightGBM and TabNet) for the continuous CAPACITY target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The TabNet model utilizes Dropout, BatchNorm, and weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly splits out a validation set using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The holdout test set is only used for final predictions, not for model selection or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.train(...) ... model = TabNetRegressor(...)",
+   "reasoning": "The agent trains LightGBM and TabNet models exactly once with fixed random elements and evaluates on a single validation split, without using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_params = {\"metric\": \"rmse\", ...} ... val_rmse_final = np.sqrt(mean_squared_error(...))",
+   "reasoning": "The agent optimizes and evaluates solely using RMSE, without checking other metrics (like MAE or R2) to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering, including polynomial features and categorical/numerical interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ensemble_val_pred = (lgb_val_pred + val_pred) / 2.0",
+   "reasoning": "The agent ensembles the LightGBM and TabNet predictions using a simple unweighted average without attempting to optimize the combination weights.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage through local imputation",
+   "description": "Imputation statistics (like the median) are calculated locally on the test/validation sets rather than being fitted on the training set and applied to the test set. This leaks test set distribution information into the predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[col] = df[col].fillna(df[col].median())"
+  }
+ ],
+ "summary": "The agent implements a generally sound modeling pipeline with LightGBM and a custom TabNetRegressor, including correct K-fold target encoding and robust scaling. However, it introduces data leakage by computing imputation medians locally on the validation and test sets rather than reusing training statistics. Additionally, it relies on naive unweighted ensembling and evaluates its stochastic models purely on a single split using only one metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

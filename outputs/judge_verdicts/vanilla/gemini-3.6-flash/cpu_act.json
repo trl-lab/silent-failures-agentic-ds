@@ -1,0 +1,144 @@
+{
+ "task": "cpu_act",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed, so test data is not peeked at.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col])\ny = train_df[target_col]",
+   "reasoning": "The agent makes no effort to handle missing values, duplicates, or outliers before passing the data to the models.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=10, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 10-fold cross-validation for training and evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates across 10 cross-validation folds, which inherently accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly report any metrics, but relies on the default early stopping metric (RMSE), which is appropriate for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_num[col] = X_num[col].astype('category').cat.codes",
+   "reasoning": "The agent uses raw columns with only basic categorical encoding and creates no derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (test_preds_lgb + test_preds_xgb + test_preds_cb) / 3.0",
+   "reasoning": "The agent combines the predictions of three different models using an unweighted average without attempting to optimise their blending weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Mismatched categorical encoding",
+   "description": "Categorical variables are encoded into integers independently on the training and test sets. This leads to misaligned feature mappings if the test set contains different unique categories or if the categories appear in a different alphabetical order compared to the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_num[col] = X_num[col].astype('category').cat.codes\n    X_test_num[col] = X_test_num[col].astype('category').cat.codes"
+  },
+  {
+   "name": "Missing validation evaluation",
+   "description": "The script performs cross-validation and generates test predictions, but fails to calculate or log any performance metric on the validation folds, leaving the user with no estimate of model generalisation performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_num, y)):"
+  }
+ ],
+ "summary": "The agent builds an ensemble of tree-based models using cross-validation, but commits a critical error by independently applying categorical encoding to the train and test sets, which corrupts the test features. Furthermore, it fails to calculate any validation metrics during the cross-validation loop and uses a naive unweighted average for its ensemble without any feature engineering or data cleaning.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

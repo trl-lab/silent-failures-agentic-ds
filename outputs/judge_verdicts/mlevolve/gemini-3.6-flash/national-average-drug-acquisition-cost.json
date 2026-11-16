@@ -1,0 +1,137 @@
+{
+ "task": "national-average-drug-acquisition-cost",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or interactive inspection of the test set in the code.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_num_feats = train_df_raw[num_cols].fillna(0.0)",
+   "reasoning": "The agent explicitly handles missing values using constant imputation (e.g., filling numericals with 0.0, categoricals with 'MISSING').",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train_f)\nX_val_scaled = scaler.transform(X_val_f)\nX_test_scaled = scaler.transform(X_test_raw)",
+   "reasoning": "The agent correctly fits the scaler only on the training folds and transforms the validation and test sets separately.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_tfidf = tfidf.fit_transform(combined_train_text)",
+   "reasoning": "Feature selection and extraction (like TF-IDF/SVD) are fit only on the training data, not the combined train/test data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_num_feats = train_df_raw[num_cols].fillna(0.0)",
+   "reasoning": "Imputation is done via hardcoded constants rather than fitting statistics on the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)\n...\ndate_cols = [c for c in train_df_raw.columns if \"date\" in c.lower() or \"year\" in c.lower()]",
+   "reasoning": "The NADAC dataset contains time-series data of drug prices (with date columns explicitly identified), so using a random K-Fold split ignores temporal order and introduces look-ahead bias by training on future prices to predict past ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(...)",
+   "reasoning": "The agent correctly uses regression models for a continuous pricing target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "self.dropout = nn.Dropout(dropout_rate)\n...\noptimizer = optim.AdamW(nn_model.parameters(), lr=1e-3, weight_decay=1e-4)",
+   "reasoning": "The deep learning model incorporates Dropout and uses AdamW with weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(train_df_raw)):",
+   "reasoning": "The agent rigorously evaluates models using a 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold in range(num_folds):",
+   "reasoning": "The stochastic models are evaluated across 5 distinct CV folds, effectively accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_target_log = np.log1p(np.maximum(0, train_target))\n...\nreturn np.sqrt(mean_squared_error(y_true_orig, pred))",
+   "reasoning": "The agent optimizes RMSE (the requested metric) and appropriately uses a log transform to handle the long-tailed nature of the cost target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_target = train_df_raw[target_col].values",
+   "reasoning": "The task is correctly formulated as a direct regression problem on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def extract_text_features(df, cols):\n...\nte_train_df.loc[val_mask, f\"{col}_te_mean\"] = val_cat.map(mean_map).fillna(global_mean)",
+   "reasoning": "The agent implements extensive feature engineering, including out-of-fold target encoding, text metrics, TF-IDF/SVD, and datetime parsing.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "opt_res = opt.minimize(ensemble_loss, init_params, method=\"SLSQP\", bounds=bounds, constraints=constraints)",
+   "reasoning": "The agent uses SciPy optimization to find the optimal weighted blend for the ensemble rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a very strong and comprehensive solution featuring robust feature engineering, correct out-of-fold target encoding, and a well-optimized ensemble of tree models and a neural network. The primary failure mode is ignoring the temporal nature of the NADAC drug pricing dataset by using random K-Fold cross-validation, which causes look-ahead bias.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

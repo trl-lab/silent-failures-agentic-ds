@@ -1,0 +1,104 @@
+{
+ "task": "home-data-for-ml-course",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_cols = train_df.columns.tolist()\nfor col in num_cols:\n    median_val = train_df[col].median()\n    train_df[col] = train_df[col].fillna(median_val)",
+   "reasoning": "The median used for imputation is calculated on the entire training dataset before the KFold splits are created, which leaks missing-value statistics from the validation folds into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "log_preds = (\n    0.35 * cb_test_preds + \n    0.35 * lgb_test_preds + \n    0.20 * xgb_test_preds + \n    0.10 * ridge_test_preds\n)",
+   "reasoning": "The agent combines multiple model predictions using arbitrary, hardcoded weights without any weight search, stacking, or validation tuning.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No Validation Score Evaluation",
+   "description": "The agent splits the data using KFold to train models and apply early stopping, but it fails to predict on the validation set or calculate an overall validation metric (like RMSE) to estimate out-of-sample generalization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_lgb.fit(\n        X_train, y_train,\n        eval_set=[(X_val, y_val)],\n        callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)]\n    )\n    lgb_test_preds += model_lgb.predict(X_test) / kf.n_splits"
+  },
+  {
+   "name": "Invalid Encoding for Linear Models",
+   "description": "Nominal categorical variables are label-encoded (assigned arbitrary integers) and then scaled. While tree models can partition these somewhat effectively, it imposes false, invalid ordinal relationships that harm linear models like Ridge.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n    ... \n    model_ridge = Ridge(alpha=10.0)\n    model_ridge.fit(X_train_scaled, y_train)"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering pipeline and trains an ensemble of gradient boosting and linear models using KFold cross-validation. However, it computes imputation medians before the CV split (leaking validation data into training), fails to compute an internal validation score to estimate generalization, uses arbitrary hardcoded ensemble weights without tuning, and inappropriately feeds label-encoded nominal variables into a Ridge regression model.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

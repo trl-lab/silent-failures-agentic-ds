@@ -1,0 +1,148 @@
+{
+ "task": "mercari",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peeking at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes an attempt to handle missing values using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit an imputer on the combined dataset; imputation is done separately for train and test.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for the price prediction task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using cross-validation over 5 folds, reporting the average score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(mean_squared_error(y_train.iloc[val_idx], y_pred_val))",
+   "reasoning": "The agent only computes and evaluates the model using RMSE, without checking any secondary metrics like MAE which might be informative for price prediction.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col != target_col]",
+   "reasoning": "The agent completely ignores the text and categorical nature of the dataset (e.g. item descriptions, categories), applying no feature engineering, NLP techniques, or encodings.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure due to unhandled object dtypes",
+   "description": "The agent passes raw string/object columns directly to LightGBM without encoding them or changing their dtype to 'category'. This causes LightGBM to crash with a fatal error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  },
+  {
+   "name": "Test set statistics leakage for imputation",
+   "description": "The agent imputes missing values in the test set using the median of the test set itself, rather than the median computed from the training set. This leaks test set distribution statistics into the prediction pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median())"
+  },
+  {
+   "name": "Invalid early stopping configuration",
+   "description": "The agent configures an early stopping callback when training the final model on the full training dataset, but fails to provide a validation set. This will either crash or silently fail.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    params,\n    train_data_full,\n    num_boost_round=1000,\n    callbacks=[lgb.early_stopping(50, verbose=False)],\n)"
+  }
+ ],
+ "summary": "The agent's solution suffers from a critical lack of feature engineering, entirely failing to handle the text and categorical columns intrinsic to the Mercari dataset. This omission directly leads to an execution crash when LightGBM attempts to process raw object dtypes. Additionally, there are logical errors such as using test set statistics for test set imputation and configuring early stopping without a validation set on the final model.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

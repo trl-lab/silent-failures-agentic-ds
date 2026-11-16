@@ -1,0 +1,141 @@
+{
+ "task": "power-plants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so peeking at test data during EDA is not applicable.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by median imputation for coordinates and constant ('missing') imputation for categorical variables.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "coords = df[[lat_col, lon_col]].fillna(df[[lat_col, lon_col]].median())",
+   "reasoning": "The agent imputes missing coordinates using the median of the combined train and test dataset, leaking test statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not clear if temporal order is strictly relevant for this dataset's validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor, LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses K-Fold cross-validation to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently accounts for variance across data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))\nprint(f\"Validation Metric: {cv_rmse:.4f}\")",
+   "reasoning": "The agent computes and reports only RMSE, ignoring other metrics like MAE or R-squared that could provide additional context on model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements several feature engineering steps, such as date parsing, spatial clustering, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_preds_log = 0.5 * oof_preds_cb + 0.5 * oof_preds_lgb\ntest_preds_log = 0.5 * test_preds_cb + 0.5 * test_preds_lgb",
+   "reasoning": "The agent blends predictions using a hardcoded equal-weight average without tuning the blend ratio or using a meta-model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test leakage during feature engineering",
+   "description": "Feature engineering techniques that rely on dataset-wide distributions (such as frequency encoding or unsupervised clustering) are applied to the combined train and test datasets before splitting. This leaks information about the test distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kmeans.fit_predict(coords)\n...\nfreq = df[col].value_counts().to_dict()\ndf[f\"{col}_freq\"] = df[col].map(freq).astype(float)"
+  }
+ ],
+ "summary": "The agent implements a solid gradient boosting pipeline with K-Fold cross-validation, log-transformed targets, and reasonable feature engineering. However, it introduces data leakage by computing imputation statistics, K-Means clusters, and frequency encodings on the combined train and test sets prior to splitting. Additionally, the agent uses a naive equal-weight ensemble and evaluates only a single metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

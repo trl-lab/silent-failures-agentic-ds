@@ -1,0 +1,152 @@
+{
+ "task": "historical-volcanic-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used during exploratory data analysis or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col])\ny_train = train_df[target_col]",
+   "reasoning": "The agent makes no effort to clean the data, handle missing values, or format categorical columns before passing them to the model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Random splitting is used, and while the data is historical, a strict temporal split is not clearly required for this predictive task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A multiclass LightGBM classifier is an appropriate model choice for this task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 70/30 train/validation split is explicitly performed.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=500,\n    valid_sets=[train_data, val_data],\n...)",
+   "reasoning": "The agent trains a stochastic LightGBM model exactly once on a single split, without using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "accuracy = accuracy_score(y_val_split, y_val_pred)",
+   "reasoning": "The agent evaluates the model using only accuracy, without checking other metrics (like F1-score) that might be more informative for multiclass classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col])",
+   "reasoning": "No feature engineering is performed; the raw dataset is passed directly to the model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "NameError due to self-referencing variable",
+   "description": "A variable is referenced before it is assigned in a conditional statement, causing a runtime NameError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "id_col = \"id\" if id_col in test_df.columns else None"
+  },
+  {
+   "name": "Multiclass probability prediction mismatch",
+   "description": "The model's predict method returns class probabilities (an array of shape [n_samples, n_classes]) for multiclass objectives, but the accuracy_score metric expects 1D discrete class labels, causing an error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_val_pred = model.predict(X_val)\naccuracy = accuracy_score(y_val_split, y_val_pred)"
+  },
+  {
+   "name": "Unencoded categorical target",
+   "description": "Tree-based models like LightGBM require multiclass targets to be encoded as integers from 0 to num_class-1, but string descriptions are passed directly without LabelEncoding.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_split, label=y_train_split)"
+  }
+ ],
+ "summary": "The agent correctly frames the task and sets up a train/validation split for a LightGBM model. However, it completely fails to clean the data or perform any feature engineering, relies on a single evaluation run, and introduces multiple critical execution errors, including a NameError and a failure to handle LightGBM's multiclass probability outputs.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

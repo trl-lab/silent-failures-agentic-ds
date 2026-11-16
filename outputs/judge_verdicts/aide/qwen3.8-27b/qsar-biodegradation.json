@@ -1,0 +1,134 @@
+{
+ "task": "qsar-biodegradation",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is only used for final predictions and not for EDA or fitting any preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by dropping NaN targets, removing constant columns, and imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant features) is applied only to the training set, so it does not leak the holdout test set information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly placed inside a scikit-learn Pipeline and evaluated within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses Stratified 5-Fold Cross-Validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation (5 folds), which effectively averages over multiple runs and accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_val_fold, val_pred)",
+   "reasoning": "The agent evaluates and reports only ROC AUC, failing to verify with other metrics (like F1-score or Precision-Recall) to get a comprehensive view of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[candidate_cols].select_dtypes(include=[np.number])",
+   "reasoning": "The agent uses the raw numeric columns directly without creating any derived features, interactions, or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Silently dropping string-formatted numeric features",
+   "description": "The code uses `select_dtypes(include=[np.number])` to filter features. If the dataset contains important numeric features that pandas parsed as strings, they will be silently dropped unless zero numeric columns are found, resulting in potentially significant information loss.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[candidate_cols].select_dtypes(include=[np.number])\nif X.shape[1] == 0:\n    X = pd.to_numeric(train[candidate_cols], errors=\"coerce\")"
+  }
+ ],
+ "summary": "The agent constructs a fundamentally sound solution that prevents data leakage by properly nesting imputation within a pipeline during 5-fold cross-validation. However, it lacks any feature engineering and relies solely on raw features. Furthermore, its method for selecting numeric columns risks silently dropping valid features if they were parsed as objects, and it limits evaluation to a single metric (ROC AUC).",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

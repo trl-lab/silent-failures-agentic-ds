@@ -1,0 +1,133 @@
+{
+ "task": "drug-shortages",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or check data distributions on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by handling missing values, standardizing strings, and parsing dates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(str_series)",
+   "reasoning": "The TF-IDF vectorizer (which normalizes text frequencies) is fitted on the concatenated train and test data, leaking test set text distributions into the training features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (dimensionality reduction/feature extraction) is applied to the full concatenated dataset before splitting, leaking test information into the chosen components.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med_val = df_all[col].median() if not df_all[col].isna().all() else 0\n    feature_df[col] = df_all[col].fillna(med_val)",
+   "reasoning": "The median for numerical columns is calculated on the combined dataset and used for imputation, leaking test statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While the task involves dates, it's not explicitly stated if the problem is treated as a strict time-series forecast where temporal splitting is strictly required to prevent look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses appropriate multi-class classification models (LightGBM, XGBoost, CatBoost) for the task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold cross-validation with an evaluation set, preventing evaluation on the training data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs 5-fold cross-validation, implicitly evaluating the stochastic models over multiple runs rather than just a single point estimate.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y, oof_preds)\nprint(f\"Validation Accuracy: {cv_accuracy:.5f}\")",
+   "reasoning": "The agent evaluates the model solely using accuracy without verifying if the classes (drug availability vs. shortage) are imbalanced, where metrics like F1-score or ROC-AUC would be more informative.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including date parts extraction, text TF-IDF, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_blend = np.mean(fold_val_probs, axis=0)\n    test_blend = np.mean(fold_test_probs, axis=0)",
+   "reasoning": "The agent uses a simple unweighted average to combine predictions from LightGBM, XGBoost, and CatBoost without performing any tuning or search for optimal blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent builds a comprehensive modeling pipeline featuring cross-validation, gradient boosting models, and solid feature engineering. However, it critically concatenates the train and test sets prior to preprocessing, which causes severe data leakage through median imputation, TF-IDF vectorization, and SVD dimensionality reduction on the full dataset. Furthermore, the agent relies solely on accuracy for evaluation and uses a naive unweighted average for ensembling.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

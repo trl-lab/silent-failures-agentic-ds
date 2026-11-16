@@ -1,0 +1,133 @@
+{
+ "task": "museums",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X[c], X_test[c]], axis=0)\n    freq = combined.value_counts()\n    X[f'{c}_freq'] = X[c].map(freq)",
+   "reasoning": "The agent calculates frequency encoding using the combined training and test sets, leaking test set distribution information into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in X.columns:\n    X[c] = pd.to_numeric(X[c], errors='coerce')\n    X_test[c] = pd.to_numeric(X_test[c], errors='coerce')",
+   "reasoning": "The agent makes no explicit effort to handle missing values in the features, instead coercing them to NaNs and relying entirely on the gradient boosting models to handle them natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on features before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not clear if the museums dataset has a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (tr_idx, va_idx) in enumerate(kf.split(X)):\n    X_tr, y_tr = X.iloc[tr_idx], y[tr_idx]\n    \n    model_lgb = LGBMRegressor(...)\n    model_lgb.fit(X_tr, y_tr)\n    lgb_preds += model_lgb.predict(X_test) / 5.0",
+   "reasoning": "The agent splits the data using KFold but never predicts on the validation folds (va_idx) or calculates any validation metric, failing to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains the stochastic models 5 times across cross-validation folds and averages the test predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metric, so it does not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering, including frequency encoding and out-of-fold target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_preds + 0.3 * xgb_preds + 0.3 * cat_preds",
+   "reasoning": "The agent ensembles three models using arbitrary, hardcoded weights without any tuning or validation to justify the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements useful feature engineering (like out-of-fold target encoding) and cross-validation bagging, but critically fails to calculate any validation score, leaving it blind to model performance. Additionally, it leaks test set distribution data through frequency encoding, relies entirely on the models to handle missing values, and blends predictions using arbitrary, untuned weights.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

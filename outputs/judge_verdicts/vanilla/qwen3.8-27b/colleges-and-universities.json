@@ -1,0 +1,146 @@
+{
+ "task": "colleges-and-universities",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X[col].astype(str), X_test[col].astype(str)], axis=0)\n    le.fit(combined)",
+   "reasoning": "The agent fits a LabelEncoder on the combined training and test data, leaking the presence of categories from the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling numeric columns with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is limited to dropping hardcoded non-predictive columns, which does not leak information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\n    X[col] = X[col].fillna(median_val)\n...\nX_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The agent computes the median for imputation on the entire training set (X) before splitting it into training and validation sets, causing data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal order to respect in splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not reuse the test set for model tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n    pred = model.predict(X_val)",
+   "reasoning": "The agent evaluates stochastic models (LGBM, XGBoost, CatBoost) exactly once without multiple runs or cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((y_val - pred) ** 2))",
+   "reasoning": "The agent evaluates the models using only RMSE, without verifying if it is robust against outliers or comparing with MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in all_cols if c not in drop_cols]",
+   "reasoning": "The agent uses the raw columns with basic imputation and encoding, performing no derived feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_pred = np.mean(test_preds, axis=0)",
+   "reasoning": "The agent combines the model predictions using a simple unweighted average without any tuning or weighting.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Not retraining on full data",
+   "description": "The agent evaluates models on a validation split, but then generates test predictions using models trained only on the partial training split rather than retraining on the full available training data to maximize learning.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds.append(model.predict(X_test))"
+  }
+ ],
+ "summary": "The agent implements a basic regression pipeline with missing value imputation, categorical encoding, and an ensemble of gradient boosted trees. However, it suffers from data leakage due to fitting the LabelEncoder on the test set and computing imputation medians before the train/validation split. Additionally, there is no feature engineering, and the agent fails to retrain the final models on the complete training dataset.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

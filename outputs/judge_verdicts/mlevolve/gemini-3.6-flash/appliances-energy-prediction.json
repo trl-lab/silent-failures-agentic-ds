@@ -1,0 +1,152 @@
+{
+ "task": "appliances-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or peeking at test data distributions in the provided code.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent drops known noise columns ('rv1', 'rv2') and applies basic forward/backward fill to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\nX_val_scaled = scaler.transform(X_val)",
+   "reasoning": "The scaler is correctly fit only on the training set and then used to transform the validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting the data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = X_train_full.iloc[:train_size].reset_index(drop=True)",
+   "reasoning": "The agent correctly uses a sequential, time-based split by taking the first 80% of rows for training and the remaining 20% for validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses regression models and MSE loss for this continuous target prediction task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)",
+   "reasoning": "The PyTorch neural network includes LayerNorm, Dropout, and weight decay in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_val = X_train_full.iloc[train_size:].reset_index(drop=True)",
+   "reasoning": "The agent splits off a 20% validation set for model evaluation and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "np.random.seed(42)\ntorch.manual_seed(42)",
+   "reasoning": "The agent sets a single random seed and evaluates the neural network and tree-based models exactly once, without averaging across multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Final Validation Score: {final_val_rmse}\")",
+   "reasoning": "The agent reports and evaluates only on RMSE, omitting other useful regression metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard multivariate time-series regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def compute_psychrometrics(df: pd.DataFrame) -> pd.DataFrame:",
+   "reasoning": "The agent performs extensive and highly effective domain-specific feature engineering, including thermodynamics equations and temporal cyclical features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = opt.minimize(\n        objective, init_weights, method=\"SLSQP\", bounds=bounds, constraints=constraints\n    )",
+   "reasoning": "The agent uses optimization to find the best blending weights for the ensemble, rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Temporal leakage in test set lag features",
+   "description": "When computing lag features (e.g., `shift(1)`) on the test set in isolation, the first few rows result in NaNs. By using backward fill (`bfill()`) to handle these, future test data is leaked into the predictions for earlier time steps. To prevent this, the end of the training sequence should be concatenated with the test sequence prior to calculating lags.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_feat = add_sequence_lags(test_feat)\n... \ndf_all[f\"{col}_lag1\"] = df_all[col].shift(1)\n... \ndf_all = df_all.bfill().ffill()"
+  },
+  {
+   "name": "Overfitting ensemble weights to validation set",
+   "description": "The agent optimizes the ensemble blending weights using the validation set predictions and ground truth, and then reports the final performance score on this exact same validation set. This results in an overly optimistic evaluation score due to data leakage.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = opt.minimize(\n        objective, init_weights, method=\"SLSQP\"\n    )\n... \nfinal_val_rmse = np.sqrt(mean_squared_error(y_val, val_blend))"
+  }
+ ],
+ "summary": "The agent submitted a highly sophisticated solution featuring excellent domain-specific feature engineering (psychrometrics), deep learning, and gradient boosting models. However, it suffers from temporal leakage in the test set because lag features are computed on the test set in isolation and missing initial values are backward-filled. Additionally, the final validation score reported is overly optimistic because the ensemble blending weights were tuned on the exact same validation set.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

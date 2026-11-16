@@ -1,0 +1,101 @@
+{
+ "task": "food-event",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_matrix = tfidf.fit_transform(df_all[\"combined_text\"])",
+   "reasoning": "The agent fits transformers like TF-IDF and calculates frequency encodings on the combined train and test dataset before splitting, leaking test statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=50, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_matrix)",
+   "reasoning": "TruncatedSVD (a form of PCA) is applied to the full concatenated dataset before splitting, leaking information about the test distribution into the training data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date features implying a temporal component, but the agent uses a randomized StratifiedKFold, ignoring temporal order and risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y, final_oof_labels)",
+   "reasoning": "The agent evaluates the model solely using accuracy, without verifying if the classes are balanced or if another metric like F1-score would be more robust.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_preds_blend = 0.5 * oof_preds_cb + 0.5 * oof_preds_xgb",
+   "reasoning": "The agent combines the final predictions of CatBoost and XGBoost using a naive equal-weight average without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a solid multi-class classification pipeline with proper stacking and cross-validation. However, it suffers from severe data leakage by fitting TF-IDF, TruncatedSVD, and frequency encodings on the combined train and test sets. Additionally, the final ensemble relies on a naive equal-weight average, and model evaluation is limited to a single accuracy metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

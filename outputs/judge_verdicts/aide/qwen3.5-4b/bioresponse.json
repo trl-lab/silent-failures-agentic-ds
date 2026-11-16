@@ -1,0 +1,141 @@
+{
+ "task": "bioresponse",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking occurs during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(\"Activity\", axis=1)",
+   "reasoning": "The agent makes no explicit effort to clean the data or handle potential missing values, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\",\n    \"metric\": \"l2\",",
+   "reasoning": "The agent configures LightGBM with a regression objective for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The evaluation uses a 5-fold cross-validation strategy, which averages multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(log_loss(y_val, pred_val))",
+   "reasoning": "The agent only computes log_loss for evaluation without verifying performance with other classification metrics like Accuracy or AUC, and optimizes for l2 during training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is not fundamentally reframed incorrectly, though the wrong model objective is used (captured by FM10).",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(\"Activity\", axis=1)",
+   "reasoning": "The agent uses the raw features without any attempt at feature engineering or derived transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Metric computation crash due to unbounded predictions",
+   "description": "Using a regression objective for a classification task produces unbounded continuous predictions. This will cause sklearn's log_loss function to raise a ValueError because it expects probabilities strictly between 0 and 1.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cv_scores.append(log_loss(y_val, pred_val))"
+  },
+  {
+   "name": "Early stopping crash on final train",
+   "description": "The early stopping callback is passed during the final model training on the full dataset, but no validation set is provided. This causes LightGBM to raise a ValueError and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.train(params, train_data, num_boost_round=1000, callbacks=callbacks)"
+  }
+ ],
+ "summary": "The agent sets up a K-Fold cross-validation pipeline with LightGBM, but critically misconfigures the model by using a regression objective for a binary classification task. This fundamental mismatch (FM10) will also cause the evaluation metric to crash when computing log_loss on unbounded continuous predictions. Furthermore, the final model training will fail because an early stopping callback is used without providing a validation set, and the agent fails to perform any data cleaning or feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

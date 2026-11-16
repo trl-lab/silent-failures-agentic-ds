@@ -1,0 +1,134 @@
+{
+ "task": "transmission-lines",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in cat_cols:\n    freq = combined[col].value_counts()\n    combined[f\"{col}_freq\"] = combined[col].map(freq).astype(float)",
+   "reasoning": "The agent computes frequency encoding and fits LabelEncoders on the combined train and test sets, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "There is no missing value handling for numerical columns before passing them to LightGBM.",
+   "reasoning": "While the agent fills missing values for categorical features, it relies entirely on LightGBM's default handling for numerical missing values without an explicit EDA or cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed that would leak statistics (only constant fillna for categorical columns).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no indication that the data has a temporal order requiring a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass LightGBM classifier for the multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses a 5-fold StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 folds in cross-validation, which inherently accounts for variance across different data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_accuracy = accuracy_score(y, oof_classes)\nprint(f\"5-Fold CV Out-Of-Fold Accuracy: {oof_accuracy:.5f}\")",
+   "reasoning": "The agent only reports accuracy and does not check other metrics like F1-score or balanced accuracy, which might be important if the classes are imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates derived features, specifically frequency encoding for categorical columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test, num_iteration=model.best_iteration) / n_splits",
+   "reasoning": "The agent uses a naive, unweighted average to combine the predictions from the 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a solid 5-fold LightGBM baseline but critically leaks test data information into the training set by applying frequency encoding and LabelEncoders on the concatenated train and test data. Additionally, it ignores potential numerical missing values by relying entirely on the model's default handling and only evaluates the model using accuracy.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

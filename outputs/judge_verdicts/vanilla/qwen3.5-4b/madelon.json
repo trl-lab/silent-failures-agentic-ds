@@ -1,0 +1,148 @@
+{
+ "task": "madelon",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to handle missing values via median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the combined dataset before splitting, though it is done incorrectly afterwards.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostClassifier is appropriate for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_final, y_train)\n\n# Make predictions\npreds = model.predict(X_test_final)",
+   "reasoning": "The model is trained on the full training set and predicts on the test set without any internal validation split to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(iterations=1000, verbose=False, task_name='SVM', loss_function='LogLoss')\nmodel.fit(X_train_final, y_train)",
+   "reasoning": "The agent trains the model exactly once to produce predictions, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task is framed correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != 'Class']\n...",
+   "reasoning": "The agent uses the raw columns as-is and performs no feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Accessing target in test set",
+   "description": "The script assumes the hidden test set contains the target column and attempts to extract it, causing a KeyError and complete execution failure.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = test_df['Class'].values"
+  },
+  {
+   "name": "Test statistics leakage in imputation",
+   "description": "The agent computes imputation statistics (such as the median) separately for the train and test sets, leaking test set distributions into the test predictions instead of properly applying the training set statistics.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for df in [X_train, X_test]:\n...\n    for col in numeric_cols:\n        df[col] = df[col].fillna(df[col].median())"
+  },
+  {
+   "name": "Hardcoded variable logic error",
+   "description": "Inside a loop iterating over dataframes, the agent hardcodes variable names (`X_test` and `X_train`), leading to cross-contamination where test set values are incorrectly assigned to the training set, causing data corruption and likely alignment errors.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "converted = pd.to_numeric(X_test[col], errors='coerce')\n...\nX_train[col] = converted.replace({np.nan: 0}, 0)"
+  }
+ ],
+ "summary": "The solution fails immediately due to attempting to read the target column from the test set, causing a KeyError. Additionally, the data preprocessing logic contains severe bugs, including computing test-set statistics for imputation (data leakage) and hardcoding dataframe names inside a loop, which corrupts the training data.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

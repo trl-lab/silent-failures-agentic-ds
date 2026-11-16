@@ -1,0 +1,138 @@
+{
+ "task": "global-power-plant",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cats = pd.unique(pd.concat([train[c], test[c]]))",
+   "reasoning": "The agent concatenates the train and test sets to define the unique categories for categorical features, which technically leaks test set information into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles data cleaning by dropping invalid columns, converting types, and safely handling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied, as LightGBM is used.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant or high-cardinality columns) is performed using statistics from the training set only.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting; LightGBM handles missing values natively.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a LightGBM regressor, which is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly implements 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which naturally averages performance across multiple models and data subsets.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = float(np.sqrt(np.mean((y_raw.to_numpy(dtype=float) - val_preds) ** 2)))",
+   "reasoning": "The agent only computes and reports RMSE, without using supplementary metrics (like MAE or R^2) to verify performance robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train[c] = pd.to_datetime(train[c]).dt.year",
+   "reasoning": "The agent only performs basic type conversions and year extraction, ignoring obvious domain-specific features like geographical coordinates, fuel types, or capacity factors.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No hyperparameter tuning",
+   "description": "The agent uses hardcoded hyperparameters for the model without conducting any search or tuning on the validation set, which likely leads to suboptimal performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "params = { \"objective\": \"reg_l2\", \"metric\": \"rmse\", \"boosting_type\": \"gbdt\", \"learning_rate\": 0.05, ... }"
+  }
+ ],
+ "summary": "The agent implements a generally solid LightGBM pipeline with proper K-Fold cross-validation, log-transformation of the target, and out-of-fold prediction averaging. However, it fails to perform any meaningful feature engineering on domain-rich columns (like geography or fuel type), relies entirely on hardcoded hyperparameters without tuning, and has a minor data leakage issue by defining categorical levels using the combined train and test sets.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

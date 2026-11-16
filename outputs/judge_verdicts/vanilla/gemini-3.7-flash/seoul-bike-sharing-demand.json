@@ -1,0 +1,145 @@
+{
+ "task": "seoul-bike-sharing-demand",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA peeking is observed; while a label encoder is fit on combined data, this occurs after the train/test split is already established by the separate files, which is a common practice for categorical encoding.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values by filling them with the median of the training set.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied after splitting, calculating the median on the training data and applying it to both sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series (evidenced by the 'Date' column), but the agent uses a randomized cross-validation split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_clf = lgb.LGBMClassifier(",
+   "reasoning": "The task is a regression problem (predicting a continuous bike count), but the agent incorrectly uses a classification model.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code sets up a 5-fold cross-validation split, meaning a validation set is used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The provided code is truncated before the model is evaluated, making it impossible to determine how the stochastic model is scored.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code is truncated before any evaluation metrics are calculated or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = pd.Series(le_target.fit_transform(y_raw))",
+   "reasoning": "The agent incorrectly frames the continuous regression task as a classification task by transforming the numeric target ('Rented Bike Count') into distinct categorical labels using a LabelEncoder.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts multiple date components (Month, Day, DayOfWeek, Year) from the Date column, demonstrating some feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incomplete code / Truncated execution",
+   "description": "The script is cut off abruptly inside the cross-validation loop and does not finish training or making predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "random_state=42 + fold,\n        verbose=-1\n    )"
+  },
+  {
+   "name": "StratifiedKFold on continuous target",
+   "description": "Using StratifiedKFold on a continuous target (even if label encoded) with many unique values will likely cause a runtime error because many classes will have fewer instances than the number of splits.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)"
+  }
+ ],
+ "summary": "The agent fundamentally misunderstands the task, treating a continuous regression problem as a classification task by label-encoding the target variable and using an LGBMClassifier. Furthermore, it ignores the temporal nature of the dataset by using a randomized StratifiedKFold for validation. The code is also truncated and would likely fail to execute due to the use of StratifiedKFold on a target with many single-member 'classes'.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

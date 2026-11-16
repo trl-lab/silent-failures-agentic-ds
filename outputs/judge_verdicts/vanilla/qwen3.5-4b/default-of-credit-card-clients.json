@@ -1,0 +1,152 @@
+{
+ "task": "default-of-credit-card-clients",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = df_train[features]\ny_train = df_train[target_name]",
+   "reasoning": "The agent makes no effort to handle missing values, duplicates, or outliers, passing raw features directly from the dataframe to the model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is not a time-series task, so temporal ordering does not apply.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, early_stopping_rounds=50)",
+   "reasoning": "The agent trains on the entire training set and does not create an internal validation split or perform cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any score at all, so this specific failure mode regarding single evaluation reporting does not strictly apply.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report or optimise using any explicit evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = [col for col in columns_to_use if col != target_name]",
+   "reasoning": "The agent simply uses the raw columns as features without deriving any new features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target extraction from test set",
+   "description": "The agent attempts to extract the target column from the test dataset. In prediction settings, the test set does not contain the target labels, which causes a KeyError and crashes the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = df_test[target_name] # Not needed for prediction file but useful for verification if requested"
+  },
+  {
+   "name": "Invalid early stopping configuration",
+   "description": "The agent enables early stopping in the model fitting step but fails to provide a validation set (eval_set). LightGBM requires an evaluation set to monitor for early stopping, so this will cause an error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, early_stopping_rounds=50)"
+  },
+  {
+   "name": "Hard predictions for probability metric",
+   "description": "The task specifies ROC AUC as the evaluation metric, which requires continuous predicted probabilities to rank instances. The agent applies a hard threshold to output binary class labels, which will severely degrade the ROC AUC score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pred_class = (pred_proba >= threshold).astype(int)"
+  }
+ ],
+ "summary": "The agent attempts a straightforward LightGBM pipeline but introduces several critical execution bugs and logic errors. It crashes when trying to extract the target from the test set, configures early stopping without a validation set, and inappropriately outputs hard binary predictions for an ROC AUC metric. Furthermore, it neglects essential data science practices like validation splitting, data cleaning, and feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 1,
+ "stage_count_max": 8,
+ "no_code": false
+}

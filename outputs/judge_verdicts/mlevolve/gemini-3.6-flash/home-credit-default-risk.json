@@ -1,0 +1,148 @@
+{
+ "task": "home-credit-default-risk",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on test data or fit any transformers on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[\"DAYS_EMPLOYED\"] = df[\"DAYS_EMPLOYED\"].replace(365243, np.nan)",
+   "reasoning": "The agent actively cleans the data, such as handling the known anomaly in the DAYS_EMPLOYED column.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any global scaling or normalisation that leaks test statistics into the training distribution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "e1_m = df[\"EXT_SOURCE_1\"].iloc[:n_train].mean()",
+   "reasoning": "Missing value imputation relies on statistics calculated strictly from the training subset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task does not require a time-based split for the main table.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_clf = lgb.LGBMClassifier(objective=\"binary\", ...)",
+   "reasoning": "The agent correctly uses binary classifiers for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold in range(n_folds):",
+   "reasoning": "The models are evaluated using 5-fold cross-validation, which inherently averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_va, blend_fold)",
+   "reasoning": "The agent uses ROC AUC, which is the official task metric and highly appropriate for imbalanced default risk data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"CREDIT_INCOME_PERCENT\"] = df[\"AMT_CREDIT\"] / (df[\"AMT_INCOME_TOTAL\"] + 1e-5)",
+   "reasoning": "The agent performs extensive and highly relevant domain-specific feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "blend_fold = 0.45 * rank_val_lgb + 0.35 * rank_val_cb + 0.20 * rank_val_xgb",
+   "reasoning": "The agent uses a tuned, weighted rank average rather than a naive unweighted combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission ID column",
+   "description": "The agent hardcodes the submission identifier column as a sequence of integers from 0 to N instead of using the actual test ID column from the dataset (SK_ID_CURR), which will cause the submission evaluation to fail completely.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame({\"id\": np.arange(len(X_te_df)), \"TARGET\": final_test_preds})"
+  },
+  {
+   "name": "Improper categorical feature handling",
+   "description": "The agent encodes nominal categorical variables as integer codes but fails to specify them as categorical features to the gradient boosting models (e.g., via `cat_features` for CatBoost or `categorical_feature` for LightGBM). This causes the models to incorrectly treat nominal categories as continuous numerical variables.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr_df[col] = combined.iloc[:n_train].cat.codes\n...\ncb_clf = cb.CatBoostClassifier(loss_function=\"Logloss\", ...)"
+  }
+ ],
+ "summary": "The data science solution is generally well-structured, employing proper out-of-fold target encoding, robust feature engineering, and cross-validation. However, it contains a critical bug in the submission file generation where arbitrary integers are used instead of the actual test IDs, which will break the evaluation. Additionally, categorical features are converted to integer codes but not properly declared as categorical to the boosting models.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

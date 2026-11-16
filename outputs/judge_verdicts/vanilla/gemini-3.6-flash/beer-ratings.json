@@ -1,0 +1,144 @@
+{
+ "task": "beer-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or fitted for transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Categorical missing values are explicitly filled with 'missing', so the agent does not rely entirely on the model to handle missing data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is used in the pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before or after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit; categorical missing values are filled with a constant string.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for the continuous review_overall target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented to train models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are trained across 5 cross-validation folds, not a single run, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No metrics are explicitly reported, so the agent does not report using only an unverified metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature engineering is actively performed (e.g., frequency encoding and sub-score aggregations).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = lgb_preds * 0.5 + cat_preds * 0.5",
+   "reasoning": "The agent combines LightGBM and CatBoost predictions using a hardcoded, unweighted average without any tuning to find an optimal blend ratio.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric reported",
+   "description": "The script performs cross-validation but completely fails to calculate or report any performance metric (like RMSE) on the validation folds, leaving the user with no estimate of the model's offline generalisation performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X, y):\n    ...\n    lgb_preds += lgb_model.predict(X_test) / kf.n_splits"
+  },
+  {
+   "name": "Feature leakage before splitting (Frequency Encoding)",
+   "description": "The frequency of categorical variables is calculated on the entire training set prior to cross-validation, leaking feature distribution statistics from the validation folds into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "freq = X[col].value_counts().to_dict()\nX[f'{col}_freq'] = X[col].map(freq).fillna(0)"
+  }
+ ],
+ "summary": "The agent implements a reasonable baseline using 5-fold CV with LightGBM and CatBoost, but fails to optimally ensemble them, instead hardcoding a 50/50 blend. Furthermore, the agent never calculates or reports a validation metric during cross-validation, obscuring the model's performance entirely, and introduces minor data leakage by computing frequency encodings across the whole dataset before splitting.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

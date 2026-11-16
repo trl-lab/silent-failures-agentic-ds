@@ -1,0 +1,149 @@
+{
+ "task": "seoul-bike-sharing-demand",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used for exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes explicit efforts to clean data and handle missing values, even if the method is flawed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0), which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent sorts by date and uses a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM regressor) is correctly used for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split and evaluates on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 3 different random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE, which is the official and appropriate metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a time-series regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including time encodings and lag features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Averaging predictions over multiple random seeds of the same model is a standard and appropriate ensembling technique; blend tuning is unnecessary here.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage / Train-Test Feature Mismatch",
+   "description": "The agent computes lag features using true target values for the validation set (since lags are computed on the full training set before splitting). However, for the test set, it falls back to global means or zeros because true targets are unavailable. This causes a massive feature distribution mismatch where the model relies on strong lag features during validation that are missing during inference, leading to overly optimistic validation scores and poor test performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "In `add_test_lag_features`, it defaults to global means: `df.loc[df[\"Date\"] == date, f\"daily_mean_lag{lag}\"] = daily_train[\"daily_mean\"].mean()`. But for validation, `train_full = add_lag_features(train_full, \"Rented Bike Count\")` uses true target values for all dates."
+  },
+  {
+   "name": "Destructive Data Cleaning",
+   "description": "The agent attempts to clean string categorical columns by coercing them to numeric types and filling missing values with 0. For columns that contain string values (e.g. 'Yes'/'No' or 'Holiday'/'No Holiday'), this blindly converts all valid string values to NaNs and then to 0, completely destroying the features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train[\"Holiday\"] = pd.to_numeric(train[\"Holiday\"], errors=\"coerce\").fillna(0).astype(int)"
+  }
+ ],
+ "summary": "The agent sets up a robust time-based split and implements extensive feature engineering. However, it introduces critical target leakage into the validation set by computing lag features on the full training set prior to splitting, creating a severe train-test feature mismatch. Additionally, its data cleaning approach destructively coerces string categorical features to 0, completely losing their information.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

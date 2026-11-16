@@ -1,0 +1,115 @@
+{
+ "task": "beijing-pm25",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = train.dropna(subset=['pm2.5']).reset_index(drop=True)",
+   "reasoning": "While the agent drops missing values from the target, it relies entirely on the tree models (LightGBM/XGBoost/CatBoost) to natively handle missing feature values without any explicit imputation or cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series, but the agent uses a randomized K-fold split instead of a time-based split, causing severe look-ahead bias during validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_test_preds + 0.3 * xgb_test_preds + 0.3 * cb_test_preds",
+   "reasoning": "The agent applies a hardcoded weighted average to combine the model predictions without any tuning, stacking, or blend-ratio optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Look-ahead bias in feature engineering",
+   "description": "The agent creates features using future data (e.g., negative shifts), which would not be available at prediction time in a real-world forecasting scenario.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[f'{col}_lead1'] = combined[col].shift(-1)"
+  },
+  {
+   "name": "Data Leakage in Frequency Encoding",
+   "description": "The agent calculates frequency encoding on the combined train and test sets, leaking the test set's category distribution information into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = cbwd_str.value_counts(normalize=True).to_dict()\n        combined['cbwd_freq'] = cbwd_str.map(freq)"
+  },
+  {
+   "name": "Syntax error / Incomplete code",
+   "description": "The generated code is cut off at the end, resulting in a SyntaxError that prevents the script from executing.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub ="
+  }
+ ],
+ "summary": "The agent's solution fundamentally mismanages the time-series nature of the problem, introducing severe look-ahead bias through both randomized cross-validation (FM05) and future-shifted features. Additionally, the code is incomplete, leading to a SyntaxError, and utilizes a naive, untuned ensemble method alongside leaking test distributions via frequency encoding.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

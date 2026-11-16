@@ -1,0 +1,155 @@
+{
+ "task": "financial-intermediary-funds-commitments",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not print or inspect test data distributions interactively during the script.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by dropping ID columns, extracting date features, and imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any continuous scaling or normalization techniques like StandardScaler.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = combined[col].median()\n    combined[col] = combined[col].fillna(median_val if not np.isnan(median_val) else 0)",
+   "reasoning": "The agent calculates the median on the concatenated train and test sets to fill missing values, leaking test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "Financial commitments have temporal components (which the agent explicitly tries to extract as date features), but the agent uses a randomized K-Fold split, ignoring temporal ordering and potentially causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor, XGBRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses K-Fold cross-validation to create internal validation splits, even though it fails to compute a final validation metric.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated multiple times across the 5 folds of the cross-validation scheme.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute or report any specific evaluation metric, so it does not rely on just one inappropriately.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features, including date components and frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (lgb_preds + cat_preds + xgb_preds) / 3.0",
+   "reasoning": "The agent combines predictions from three different models using a simple unweighted average without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via encoding before splitting",
+   "description": "Categorical encodings (such as frequency encoding or ordinal encoding) are fitted on the combined train and test datasets before splitting. This leaks the distribution and presence of test set categories into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(dropna=False)\n    freq_col = col + '_freq'\n    combined[freq_col] = combined[col].map(freq)"
+  },
+  {
+   "name": "Incorrect submission IDs",
+   "description": "The agent drops the original ID column from the test set and generates a new sequential ID column for the submission file using `np.arange()`. If the original test IDs are not a simple sequence starting from 0, the submission will have mismatched IDs and fail evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub = pd.DataFrame({\n    'id': np.arange(n_test),\n    'Amount in USD': final_preds\n})"
+  },
+  {
+   "name": "No validation metric computed",
+   "description": "The agent uses cross-validation and evaluates on a validation set for early stopping, but it never computes or prints an overall validation metric (like RMSE) to estimate the model's generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "xgb_preds += model_xgb.predict(X_test) / n_splits"
+  }
+ ],
+ "summary": "The agent builds an ensemble of Gradient Boosting models but introduces severe data leakage by performing imputation and categorical frequency encoding on the combined train and test datasets before splitting. Additionally, it uses a naive unweighted average for ensembling, ignores temporal ordering during cross-validation, fails to compute a validation metric, and creates a submission file with fabricated sequential IDs that will likely fail evaluation.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

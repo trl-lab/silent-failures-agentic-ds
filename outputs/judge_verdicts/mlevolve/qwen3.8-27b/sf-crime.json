@@ -1,0 +1,105 @@
+{
+ "task": "sf-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(**model_params)\nmodel.fit(\n    X_train,\n    train_labels,\n    eval_set=[(X_val, val_labels)],",
+   "reasoning": "The agent trains a stochastic LightGBM model with subsampling exactly once, without using multiple random seeds or cross-validation to estimate performance variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = log_loss(val_labels, val_probs_clipped, labels=list(range(n_categories)))\nprint(f\"Validation log_loss: {val_score:.6f}\")",
+   "reasoning": "The agent evaluates the model using only the official log_loss metric and does not report any other auxiliary metrics (like accuracy or macro-F1) to provide a fuller picture of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage",
+   "description": "The agent uses features during training that contain direct information about the target variable and would not be available at prediction time, leading to artificially perfect performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "categorical_features = [\n    \"PdDistrict\",\n    \"Descript\",\n    \"Resolution\",\n    \"DayOfWeek\",\n    \"street_name\",\n]"
+  },
+  {
+   "name": "Invalid submission format for probabilistic metric",
+   "description": "For a multi-class log_loss evaluation, the submission file must provide predicted probabilities for each class. The agent instead outputs a single column of hard class labels.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predicted_indices = test_probs_clipped.argmax(axis=1)\nsubmission[\"Category\"] = [categories[i] for i in predicted_indices]"
+  }
+ ],
+ "summary": "The agent implements a strong end-to-end pipeline with an appropriate time-based split, extensive feature engineering, and robust LightGBM training. However, it critically includes 'Descript' and 'Resolution' as features, which perfectly leak the target Category and result in extreme target leakage (causing an abnormally low validation loss of ~0.049). Furthermore, the code writes hard class labels to the submission file instead of the class probabilities required by the task's log_loss metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

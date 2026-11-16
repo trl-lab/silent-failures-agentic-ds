@@ -1,0 +1,146 @@
+{
+ "task": "hospitals",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for EDA or fitting any transformations.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are properly handled through median and mode imputation in the FeatureEngineer class.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection using distribution statistics is applied to the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly fit only on the training split inside the FeatureEngineer class.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Date columns (SOURCEDATE, VAL_DATE) are present but dropped; there isn't enough information to confirm if this requires temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (LightGBM and XGBoost regressors) are appropriately used for the continuous BEDS target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly performed with train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is kept entirely held out and is only used for generating the final submission file.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(\n    X_train,\n    y_train_log,...",
+   "reasoning": "The stochastic models (LightGBM and XGBoost) are trained and evaluated exactly once using fixed seeds, rather than being averaged over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = root_mean_squared_error(y_val, val_pred)",
+   "reasoning": "The agent only computes and reports RMSE, without supplementing it with other metrics like MAE or R-squared to provide a fuller evaluation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs substantial feature engineering including target encoding, frequency encoding, and grouped aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_pred = 0.5 * val_pred_lgb + 0.5 * val_pred_xgb",
+   "reasoning": "The agent combines the models using a naive equal-weighted average without tuning the blend weights or using a meta-model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-sample Target Encoding Leakage",
+   "description": "Target encodings are computed on the training dataset and mapped directly onto the same training data without using out-of-fold (OOF) cross-validation. This introduces severe target leakage, as a row's own target value contributes to its encoded feature, causing tree-based models to heavily overfit.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "agg = y_fit.groupby(X[col]).agg([\"mean\", \"count\"])\n...\nself.target_encs[col] = smoothed\nX[col + \"_target_enc\"] = X[col].map(smoothed).fillna(self.global_mean)"
+  }
+ ],
+ "summary": "The agent implements a generally sound modeling pipeline with appropriate data splitting, model selection, and early stopping. However, there is a critical failure mode: the target encoding is performed in-sample without out-of-fold calculation, resulting in severe target leakage. Additionally, the agent uses a naive unweighted ensemble and only evaluates the models once with a single metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "total-contributions-ibrd-ida-ifc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_cols = [c for c in features if c not in cat_cols]",
+   "reasoning": "The agent makes no effort to clean or impute numerical columns, relying entirely on the models' native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype(str).fillna('missing')",
+   "reasoning": "Filling missing values with a constant string does not leak test statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit time component mentioned in the task description or utilized in the code.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cb_model = CatBoostRegressor(\n        iterations=1000,",
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actually reports no metrics at all, rather than using only one inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = 'Total Contribution (USD)'",
+   "reasoning": "The task is formulated correctly as a regression problem on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = [c for c in train_df.columns if c != target_col]",
+   "reasoning": "The agent uses the raw columns with basic missing value filling and categorical encoding, and creates no derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * test_preds_cb + 0.5 * test_preds_lgb",
+   "reasoning": "The agent combines the CatBoost and LightGBM predictions using a naive equal-weight average without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric calculated",
+   "description": "The agent implements cross-validation but fails to calculate or report any out-of-fold performance metrics (such as RMSE), making it impossible to evaluate model quality or generalisation before test prediction.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(X_train_lgb, y_train_lgb)\n    test_preds_lgb += lgb_model.predict(X_test_lgb) / kf.n_splits"
+  },
+  {
+   "name": "Inconsistent early stopping / Risk of overfitting",
+   "description": "The agent uses early stopping with an evaluation set for one model (CatBoost) but trains another model (LightGBM) for a fixed, large number of iterations (1000) without an evaluation set, risking severe overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model = LGBMRegressor(\n        n_estimators=1000,\n...\n    lgb_model.fit(X_train_lgb, y_train_lgb)"
+  }
+ ],
+ "summary": "The agent provides a structurally sound script with 5-fold cross-validation and a basic ensemble of CatBoost and LightGBM. However, it fails to implement feature engineering, relies on naive unweighted ensembling, and completely neglects to calculate or log any validation metrics. Additionally, while CatBoost uses early stopping, LightGBM is trained for 1000 iterations blindly, which could lead to overfitting.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

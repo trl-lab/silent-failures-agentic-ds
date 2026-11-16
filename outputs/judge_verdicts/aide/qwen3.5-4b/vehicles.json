@@ -1,0 +1,141 @@
+{
+ "task": "vehicles",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only prints the shapes and columns of the datasets without peeking at test statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_split = X_train_split.dropna(axis=1)",
+   "reasoning": "The agent makes an explicit attempt to clean data by dropping columns with missing values, so this failure mode is technically absent (despite the method being flawed).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regression is appropriate for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(...)",
+   "reasoning": "A train/validation split is created and used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "rmse_val = np.sqrt(mean_squared_error(y_val_split, y_val_pred))",
+   "reasoning": "The agent evaluates the stochastic LightGBM model only once on a single validation split without cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_val = np.sqrt(mean_squared_error(y_val_split, y_val_pred))",
+   "reasoning": "The agent reports only RMSE and does not verify model performance with any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The standard regression framing is appropriate for this task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses raw features directly without performing any feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Independent Column Dropping",
+   "description": "Dropping columns with missing values independently in train, validation, and test sets causes feature mismatch if missingness patterns differ between the splits. This will likely result in an execution error during prediction.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_split = X_train_split.dropna(axis=1)\nX_val_split = X_val_split.dropna(axis=1)\nX_test = X_test.dropna(axis=1)"
+  },
+  {
+   "name": "Identifier used as feature",
+   "description": "The agent includes the 'id' column as a feature in the model, which does not hold predictive power and can cause the model to overfit to row identifiers.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]"
+  }
+ ],
+ "summary": "The agent successfully establishes a train/validation split and fits a LightGBM model for the regression task. However, it independently drops columns with missing values across train, validation, and test splits, which will almost certainly cause feature mismatches and execution errors. Furthermore, the agent applies no feature engineering, inadvertently includes the row identifier as a feature, and only evaluates a stochastic model once.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "food-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at test statistics prior to modelling.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing data using fillna for text, categorical, and dates, and coerce for numeric columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scalers (like StandardScaler or MinMaxScaler) are applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(text_data)\n\n    n_comp = min(30, max(5, tfidf_mat.shape[1] // 10))\n    svd = TruncatedSVD(n_components=n_comp, random_state=42)\n    svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent applies TF-IDF and TruncatedSVD (PCA equivalent) to the combined train and test dataset before splitting, leaking test vocabulary, document frequencies, and latent components into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants (e.g. -1 or 'missing'), which does not leak dataset statistics compared to fitting an imputer.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "date_cols.append(col)\n...\nskf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date features, suggesting a temporal nature to the events, but the agent uses random StratifiedKFold instead of time-based splitting, potentially causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classification models (LogisticRegression, LightGBM) for the m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold Stratified K-Fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, which inherently averages results over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y, oof_pred_labels)\nprint(f\"5-Fold CV Accuracy: {cv_accuracy:.5f}\")",
+   "reasoning": "The agent evaluates and reports only accuracy, without checking precision, recall, or whether class imbalance makes accuracy a misleading metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation correctly addresses the multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including date part extraction, frequency encoding, TF-IDF, and SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated out-of-fold stacking methodology (Logistic Regression meta-features passed to LightGBM), rather than naive ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via frequency encoding before splitting",
+   "description": "Categorical frequency encoding is applied to the combined train and test dataset before splitting. This leaks the test set's categorical distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = s.value_counts(normalize=True)\n    cat_feat_df[f\"{col}_freq\"] = s.map(freq).astype(float)"
+  }
+ ],
+ "summary": "The agent constructs an otherwise strong pipeline with sophisticated stacking, TF-IDF, and LightGBM. However, its primary flaw is significant data leakage from fitting feature extractors (TF-IDF, TruncatedSVD) and frequency encodings on the combined train and test dataset prior to cross-validation. Furthermore, it neglects the temporal nature of the data by using random cross-validation, risking look-ahead bias.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

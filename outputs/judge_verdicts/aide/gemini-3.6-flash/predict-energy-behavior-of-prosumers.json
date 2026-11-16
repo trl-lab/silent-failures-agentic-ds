@@ -1,0 +1,145 @@
+{
+ "task": "predict-energy-behavior-of-prosumers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not examine test data statistics or distributions during exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in weather features by filling them with national aggregates, showing an explicit strategy beyond relying entirely on the model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputer is fitted on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses XGBRegressor for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 cross-validation folds, which inherently accounts for variance in the data.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "overall_mae = mean_absolute_error(y_train, oof_preds)",
+   "reasoning": "The agent only calculates and reports the MAE metric, without verifying if other metrics would provide additional evaluation robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the regression problem and properly models consumption and production separately.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple lag, rolling mean, datetime, and domain interaction features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds[te_mask_c] += model.predict(X_test[te_mask_c]) / 5",
+   "reasoning": "The agent ensembles the predictions from the 5 CV folds using a simple, unweighted average without attempting any tuned weighting.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid lag features for multi-step forecasting",
+   "description": "The agent computes time-series lag features by shifting a target column that is initialized to NaN in the test set. For multi-step forecasting, this causes all lags beyond the initial horizon to be NaN, severely degrading model performance since it does not iteratively predict and fill the target.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test[\"target\"] = np.nan\n...\ndf[\"target_lag_48\"] = df.groupby([\"prediction_unit_id\", \"is_consumption\"])[\"target\"].shift(48)"
+  },
+  {
+   "name": "Look-ahead bias in time-series CV",
+   "description": "The agent uses standard K-fold cross-validation on time blocks without respecting chronological order, meaning the model is trained on future data to predict past data. This introduces look-ahead bias and leads to overly optimistic validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "block_folds = np.array_split(unique_blocks, 5)\n...\ntr_idx = tr_mask_c & (~train_df[\"data_block_id\"].isin(val_blocks))"
+  }
+ ],
+ "summary": "The agent builds a structurally complete pipeline with extensive feature engineering and a decoupled model approach for consumption types. However, it introduces two critical time-series flaws: it computes target lags on the test set without an iterative forecasting loop (causing most test lags to be NaN), and it uses a non-chronological cross-validation scheme that suffers from look-ahead bias.",
+ "agent": "aide",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

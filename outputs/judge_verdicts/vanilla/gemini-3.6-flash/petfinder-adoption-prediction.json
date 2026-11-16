@@ -1,0 +1,144 @@
+{
+ "task": "petfinder-adoption-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values in strings and aggregations are explicitly handled via fillna.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scalers are used before or after splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "desc_tfidf = tfidf.fit_transform(df['Description'])\nsvd = TruncatedSVD(n_components=16, random_state=42)\ndesc_svd = svd.fit_transform(desc_tfidf)",
+   "reasoning": "TF-IDF and TruncatedSVD are fit on the full concatenated dataset before splitting, leaking test set text distribution into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer object is fit on the full dataset (only constant fillna is used, which does not leak statistics).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Using regression with threshold optimization is an optimal and standard formulation for this ordinal target evaluated on Quadratic Weighted Kappa.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Cross-validation inherently averages results across 5 folds, mitigating random variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Quadratic Weighted Kappa is the official evaluation metric for the task, making it appropriate to use exclusively.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as ordinal regression to optimize the QWK metric without discarding signal.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Several derived features are created, including length features, aggregations, frequency encodings, and SVD embeddings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses specific manual weights (0.4, 0.3, 0.3) rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "test_leakage_in_feature_engineering",
+   "description": "Frequency encodings and group-by aggregations are computed on the concatenated train and test datasets. This leaks the distribution of test data into the training features, leading to overly optimistic cross-validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df[col].value_counts().to_dict()\n    df[f'{col}_freq'] = df[col].map(freq)\n\nbreed_aggs = df.groupby('Breed1')[['Age', 'Fee', 'PhotoAmt']].agg(['mean', 'std'])"
+  },
+  {
+   "name": "unencoded_categorical_features",
+   "description": "Nominal categorical features (such as Breed, State, and Color) are stored as integers in the raw dataset. The agent's logic to identify categorical features looks for 'object' dtypes, failing to identify them. Consequently, tree-based models treat these unordered categories as continuous numerical features, leading to nonsensical magnitude-based splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_features = [col for col in X_train.columns if X_train[col].dtype.name in ['category', 'object']]"
+  }
+ ],
+ "summary": "The solution employs a very strong formulation (regression + Nelder-Mead threshold optimization) suitable for QWK evaluation, but it suffers from data leakage. Unsupervised features (TF-IDF, SVD), frequency encodings, and group aggregations are all computed on the combined train and test sets, leaking test distribution into training. Additionally, the agent fails to identify integer-encoded categorical features in the raw data, causing tree models to incorrectly treat nominal variables like Breed and State as continuous numbers.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

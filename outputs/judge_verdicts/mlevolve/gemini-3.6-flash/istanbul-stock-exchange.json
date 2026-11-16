@@ -1,0 +1,156 @@
+{
+ "task": "istanbul-stock-exchange",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No peeking at test data during EDA is observed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning such as sorting and missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "RobustScaler is correctly fit strictly on the training split, preventing scale leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "PCA is fit only on the training portion (which includes validation but excludes test data), so test information is not leaked into feature choice.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = df_all.bfill().ffill().fillna(0)",
+   "reasoning": "Backward filling is applied to the combined train and test dataset before splitting, which leaks test values backwards into the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The data is explicitly sorted by date and a chronological split is used, respecting temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The custom PyTorch model incorporates Dropout, LayerNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A temporal validation split is explicitly created and used for evaluation and ensemble weighting.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is completely held out and only used for final predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.train(..., random_state=42)",
+   "reasoning": "Stochastic models (LightGBM, XGBoost, CatBoost, PyTorch) are trained and evaluated only once with a single random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "np.sqrt(mean_squared_error(y_val, pred))",
+   "reasoning": "Only RMSE is used for evaluation and ensemble optimization without considering other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task on the target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including lags, rolling statistics, EWMA, and cross-market aggregates.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A sophisticated SLSQP meta-ensemble optimization is used to find optimal weights.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage via Feature Extraction",
+   "description": "Feature extraction models (e.g., PCA) are fitted on the entire training dataset before the validation split is made, leaking validation distribution statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pca.fit(df_all.iloc[:train_len][index_cols].fillna(0))\n...\nX_train_raw, X_val_raw = X_full.iloc[:split_idx], X_full.iloc[split_idx:]"
+  },
+  {
+   "name": "Time Series Lookahead Bias via Backward Fill",
+   "description": "Applying a backward fill (`bfill()`) to handle missing values in a chronologically sorted time series dataset leaks future target and feature information into past observations, fundamentally breaking causality.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = df_all.bfill().ffill().fillna(0)"
+  }
+ ],
+ "summary": "The agent implements a sophisticated time-series approach with extensive feature engineering, multiple model types, and SLSQP ensemble weighting. However, applying `bfill()` on the combined time series dataset introduces severe lookahead bias and leaks test data into the training set (FM04). Additionally, PCA is fitted on the combined train and validation sets, causing validation leakage.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

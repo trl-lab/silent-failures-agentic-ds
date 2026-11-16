@@ -1,0 +1,111 @@
+{
+ "task": "bioresponse",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n...\nX_raw = train_df.drop(columns=[\"Activity\"]).copy()",
+   "reasoning": "The agent proceeds directly to feature extraction and modeling without any steps to check for or handle missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "epoch_val_loss = log_loss(y_va, val_preds_clipped)",
+   "reasoning": "The agent only uses log loss to evaluate the models and optimize weights, without checking other metrics like accuracy or AUC to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data-Dependent Feature Engineering",
+   "description": "The agent dynamically identifies binary vs. continuous columns based on the specific values present in the dataset (checking if all values are 0 or 1). Because this is applied independently to the train and test sets, any slight distribution difference (e.g., a rare continuous feature happening to only have 0s and 1s in the test set) will lead to mismatched feature sets, misaligned columns, and potential runtime errors during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "is_binary = np.all((val_matrix == 0) | (val_matrix == 1), axis=0)\nbin_indices = np.where(is_binary)[0]"
+  },
+  {
+   "name": "Degenerate Self-Attention",
+   "description": "The agent applies MultiheadAttention to a sequence of length 1 by unsqueezing the entire feature vector into a single token. For a sequence of length 1, attention weights mathematically evaluate to exactly 1.0, reducing the complex transformer block to a simple linear projection and entirely defeating the purpose of using self-attention.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "x_seq = x.unsqueeze(1)\nattn_out, _ = self.attn(x_seq, x_seq, x_seq)"
+  },
+  {
+   "name": "Dead Code / Unused Transformations",
+   "description": "The agent computes transformations (QuantileTransformer) for all folds but never includes the resulting arrays in the final feature set used for modeling, wasting computation and indicating a logical oversight.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "qt = QuantileTransformer(...)\nX_tr_qt = qt.fit_transform(X_tr_vt)\n...\nX_tr_final = np.hstack([X_tr_scaled, pca_tr, svd_tr])"
+  }
+ ],
+ "summary": "The agent builds a robust 5-fold cross-validation pipeline with multiple models and an SLSQP-optimized ensemble. However, it completely skips basic data cleaning and relies exclusively on a single evaluation metric. More critically, there are significant logical flaws in the solution: the dynamic feature engineering risks creating mismatched train/test schemas, and the custom neural network architecture misuses self-attention in a way that renders it mathematically degenerate.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,157 @@
+{
+ "task": "cat-in-the-dat",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are appropriately mapped or imputed with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train_dense = scaler.fit_transform(X_train_dense_raw).astype(np.float32)\nX_test_dense = scaler.transform(X_test_dense_raw).astype(np.float32)",
+   "reasoning": "The standard scaler is correctly fit only on the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputers are fit on the full dataset (simple constant filling is used).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "self.dropout1 = nn.Dropout(dropout_rate)\noptimizer = torch.optim.AdamW(model.parameters(), lr=2e-3, weight_decay=1e-5, eps=1e-8)",
+   "reasoning": "The deep learning model uses dropout, layer normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The use of 5-fold cross-validation ensures the model is evaluated multiple times, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_train[val_idx], val_probs_epoch)",
+   "reasoning": "The agent uses ROC AUC, which is the exact and appropriate metric specified for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (target encoding, interaction features, cyclical features).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(ensemble_loss_fn, x0=[0.60, 0.25, 0.15], bounds=[(0.0, 1.0), (0.0, 1.0), (0.0, 1.0)], method=\"SLSQP\")",
+   "reasoning": "The agent optimizes the ensemble blend weights using SciPy, avoiding a naive equal-weight average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "Frequency/count encoding is applied to the combined train and test dataset before splitting. This causes the test set's categorical distribution to leak into the training features, slightly biasing the model evaluation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq_map = all_df[c].value_counts(normalize=True).to_dict()\nfreq_dict[freq_col_name] = all_df[c].map(freq_map).astype(np.float32)"
+  },
+  {
+   "name": "Unused Categorical Features in DL Model",
+   "description": "The agent meticulously prepares integer-mapped categorical indices intended for an embedding network, but never actually passes them to the PyTorch model or data loaders. This renders the preparation dead code and deprives the neural network of raw categorical inputs.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_cat = np.column_stack(cat_train_list)\n...\nX_tr = torch.tensor(X_train_dense[train_idx], dtype=torch.float32) # X_train_cat is completely ignored"
+  }
+ ],
+ "summary": "The solution is well-structured and uses a robust 5-fold CV pipeline with a 3-model ensemble optimized via SciPy. However, it suffers from minor data leakage due to calculating frequency encodings on the combined train and test sets. Additionally, the agent prepares categorical integer mappings for the deep learning model but forgets to pass them to the network, resulting in dead code and a missed opportunity to leverage entity embeddings.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

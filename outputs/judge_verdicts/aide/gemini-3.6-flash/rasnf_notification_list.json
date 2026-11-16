@@ -1,0 +1,141 @@
+{
+ "task": "rasnf_notification_list",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly peek at test data statistics during EDA to make decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(**lgb_params)",
+   "reasoning": "The agent relies entirely on LightGBM's default handling for numerical missing values and makes no effort to clean duplicates or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard numerical scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=2000, stop_words=\"english\", token_pattern=r\"(?u)\\b\\w+\\b\")\ntfidf_mat = tfidf.fit_transform(text_data)\n...\nsvd = TruncatedSVD(n_components=n_comps, random_state=42)\nsvd_feat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF (with max_features) and TruncatedSVD are fit on the combined train and test data, leaking test set vocabulary, IDF weights, and variance into the feature selection and dimensionality reduction.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is performed before splitting (only constant filling with empty strings for text).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "dt = pd.to_datetime(df_all[col], errors=\"coerce\")",
+   "reasoning": "The dataset contains date features, but it is unclear if the specific task requires temporal splitting to prevent look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBMClassifier is appropriate for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, which inherently averages performance over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)\nprint(f\"5-Fold Cross-Validation ROC AUC: {cv_auc:.5f}\")",
+   "reasoning": "The agent only computes and reports ROC AUC, without verifying if it is sufficient (e.g. ignoring Precision/Recall or class imbalance metrics).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent formats the target for binary classification, which aligns with the specified task type.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts datetime components, performs TF-IDF/SVD on text, and applies frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / skf.n_splits",
+   "reasoning": "The agent uses a simple unweighted average of the fold predictions for the test set, without any advanced ensembling techniques.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via frequency encoding before splitting",
+   "description": "Applying frequency/target encoding on the concatenated train and test datasets leaks the test set distribution into the training features. Categorical frequencies should be calculated on the training set and mapped to the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all[freq_col] = df_all[col].map(df_all[col].value_counts(normalize=True))"
+  }
+ ],
+ "summary": "The agent implements a LightGBM solution with cross-validation and feature engineering, but introduces critical data leakage by applying TF-IDF vectorization, PCA/SVD, and frequency encoding on the combined train and test datasets. Additionally, the agent performs no explicit data cleaning and relies solely on ROC AUC for evaluation.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

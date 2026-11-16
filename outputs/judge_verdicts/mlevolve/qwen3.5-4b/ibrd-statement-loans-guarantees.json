@@ -1,0 +1,138 @@
+{
+ "task": "ibrd-statement-loans-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only inspects shapes and column names, which does not constitute peeking at test data distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_cols = [col for col in train_df.columns if pd.api.types.is_numeric_dtype(train_df[col])]",
+   "reasoning": "The agent makes no effort to clean the data, simply extracting numeric columns and relying entirely on LightGBM to handle missing values without an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed other than filtering by data type.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the specific subset of the dataset requires strict temporal ordering for a valid evaluation, though date columns were dropped.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM Regressor) is appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is created and used, although the final printout incorrectly evaluates the training set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_val, X_test_val, y_train_val, y_train = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The model and data split rely on a single random seed and are evaluated exactly once without cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_score = np.sqrt(mean_squared_error(y_train_val, y_val_pred))",
+   "reasoning": "The agent evaluates the model using only RMSE and does not verify if it is the most appropriate metric compared to others like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in numeric_cols if col != target_col]\n\n# Select only the feature columns we identified\nX_train = train_df[feature_cols].astype(float)",
+   "reasoning": "The agent uses raw numeric columns as-is and completely drops non-numeric columns without attempting any feature engineering, parsing dates, or categorical encoding.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Evaluating on training data",
+   "description": "The agent calculates the final reported validation metric using the training split instead of the validation split, resulting in a reported score that reflects training error rather than generalization performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_val_pred = model.predict(X_train_val)\nrmse_score = np.sqrt(mean_squared_error(y_train_val, y_val_pred))"
+  }
+ ],
+ "summary": "The agent's solution is overly simplistic, ignoring all non-numeric features and missing value handling. Most critically, a bug causes the agent to calculate and report its validation score on the training split rather than the holdout set.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

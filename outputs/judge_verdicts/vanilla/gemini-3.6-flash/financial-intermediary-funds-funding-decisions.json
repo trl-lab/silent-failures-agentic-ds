@@ -1,0 +1,94 @@
+{
+ "task": "financial-intermediary-funds-funding-decisions",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts(normalize=True).to_dict()\n        df_all[col + '_freq'] = df_all[col].map(freq).astype(np.float32)",
+   "reasoning": "The agent computes categorical frequency encodings on the combined train and test set, leaking the test distribution into the training features."
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].fillna('Missing').astype(str)",
+   "reasoning": "The agent handles missing values for categorical columns by filling them with a placeholder string."
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied in the provided code."
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied in the provided code."
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].fillna('Missing').astype(str)",
+   "reasoning": "Although imputation happens before splitting, it uses a constant value ('Missing') rather than computing statistics, avoiding data leakage."
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "There are date columns extracted, but without knowing if the test set is split temporally, it is unclear if a random KFold introduces look-ahead bias."
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "from catboost import CatBoostRegressor",
+   "reasoning": "The agent imports regressor models, which are appropriate for this regression task."
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "stats = pd.DataFrame({'cat': sub_cat, 'y': sub_y}).groupby('cat')['y'].agg(['count', 'mean'])\n            te",
+   "reasoning": "The code cuts off before any model training or validation split is implemented, meaning no validation scheme is used."
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code does not reach the evaluation stage, so it is impossible to determine what metrics would have been used."
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"Amount in USD\"\n    y_train = train_df[target_col].values.astype(np.float64)",
+   "reasoning": "The agent correctly frames the problem as a regression task predicting the target."
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[col + '_year'] = df_all[col].dt.year",
+   "reasoning": "The agent actively engineers features, including date part extraction and frequency encoding."
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Syntax Error / Incomplete Code",
+   "description": "The script contains a syntax error at the beginning (nested ```python block) and abruptly cuts off in the middle of a loop, preventing execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "stats = pd.DataFrame({'cat': sub_cat, 'y': sub_y}).groupby('cat')['y'].agg(['count', 'mean'])\n            te"
+  }
+ ],
+ "summary": "The agent's solution contains a fatal syntax error and the code is abruptly truncated mid-loop, preventing any execution or model training. Additionally, there is a clear data leakage issue (FM02) as the agent performs frequency encoding on the combined train and test datasets, which leaks test distribution statistics into the training features.",
+ "recovered_from_parse_error": true,
+ "no_code": false
+}

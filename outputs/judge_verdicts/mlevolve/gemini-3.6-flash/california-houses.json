@@ -1,0 +1,141 @@
+{
+ "task": "california-houses",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if np.nanstd(vals) > 2.0 * (np.nanmean(vals) + 1e-5):\n    engineered_data[f\"{c}_log\"] = np.log1p(np.maximum(0, vals))",
+   "reasoning": "The agent computes distribution statistics (mean, standard deviation, and string lengths) on the full combined dataset (including test data) to make feature engineering control-flow decisions, causing test set leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent filters out missing targets in the training set and uses imputation or constant replacement for features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on the training splits inside the cross-validation loop for the Ridge model.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "SimpleImputer is correctly fit only on the training splits inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is cross-sectional without a strict temporal order, making random K-Fold splitting appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses regression models (LGBM, XGBoost, CatBoost, Ridge) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold cross-validation strategy to evaluate its models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models over 5 different cross-validation folds, which properly accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(np.mean((y_train_raw[val_idx] - fold_blend_raw) ** 2))\nprint(f\"Fold {fold + 1} RMSE: {fold_rmse:.4f}\")",
+   "reasoning": "The agent only computes and reports RMSE, without supplementing it with other metrics like MAE or R\u00b2 to provide a complete view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as predicting a continuous regression target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives multiple domain interaction features (ratios), frequency codes, and text embeddings via TF-IDF.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs SciPy's SLSQP optimizer to find optimal blending weights based on out-of-fold predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Suboptimal missing value handling for tree models",
+   "description": "The agent replaces missing values with an extreme constant (e.g., -999.0) before feeding data to tree models like LightGBM and XGBoost, which have native, optimized support for missing values. This can degrade performance by forcing trees to waste splits on arbitrary numerical boundaries.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_tree = np.nan_to_num(X_train, nan=-999.0, posinf=1e6, neginf=-1e6)"
+  }
+ ],
+ "summary": "The agent provides a robust solution with cross-validation, target transformation, proper scaling/imputation within folds, and a weighted ensemble. However, it improperly uses the full dataset's statistics to make feature engineering decisions (causing a minor data leakage), and masks missing values with constants for tree models that would otherwise handle them optimally.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

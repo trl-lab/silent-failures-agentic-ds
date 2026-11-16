@@ -1,0 +1,142 @@
+{
+ "task": "industry-payments-entity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data during the feature engineering or preprocessing design stages.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing data through median and mode imputation, and drops invalid targets in the training set.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is correctly fit on the training data (`train_fit`) after the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection algorithm is applied prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (medians and modes) are calculated strictly on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit evidence that this task necessitates a strictly temporal or time-series split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a continuous regression model (PyTorch network with MSE loss) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes dropout, weight decay, and early stopping for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly splits the data into a training and validation set using `train_test_split`.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "np.random.seed(SEED)\ntorch.manual_seed(SEED)\n...\nfor epoch in range(1, MAX_EPOCHS + 1):",
+   "reasoning": "The agent trains the stochastic PyTorch model exactly once without averaging the predictions over multiple runs or random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(y_val, val_pred)))",
+   "reasoning": "The agent evaluates the model solely using RMSE without checking performance against other potentially robust metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression formulation is appropriate for predicting continuous payment values.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including target encoding, datetime features, and derived numeric features.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-Sample Target Encoding Leakage",
+   "description": "The agent applies target encoding by computing target statistics (e.g., mean, min, max, std) on the entire training set and mapping these directly back onto the training features. This causes target leakage, as the target value of each row is included in its own feature representation, leading to severe overfitting. Out-of-fold (OOF) encoding should be used instead.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "agg = tmp.groupby(\"key\")[\"y\"].agg([\"sum\", \"count\", \"std\", \"min\", \"max\", \"median\"])\n...\nadd_feature(out, f\"{prefix}_te_mean\", key.map(stats[\"smooth_mean\"]).fillna(global_mean).to_numpy())"
+  }
+ ],
+ "summary": "The agent's solution follows best practices regarding clean data splitting, missing value imputation, and model architecture. However, it suffers from a critical data leakage flaw by calculating target encodings directly on the entire training fold without using cross-validated out-of-fold predictions. Additionally, it contains minor issues such as relying on a single stochastic model run and single evaluation metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

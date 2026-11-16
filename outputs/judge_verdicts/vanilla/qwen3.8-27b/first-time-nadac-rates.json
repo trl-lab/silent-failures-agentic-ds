@@ -1,0 +1,146 @@
+{
+ "task": "first-time-nadac-rates",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col], test_df[col]], axis=0).astype(str)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on the combined training and test sets, incorporating test set distributions into the preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing with median and mode.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = preprocess(train_df)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The median and mode for imputation are computed on the entire training set before splitting, leaking validation statistics into the training subset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df['As of Date'] = pd.to_datetime(df['As of Date'], errors='coerce', format='mixed')\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The dataset contains a temporal component ('As of Date'), but the agent uses a random split instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates and evaluates on a validation split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not reuse the test set to select the best model; it merely ensembles all of them.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr, y_tr)\n    pred = model.predict(X_val)",
+   "reasoning": "The stochastic models are evaluated exactly once with a fixed random seed, without multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((y_val - pred) ** 2))",
+   "reasoning": "The agent evaluates the models using only RMSE, ignoring other metrics that could provide a more robust assessment.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation as a regression problem is appropriate.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering, such as extracting date components.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_pred = np.mean(test_preds, axis=0)",
+   "reasoning": "The agent applies a naive, unweighted average for ensembling without tuning the combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputing test data with test statistics",
+   "description": "The agent computes imputation statistics (like median or mode) directly on the test set instead of applying the statistics learned from the training set, which is an invalid preprocessing step for production models.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = preprocess(test_df)"
+  }
+ ],
+ "summary": "The solution employs a basic ML pipeline with LightGBM, XGBoost, and CatBoost. However, it suffers from severe data leakage issues: computing imputation statistics before the validation split, using test data statistics to impute the test set itself, and applying a random split on temporal data. It also uses naive ensembling and fits transformers on combined train/test sets.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "student-performance",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used during EDA or feature design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are properly handled with median imputation for numeric and a 'missing' category for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly fitted only on the training set (X_train_raw) and then applied to the test set, avoiding train/test leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection before splitting is used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is fitted only on the training set (X_train_raw) and then applied to the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only predicted on, not used for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "RMSE is the required task metric and is appropriate for this regression problem.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a regression problem on the target G3.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive and domain-relevant feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses sophisticated blending, optimizing weights with scipy.optimize.minimize on OOF predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "CV_Data_Leakage",
+   "description": "The agent fits data transformations (median imputation and standard scaling) on the entire training set before executing the K-Fold cross-validation loop. This leaks statistical information from the validation folds into the training folds during CV, which biases the models and can lead to overly optimistic cross-validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train_num = scaler.fit_transform(X_train_raw[num_cols])\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train_proc, y)):"
+  },
+  {
+   "name": "ID_Column_Used_As_Feature",
+   "description": "The agent fails to remove the 'id' column (or equivalent identifier) before training, allowing the model to use arbitrary row identifiers as predictive features. Furthermore, the final submission file is generated using an arbitrary range of IDs (`np.arange`) rather than preserving the actual IDs from the test set, which will cause submission scoring to fail.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_raw = train_feat.drop(columns=[target_col], errors=\"ignore\")\n...\nsubmission = pd.DataFrame({\"id\": np.arange(len(test_preds)), \"G3\": test_preds})"
+  }
+ ],
+ "summary": "The agent constructs a generally high-quality pipeline with strong feature engineering, out-of-fold blending, and correct train/test separation. However, it introduces data leakage within the cross-validation loop by scaling and imputing the full training set prior to splitting into folds. Critically, it neglects to drop the 'id' column from the features and generates arbitrary IDs for the final submission, which will break the scoring process.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

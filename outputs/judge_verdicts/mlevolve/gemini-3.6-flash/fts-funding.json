@@ -1,0 +1,159 @@
+{
+ "task": "fts-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test-data peeking is performed in the final script.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and empty string filling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit strictly on the training fold inside the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is fit on the combined train/test dataset prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median) are derived exclusively from the training dataset, not the combined train+test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features (parsed into dates), but the agent uses random shuffling for cross-validation, ignoring temporal order and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout and Weight Decay (AdamW) for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is correctly implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 5 distinct CV folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = root_mean_squared_error(y_raw, oof_preds_raw)\nprint(f\"Final Validation Score: {score}\")",
+   "reasoning": "The agent only calculates and evaluates based on RMSE, failing to check secondary metrics like MAE which might be more robust to large outliers in financial data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent addresses the regression task directly and does not discard the fundamental task structure.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including target encoding, date parsing, SVD on TF-IDF, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal blending weights, rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Log-Transform Bias in RMSE Optimization",
+   "description": "Training a regression model on a log-transformed target and exponentiating the predictions yields the conditional median, not the conditional mean. When evaluated on the raw scale using RMSE (which penalizes deviations from the mean), this systematically underestimates the target expected value and incurs heavy quadratic penalties due to Jensen's inequality.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_log = np.log1p(np.clip(y_raw, 0, None)) ... oof_models_raw = np.expm1(np.clip(oof_models, 0, None)) ... return root_mean_squared_error(y_raw, pred_raw)"
+  },
+  {
+   "name": "Cross-Fold Leakage in Preprocessing",
+   "description": "Applying text vectorization (TF-IDF), dimensionality reduction (SVD), and median imputation to the entire training dataset prior to cross-validation splitting leaks validation fold information into the training folds, rendering out-of-fold validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_tfidf = tfidf.fit_transform(train_text) ... svd.fit_transform(train_tfidf) ... train_df[col] = train_df[col].fillna(median_val) [all executed before KFold split]"
+  },
+  {
+   "name": "Transductive Feature Engineering on Test Set",
+   "description": "Applying distribution-dependent transformations (like quantile ranking) separately to the test set using the test set's own statistics prevents independent single-sample predictions and causes inconsistencies if the test set distribution shifts.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_df[f\"{col}_qrank\"] = test_df[col].rank(pct=True)"
+  }
+ ],
+ "summary": "The agent implements a robust 5-fold cross-validation pipeline combining LightGBM, XGBoost, CatBoost, and a PyTorch neural network, alongside sophisticated feature engineering and optimized blending. However, the solution suffers from a critical statistical flaw: predicting the conditional median via a log-transform while evaluating on the raw scale using RMSE, which severely degrades performance due to Jensen's inequality. Additionally, the agent introduces cross-fold leakage by fitting TF-IDF and SVD on the full training set before CV splitting, and applies transductive test-set transformations that violate standard predictive modeling assumptions.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

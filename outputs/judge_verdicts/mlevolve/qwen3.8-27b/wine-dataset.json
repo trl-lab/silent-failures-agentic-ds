@@ -1,0 +1,72 @@
+{
+ "task": "wine-dataset",
+ "failure_modes": {
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y_train_log.values[va_idx], cv_pred)",
+   "reasoning": "The agent evaluates the model using only RMSE and does not compute any other metrics (such as MAE or R2) to verify performance robustness.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_final_pred = (test_pred_1 + test_pred_2) / 2.0",
+   "reasoning": "The agent combines the predictions of two LightGBM models using a simple unweighted average without tuning the combination weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in cross-validation",
+   "description": "The agent computes target encodings over the entire `train_df` before performing K-Fold cross-validation on it. This causes the target values of the CV validation folds to leak into their own features, leading to an artificially inflated and unreliable cross-validation score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "col_means = y_train_log.groupby(train_df[col]).mean()\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)\nfor fold, (tr_idx, va_idx) in enumerate(kf.split(train_lgb)):"
+  },
+  {
+   "name": "Unused validation split",
+   "description": "The agent creates a 15% validation split (`val_df`) at the start but never uses it for early stopping or final model training. The final models are trained solely on the 85% `train_df`, effectively throwing away useful training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df, val_df = train_test_split(train_full, test_size=0.15, random_state=42)\n...\ndtrain_full = lgb.Dataset(train_lgb, label=y_train_log.values)\nmodel_1 = lgb.train("
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent hardcodes the submission IDs as a sequential range instead of using the actual ID column from the test dataset. If the test set IDs are non-sequential or strings, this will cause the submission evaluation to fail.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": range(len(test_final_pred)), \"Price\": test_final_pred})"
+  }
+ ],
+ "summary": "The agent implements a thorough feature engineering pipeline but introduces critical target leakage by applying target encoding before its cross-validation split. Additionally, it wastes 15% of the data by creating a validation split that is never used, relies on a naive unweighted ensemble, and generates submission IDs using a sequential range rather than preserving the actual test IDs.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

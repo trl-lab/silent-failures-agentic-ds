@@ -1,0 +1,155 @@
+{
+ "task": "external-clinician-dashboard",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA, although test data is improperly used during feature engineering (captured as a custom failure mode).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by replacing infinite values with NaNs, and the chosen tree models handle NaNs natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit before splitting; models handle missing values natively.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The task does not have an explicitly defined temporal order, so it is unclear if a random KFold introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation for the base models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated across 5 folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = root_mean_squared_error(train_y, oof_blend)\nprint(f\"Validation Metric (RMSE): {final_rmse:.5f}\")",
+   "reasoning": "The agent relies entirely on RMSE without checking if it is the most robust or appropriate metric for the distribution of the target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering (date extraction, frequency encoding, target encoding, group aggregations) is performed.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A Ridge meta-model is used for stacking, which is a proper ensembling technique.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in cross-validation",
+   "description": "The out-of-fold target encoding is performed before the model cross-validation loop using the exact same KFold splits. This causes a severe data leak: a training row's encoded feature is computed using the validation fold's target, meaning the model's training features directly contain information about the validation target.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for tr_idx, va_idx in kf.split(train_df): [computes target encoding]\n...\nfor fold, (tr_idx, va_idx) in enumerate(kf.split(train_df)): [trains models]"
+  },
+  {
+   "name": "Feature leakage from test set",
+   "description": "The agent concatenates the training and test datasets to compute frequency encodings and group aggregations. This leaks the statistical distribution of the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = pd.concat([train_df[col], test_df[col]]).value_counts().to_dict()\n...\nfull_df = pd.concat([train_df, test_df], axis=0)\n...\ngrp_mean = full_df.groupby(c_col)[n_col].transform(\"mean\")"
+  },
+  {
+   "name": "Meta-model evaluated on training data",
+   "description": "The stacking meta-model (Ridge) is trained on the out-of-fold predictions and then evaluated on the exact same data without an outer cross-validation loop. The reported final RMSE is essentially a training error of the blender, which will be overly optimistic.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "meta_model.fit(OOF_matrix, train_y)\noof_blend = meta_model.predict(OOF_matrix)\nfinal_rmse = root_mean_squared_error(train_y, oof_blend)"
+  }
+ ],
+ "summary": "While the agent demonstrates advanced techniques like target encoding and model stacking, the execution introduces critical data leakage. Specifically, applying target encoding prior to model cross-validation using the same folds leaks validation targets into the training features, fundamentally invalidating the CV scores. Additionally, test set statistics are leaked into the training data during feature engineering, and the meta-model's performance is optimistically reported on its own training data.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

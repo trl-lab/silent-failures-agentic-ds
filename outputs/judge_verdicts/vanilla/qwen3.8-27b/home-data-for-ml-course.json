@@ -1,0 +1,142 @@
+{
+ "task": "home-data-for-ml-course",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements missing value imputation using SimpleImputer for both numeric and categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied, and the preprocessor is correctly fit only on the training set before transforming the validation set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The preprocessor (which includes imputation) is fit on X_train for validation, and subsequently fit on the full X for the final model, avoiding leakage from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While housing data has some temporal elements (date sold), it is generally treated as cross-sectional in this specific task, making a random split acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into train and validation sets using train_test_split and evaluates on the validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train_log, y_val_log = train_test_split(\n        X, y_log, test_size=0.2, random_state=RANDOM_STATE\n    )",
+   "reasoning": "The agent performs a single train/validation split and evaluates the stochastic models exactly once, rather than using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "_ = np.sqrt(mean_squared_error(val_actual, val_pred))",
+   "reasoning": "The agent only computes RMSE on the validation set and does not verify performance using any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a regression task and predicts the log-transformed SalePrice, which aligns well with the task's evaluation metric.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_cols = [\n        col for col in feature_cols if pd.api.types.is_numeric_dtype(X[col])\n    ]\n    categorical_cols = [col for col in feature_cols if col not in numeric_cols]",
+   "reasoning": "The agent uses raw columns directly with basic imputation and encoding, creating no derived features despite the rich domain context (e.g., total square footage, age of home).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_pred_log = np.mean(\n        [model.predict(X_val_proc) for model in validation_models], axis=0\n    )",
+   "reasoning": "The ensemble is constructed using a simple unweighted average of the model predictions without optimizing the blending weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded/incorrect submission IDs",
+   "description": "The agent drops the original ID column from the test dataset and generates a new sequence of integers starting from 0 for the submission file. This will cause the submission to fail evaluation because the IDs will not match the expected IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_df), dtype=int),"
+  }
+ ],
+ "summary": "The agent implements a solid baseline using a pipeline with proper imputation, categorical encoding, and log-transformation of the target variable. However, it lacks feature engineering and relies on a naive ensemble average. Most critically, the agent generates incorrect IDs for the final submission file by dropping the original test IDs and using `np.arange`, which will result in an invalid submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

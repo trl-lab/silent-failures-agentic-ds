@@ -1,0 +1,142 @@
+{
+ "task": "awarded-grants",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([train, test], axis=0).reset_index(drop=True)\n...\nfreq = df_all[col].value_counts(dropna=False)\ndf_all[f\"{col}_freq\"] = df_all[col].map(freq).fillna(0).astype(int)",
+   "reasoning": "The agent computes categorical frequencies on the combined train and test set, leaking the test set's distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles categorical missing values explicitly and relies on LightGBM's robust native missing value handling for numerical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No cross-sample imputation is performed before splitting (only a constant fill value is used for categoricals).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset contains date features, but it is unclear if the underlying task requires a time-based split without knowing the test set structure.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 distinct folds, which accounts for data variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_va, val_pred)",
+   "reasoning": "The agent relies entirely on RMSE for evaluation and does not report any other complementary metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated appropriately as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering by extracting date components, computing year differences, and applying frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += (\n        model.predict(X_test_proc, num_iteration=model.best_iteration) / n_splits\n    )",
+   "reasoning": "The agent combines the fold models using a simple unweighted average without attempting more sophisticated ensembling techniques.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Naive Datetime Parsing",
+   "description": "Using pd.to_datetime on integer columns (like 'year') can result in parsing them as nanoseconds since epoch rather than meaningful dates, leading to garbage datetime features.",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "if (... or \"year\" in col.lower() ...): \n parsed = pd.to_datetime(df_all[col], errors=\"coerce\")"
+  }
+ ],
+ "summary": "The solution employs a solid LightGBM pipeline with 5-fold cross-validation and automated feature engineering. However, it suffers from critical data leakage by computing frequency encodings on the combined train and test sets prior to modelling. Additionally, the ensembling strategy is limited to a basic unweighted average of the fold predictions, and evaluation relies solely on RMSE.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

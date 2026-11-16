@@ -1,0 +1,112 @@
+{
+ "task": "estimation-of-obesity-levels",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = accuracy_score(y_fold_val, y_pred)",
+   "reasoning": "The agent evaluates the model using only accuracy, failing to verify if this single metric is fully appropriate for the multiclass task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent uses raw features without engineering any domain-specific predictors, such as Body Mass Index (BMI), which is highly relevant given the explicit height and weight features for an obesity task.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test set imputation leakage",
+   "description": "The agent imputes missing values in the test set using statistics (median and mode) calculated from the test set itself, rather than using the statistics computed from the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_df = test_df.fillna(test_df.median(numeric_only=True))"
+  },
+  {
+   "name": "Early stopping without validation set",
+   "description": "The agent includes an early stopping callback when fitting the final model on the entire training set, but fails to provide an `eval_set`. This will cause the model training to crash since early stopping requires a validation set to monitor.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)])"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent hardcodes the IDs in the submission file using a continuous range rather than extracting the actual ID column from the test dataset, which will result in misaligned or invalid submission formatting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": range(len(y_pred_test)), \"NObeyesdad\": y_pred_test})"
+  }
+ ],
+ "summary": "The agent correctly establishes a stratified cross-validation framework and applies basic preprocessing, but fails to engineer critical domain features like BMI. Furthermore, the script contains severe execution-level bugs: applying an early stopping callback without an evaluation set on the final model and hardcoding submission IDs. Finally, test set missing values are improperly imputed using test set statistics rather than training set statistics.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,105 @@
+{
+ "task": "bike-sharing-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model1 = lgb.train(params_mae, dtrain1, num_boost_round=5000...)",
+   "reasoning": "The LightGBM models use stochastic elements (e.g., bagging_fraction=0.8, feature_fraction=0.75) but are evaluated only once without averaging over multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pred_val_ens = (pred_val_1 + pred_val_2) / 2.0",
+   "reasoning": "The agent combines the MAE and MSE models using a naive unweighted average without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Rolling Features",
+   "description": "Rolling features are computed on the target variable without shifting first. This means the current row's target value is included in the rolling mean/std calculation, allowing the model to perfectly 'predict' the target during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full[\"cnt_roll_7d\"] = cnt_filled.rolling(168, min_periods=1).mean()"
+  },
+  {
+   "name": "Invalid Multi-step Forecasting Lags",
+   "description": "The agent computes lag and rolling features for the test set by forward-filling the last known training target. For a block multi-step forecast, this makes all lag and rolling features constant (flat) for the entire test horizon, rendering them meaningless during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cnt_filled.iloc[i] = cnt_filled.iloc[i - 1] if i > 0 else 0\n...\nfull[\"cnt_lag_1\"] = cnt_filled.shift(1)"
+  }
+ ],
+ "summary": "The agent implements a solid temporal validation split and extracts extensive features, but critically leaks the target variable into the training set by taking a rolling mean of the target without shifting. Furthermore, its strategy of forward-filling the target for test set lags results in completely flat, useless lag features for inference. It also uses naive ensembling and single evaluations of stochastic models.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

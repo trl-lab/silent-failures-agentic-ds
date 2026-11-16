@@ -1,0 +1,148 @@
+{
+ "task": "ashrae-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = prepare_features(train)",
+   "reasoning": "The agent makes no effort to clean the data or handle missing values, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is used.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series with a temporal split in the test set, but the agent uses random K-Fold splitting, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmsle = np.sqrt(\n    np.mean((np.maximum(0, oof_preds) - train[\"target_log\"].values) ** 2)\n)",
+   "reasoning": "The agent only calculates and reports a single metric (RMSLE) for evaluation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correctly treated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts several temporal features and applies target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent simply averages CV folds, which is a standard practice rather than naive ensembling of disparate models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target encoding leakage in training",
+   "description": "When applying target encoding, the agent computes the mean/std of the target over the training fold and merges it directly back onto the training fold without using leave-one-out or K-fold out-of-fold techniques. This leaks the target value of each row into its own features during training, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_df = merge_encodings(tr_df)"
+  },
+  {
+   "name": "Ignoring provided relational datasets",
+   "description": "The agent fails to load and join supplementary datasets (such as weather or metadata files) that are explicitly provided for the task and contain crucial predictive features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(\"./input/train.parquet\")\ntest = pd.read_parquet(\"./input/test.parquet\")"
+  }
+ ],
+ "summary": "The agent's solution has critical flaws related to temporal validation, data completeness, and target leakage. It uses random K-Fold cross validation on time-series data causing look-ahead bias, and applies naive target encoding directly to the training fold which leaks the target into the features. Furthermore, it completely ignores supplementary relational datasets (weather and building metadata) which are essential for this task.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

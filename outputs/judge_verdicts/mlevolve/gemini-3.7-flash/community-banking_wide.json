@@ -1,0 +1,92 @@
+{
+ "task": "community-banking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent strictly separates train and test sets during preprocessing and feature engineering, with no test data peeking.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_norm = np.clip(scaler.fit_transform(X_tr_scaled), -10.0, 10.0).astype(np.float32)",
+   "reasoning": "StandardScaler is correctly fitted only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "corr_matrix = df_train_features[feature_candidates].corr().abs()",
+   "reasoning": "Feature selection (correlation pruning) is applied only to the training dataset, avoiding test set leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_imp = np.nan_to_num(imputer.fit_transform(X.iloc[trn_idx]), nan=0.0, posinf=0.0, neginf=0.0)",
+   "reasoning": "Imputation is correctly fitted only on the training folds inside the cross-validation loop for the ExtraTrees model.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a rigorous 10-fold stratified cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "blended = np.dot(oof_matrix, weights)",
+   "reasoning": "The ensemble weights are correctly optimized using out-of-fold predictions on the training data, not the test set.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Independent categorical encoding of train and test",
+   "description": "The agent applies `.astype('category').cat.codes` independently to the train and test sets. If the unique values in a categorical column differ between train and test, the same category string will be mapped to entirely different integer codes, corrupting the feature representation in the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_train_features[cat] = (\n        df_train_features[cat].astype(\"category\").cat.codes.astype(np.int32)\n    )\n    df_test_features[cat] = (\n        df_test_features[cat].astype(\"category\").cat.codes.astype(np.int32)\n    )"
+  },
+  {
+   "name": "Failure to drop ID columns from feature matrix",
+   "description": "The agent identifies ID-like columns (e.g., 'id', 'cert', 'rssd') to separate them from feature calculations, but fails to actually drop them from the dataframe. When defining `feature_columns` for model training, it only excludes `target_col` and `fold`, meaning the models are trained directly on sequential or unique identifiers, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_columns = [\n    c for c in df_train_features.columns if c not in [target_col, \"fold\"]\n]\n...\nX = df_train_features[feature_columns].copy()"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates the final submission file by assigning a newly generated sequence (`np.arange`) to the ID column, rather than preserving the actual ID values from the test dataset. This will cause the submission to fail scoring if the true test IDs are not a simple zero-indexed sequence.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_submission = pd.DataFrame(\n    {\"id\": np.arange(len(test_ensemble), dtype=np.int64), \"LOANTOASSET\": test_ensemble}\n)"
+  }
+ ],
+ "summary": "The agent demonstrates strong practices in out-of-fold target encoding, cross-validation, and avoiding data leakage between folds. However, the solution contains critical flaws: applying pandas category codes independently to train and test sets will severely corrupt categorical features, failing to drop ID columns will cause the models to overfit to row identifiers, and hardcoding submission IDs with `np.arange` will likely result in a scoring failure on Kaggle.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

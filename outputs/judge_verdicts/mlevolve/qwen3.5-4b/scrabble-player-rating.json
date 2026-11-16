@@ -1,0 +1,98 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n    ...\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n)\n\n# Train with early stopping\nmodel.fit(\n    X_train_processed,\n    y_train,\n    eval_set=[(X_val_processed, y_val)],\n    callbacks=[lgb.early_stopping(50)],\n)",
+   "reasoning": "The LightGBM model contains random elements (subsampling) but is trained and evaluated only once instead of using cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mae = mean_absolute_error(y_val, y_val_pred)\n\n# Print validation score (required for evaluation)\nprint(f\"Final Validation Score: {val_mae:.4f}\")",
+   "reasoning": "The agent computes only the target MAE metric and does not use supplementary metrics like RMSE or R-squared to provide a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Engineered features silently dropped",
+   "description": "The agent engineers new features but fails to add them to the column lists used by the ColumnTransformer. Because ColumnTransformer drops unlisted columns by default (remainder='drop'), all newly engineered features are silently discarded before the model is trained.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "numeric_features = X.select_dtypes(include=[\"int64\", \"float64\"]).columns.tolist()\n...\npreprocessor = ColumnTransformer(\n    transformers=[\n        (\n            \"num\",\n            Pipeline([...]),\n            numeric_features,\n        ),"
+  }
+ ],
+ "summary": "The agent successfully establishes an end-to-end pipeline with data preprocessing and validation. However, the random train-test split ignores the grouped nature of the data (players), and a critical bug in the ColumnTransformer setup causes all newly engineered features to be silently discarded. Furthermore, the stochastic model is only evaluated once using a single metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

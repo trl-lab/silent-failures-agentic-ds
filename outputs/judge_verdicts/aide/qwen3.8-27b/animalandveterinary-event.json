@@ -1,0 +1,130 @@
+{
+ "task": "animalandveterinary-event",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([s, X_test[c]], ignore_index=True)\n    non_null = int(combined.notna().sum())\n\n    if non_null > 0:\n        converted = pd.to_numeric(combined, errors=\"coerce\")\n        if int(converted.notna().sum()) >= 0.8 * non_null:\n            X_train[c] = pd.to_numeric(s, errors=\"coerce\")",
+   "reasoning": "The agent concatenates train and test data to decide whether a column should be cast to numeric based on the proportion of parseable values, leaking test distribution characteristics into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train = train.dropna(subset=[TARGET]).reset_index(drop=True)\ny = parse_binary_target(train[TARGET])",
+   "reasoning": "The agent actively cleans the target column and filters out constant features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "s = X_train[c]\nif int(s.notna().sum()) == 0:\n    continue\nif int(s.nunique(dropna=True)) <= 1:",
+   "reasoning": "Feature selection (dropping constant or all-NaN columns) is safely computed using only X_train.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputation models are fit; LightGBM's native missing value handling is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the events have an explicit temporal order that requires chronological splitting, though the domain implies events happen over time.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"binary\",\n\"metric\": \"auc\",",
+   "reasoning": "The agent correctly uses a binary classification objective for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent performs cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof)",
+   "reasoning": "The agent uses cross-validation which averages over multiple folds, mitigating the variance of a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_aucs.append(roc_auc_score(y_va, pred_va))",
+   "reasoning": "The agent evaluates solely on ROC AUC and does not look at secondary metrics like PR AUC or log loss to get a fuller picture, which is particularly relevant for imbalanced adverse event data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TARGET = \"serious_ae\"",
+   "reasoning": "The agent correctly formulates the problem as predicting the binary serious_ae target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train[feature_cols].copy()\nX_test = test[feature_cols].copy()",
+   "reasoning": "The agent uses raw features after basic type conversions and does not attempt any meaningful feature engineering, which leaves potential predictive signal unexploited.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a solid LightGBM baseline but critically misses the grouped structure of the adverse event data by failing to use grouped cross-validation (GroupKFold) for 'patient_id' or 'case_id'. Additionally, the agent uses test data to inform column datatype conversions (peeking) and does not perform any domain-specific feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

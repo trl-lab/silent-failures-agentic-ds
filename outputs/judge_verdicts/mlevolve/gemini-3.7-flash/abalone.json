@@ -1,0 +1,153 @@
+{
+ "task": "abalone",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data, handling anomalies like typos and zero heights.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Standard scaling is properly fitted on the training folds and then applied to the validation and test folds within the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not leaked into feature selection or PCA; these are only fitted on the train set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like height_median) are derived from the train set and applied to the test set correctly.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for predicting the numeric target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates Dropout layers, BatchNorm, and uses weight decay (L2 penalty) in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 10-fold cross-validation strategy is correctly implemented.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is used only for generating final predictions, not for model selection or sequential overfitting.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated over multiple random seeds (42 and 2024), accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_va, fold_val_preds))",
+   "reasoning": "The agent evaluates and optimizes the models exclusively using RMSE without examining other potentially informative metrics (like MAE or R2).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive domain-informed feature engineering is performed, including morphological ratios and PCA.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization with out-of-fold predictions to find the best ensemble weights, rather than relying on a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature distribution leakage across CV folds",
+   "description": "PCA and group-level statistics (mean and standard deviation by sex) are fitted on the entire training dataset prior to cross-validation. This leaks information from validation folds into the training folds, making out-of-fold scores less reliable and potentially distorting the ensemble weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pca.fit(data[pca_morpho_cols].values)\n...\nX_train_feat, group_stats = engineer_features(X_train_clean, is_train=True)"
+  },
+  {
+   "name": "Failure to drop ID column",
+   "description": "The agent drops the target column from the training data but does not explicitly drop the 'id' column. If an ID column is present in the dataset, it is treated as a numeric feature, which can cause overfitting in tree-based models.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_raw = train_df.drop(columns=[target_col]).copy()\n... \nX = X_train_feat.values"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated and generally correct pipeline, featuring extensive domain-specific feature engineering, multi-seed cross-validation, and an optimized ensemble. However, there is data leakage during cross-validation because PCA and group aggregations are fitted on the entire training set before the CV splits. Additionally, the agent fails to drop the 'id' column from the feature set, which could introduce overfitting.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

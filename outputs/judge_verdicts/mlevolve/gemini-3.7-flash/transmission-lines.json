@@ -1,0 +1,156 @@
+{
+ "task": "transmission-lines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data interactively.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly drops rows with missing targets and applies median imputation for missing features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use any global scaling or normalization before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=12, random_state=42)\n        svd_tr = svd.fit_transform(tfidf_tr)",
+   "reasoning": "TruncatedSVD (PCA equivalent for sparse data) and TF-IDF are fit on the entire training set before cross-validation splitting, leaking validation fold text distributions into the training folds.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med = X_train_base[col].median()\n...\n    X_train_base[col] = X_train_base[col].fillna(med).astype(np.float32)",
+   "reasoning": "The median for missing value imputation is calculated on the entire training set before the cross-validation split, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a cross-sectional spatial classification problem, not a time-series forecasting task, so random K-Fold splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models (LGBM, XGBoost, CatBoost) for the multiclass target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "By using 5-fold cross-validation, the agent evaluates the models across multiple data subsets, naturally accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_acc = accuracy_score(y_va, np.argmax(fold_blend, axis=1))",
+   "reasoning": "The agent relies entirely on accuracy for evaluation and optimization without verifying if the class distribution is balanced enough for accuracy to be a robust metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification problem is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and highly specialized spatial, textual, and graph-based feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a Nelder-Mead optimization routine to find the optimal weighted blend of the three models, rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Data Leakage in Feature Engineering",
+   "description": "The agent creates features by calculating statistics or mappings on the concatenated train and test sets. This improperly leaks test set distribution information into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "all_subs = pd.concat([all_s1, all_s2], ignore_index=True)\n        sub_degree_map = all_subs.value_counts().to_dict()"
+  },
+  {
+   "name": "Inconsistent Feature Engineering on Test Set",
+   "description": "The agent calculates dataset-dependent statistics (e.g., medians) independently on the test set, rather than fitting on the training set and transforming the test set. This causes a domain shift if the test distribution differs from the train distribution.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med_x = cx.median() if not cx.dropna().empty else 0.0\n        med_y = cy.median() if not cy.dropna().empty else 0.0"
+  },
+  {
+   "name": "Validation Leakage in Clustering",
+   "description": "The agent fits a clustering algorithm on the entire training dataset before performing cross-validation splits, which leaks spatial information from validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kmeans = MiniBatchKMeans(n_clusters=n_clusters, random_state=42 + n_clusters, batch_size=512)\n        kmeans.fit(coords_train)"
+  }
+ ],
+ "summary": "The solution implements a strong multi-model ensemble with extensive geometric feature engineering and proper out-of-fold target encoding. However, it introduces data leakage by applying TF-IDF, SVD, KMeans clustering, and median imputation to the full training set prior to cross-validation. Additionally, it leaks test set information by concatenating train and test sets to compute graph degree features, and inconsistently computes spatial medians independently for the train and test sets.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

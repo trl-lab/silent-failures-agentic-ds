@@ -1,0 +1,138 @@
+{
+ "task": "wine-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Train shape: {train_df.shape}\")\nprint(f\"Test shape: {test_df.shape}\")",
+   "reasoning": "The agent only prints the shape of the test dataset and does not compute statistics or inspect its distribution during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = np.nan_to_num(X_train, nan=0.0, posinf=0.0, neginf=0.0)",
+   "reasoning": "The agent makes no explicit effort to check for or clean missing values, duplicates, or outliers in the raw data, relying entirely on a blanket np.nan_to_num after scaling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = scaler.fit_transform(train_df[feature_cols].values)\nX_val = scaler.transform(val_df[feature_cols].values)",
+   "reasoning": "The scaler is correctly fitted only on the training split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"huber\",\n\"metric\": \"rmse\",",
+   "reasoning": "The agent correctly uses a regression model (LightGBM with Huber loss) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df, val_df = train_test_split(\n    train_df, test_size=0.15, random_state=42, stratify=train_df[\"quality\"]\n)",
+   "reasoning": "The agent creates a validation split and evaluates the model on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for i, config in enumerate(configs):\n... params.update(config) ... \nmodel = lgb.train(",
+   "reasoning": "The agent trains a multi-seed ensemble of models, evaluating multiple runs rather than a single stochastic instance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "seed_rmse = np.sqrt(mean_squared_error(y_val, val_pred))",
+   "reasoning": "The agent only computes and reports RMSE, without verifying model behavior using other metrics (e.g., MAE, R-squared).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = train_df[\"quality\"].values",
+   "reasoning": "The task is correctly formulated as predicting the continuous/ordinal quality target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_features(df, vol_max):",
+   "reasoning": "The agent performs extensive domain-informed feature engineering, including interaction terms and log transforms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "weights = np.array([1.0 / rmse for rmse in seed_rmses])\nweights = weights / weights.sum()",
+   "reasoning": "The agent weights the ensemble predictions by the inverse of the validation RMSE, which is a form of tuning rather than a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates submission IDs using sequential integers (np.arange) rather than extracting the actual identifier column from the test dataset. If the test set uses non-sequential or specific IDs, the submission will be invalid.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_ids = np.arange(len(test_df))\nsubmission = pd.DataFrame({\"id\": test_ids.astype(int), \"quality\": final_test_preds})"
+  }
+ ],
+ "summary": "The agent implements a solid multi-seed LightGBM ensemble with extensive domain-informed feature engineering and proper data splitting. However, it fails to explicitly clean the data (relying on implicit zero-filling of NaNs after scaling) and evaluates solely on RMSE. Critically, it hardcodes the test IDs using np.arange, which risks generating an invalid submission file if the original test dataset contains specific non-sequential IDs.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

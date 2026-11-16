@@ -1,0 +1,142 @@
+{
+ "task": "historical-earthquake-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data during exploration.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined[\"missing_feature_count\"] = combined.isnull().sum(axis=1)",
+   "reasoning": "The agent creates a missingness indicator feature and uses LightGBM, which natively handles missing values, representing an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)",
+   "reasoning": "The dataset contains historical temporal data (dates/times), but the agent uses standard shuffled cross-validation, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification objective for this multiclass task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold for proper train/validation splits.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates across 5 folds and 2 random seeds, averaging the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "overall_acc = accuracy_score(y, oof_labels)\nprint(f\"5-Fold CV Accuracy: {overall_acc:.5f}\")",
+   "reasoning": "The agent evaluates and reports only accuracy, without checking if the classes are imbalanced or using metrics like F1-score or logloss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts dates, coordinates, and creates domain-specific features (e.g., mag_energy_proxy, intensity_mag_diff).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += test_pred_fold / (n_splits * len(seeds))",
+   "reasoning": "The agent ensembles predictions across folds and seeds using a naive unweighted average without attempting any optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage through combined frequency encoding",
+   "description": "Computing frequency encoding on the combined train and test datasets before splitting leaks information about the test set's distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(dropna=False)\ncombined[f\"{col}_freq\"] = combined[col].map(freq)"
+  }
+ ],
+ "summary": "The agent builds a robust multi-seed Stratified K-Fold LightGBM pipeline with extensive domain-specific feature engineering. However, it introduces critical data leakage by calculating frequency encodings on the combined train and test dataset. Furthermore, it ignores the temporal nature of the earthquake data during splitting, evaluates using only accuracy despite potential class imbalance, and relies on an unweighted average for ensembling.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

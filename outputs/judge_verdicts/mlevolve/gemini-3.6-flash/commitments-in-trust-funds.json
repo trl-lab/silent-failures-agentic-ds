@@ -1,0 +1,159 @@
+{
+ "task": "commitments-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No manual EDA or peeking is performed; test statistics are only used programmatically in a heuristic to determine column types.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly imputed using medians for numerical columns and 'missing' for categorical ones.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly applied only on the training set and then used to transform validation/test sets inside train_pytorch_model.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics like medians and TF-IDF vocabularies are strictly fit on the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It's unclear if the task requires a strict time-based split based on the context, though it uses random K-Fold.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The target is continuous, and regression models (LGBMRegressor, XGBRegressor, etc.) are appropriately used.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm, and weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation scheme is used to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated using 5-fold CV, which trains and evaluates 5 separate models, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = np.sqrt(mean_squared_error(y_raw, oof_final))",
+   "reasoning": "The agent only computes and reports RMSE without verifying its robustness using other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression formulation is appropriate for predicting 'New Commitments (US$)'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date extraction, text TF-IDF/SVD, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble weights are optimized using scipy.optimize.minimize on OOF predictions rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unused Model Code",
+   "description": "The agent defines complex model architectures and training functions but fails to invoke them in the main execution pipeline, rendering the code useless.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "class TabularResidualMLP(nn.Module): ... def train_pytorch_model(...):"
+  },
+  {
+   "name": "Global Feature Extraction Leak",
+   "description": "The agent computes a reference statistic (e.g., minimum date) across the combined train and test sets, which leaks test set distribution information into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "min_date = dt_series.min()\n        if pd.notna(min_date):\n            engineered_df[f'{col}_days_from_start'] = (dt_series - min_date).dt.days"
+  },
+  {
+   "name": "Execution Timeout",
+   "description": "The script uses all available CPU cores across multiple gradient boosting frameworks inside a cross-validation loop, leading to severe resource contention and execution timeouts.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "TIMEOUT after 7200s"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering and ensembling pipeline, using K-Fold CV and out-of-fold target encoding without major data leakage. However, it fails to integrate its generated PyTorch neural network into the main execution pipeline. Additionally, computing the minimum date across the combined dataset causes a minor data leak, and over-allocation of CPU threads across multiple models likely caused the script to time out.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

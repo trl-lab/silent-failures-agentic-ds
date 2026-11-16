@@ -1,0 +1,138 @@
+{
+ "task": "stanford-covid-vaccine",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only uses the test set to determine the maximum sequence length for padding, which is standard practice and does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "filtered_df = train_df[train_df[\"SN_filter\"] == 1].reset_index(drop=True)",
+   "reasoning": "The agent actively filters out noisy data using the signal-to-noise filter column.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_cont_scaled = scaler.fit_transform(train_feat[\"cont_features\"].reshape(-1, C_tr))",
+   "reasoning": "The scaler is correctly fit only on the training set features after the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "nn.Linear(hidden_dim, 1)",
+   "reasoning": "The agent correctly uses a regression model for this continuous reactivity prediction task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)",
+   "reasoning": "The deep learning model incorporates dropout layers and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data_df, val_data_df = train_test_split(train_df, test_size=0.2, random_state=42)",
+   "reasoning": "The agent explicitly splits the training data into train and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for epoch in range(1, epochs + 1):",
+   "reasoning": "The agent trains its stochastic deep learning model exactly once and reports a single validation score, rather than using cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mcrmse = float(np.sqrt(val_sq_diff_sum / (val_mask_sum + 1e-8)))",
+   "reasoning": "The agent only computes and tracks the MCRMSE metric without evaluating secondary metrics like MAE or Pearson correlation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = np.zeros((n_samples, max_len), dtype=np.float32)",
+   "reasoning": "The agent properly frames the task as sequence-to-sequence regression with appropriate masking for the scored sequence length.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def extract_features(df, max_len):",
+   "reasoning": "The agent performs extensive feature engineering, extracting structural, positional, and graph-based features from the raw sequences.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid Submission Format",
+   "description": "The agent generates a submission file with a generic integer ID column and includes predictions for padded sequence positions, completely ignoring the specific ID format (e.g., id_seqpos) and sequence lengths required by the competition.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub_df = pd.DataFrame({\"id\": np.arange(len(test_preds)), \"reactivity\": test_preds})"
+  }
+ ],
+ "summary": "The agent provides a sophisticated deep learning solution with excellent feature engineering, data masking, and proper train/validation isolation. However, the final submission file generation is critically flawed because it ignores the expected `id_seqpos` identifier format and outputs padded predictions, which will cause the submission to fail evaluation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,146 @@
+{
+ "task": "workforce-demographics-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or use test data during the preprocessing or model design phases.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by dropping empty columns, replacing infinites, and filling missing values in categorical columns, while correctly relying on the tree-based models to natively handle missing numerical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant/empty columns) is performed only on the training set, so it does not leak test data information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No general imputation is fit on the full dataset before splitting (target encoding is fit on the training split only during validation).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The task does not appear to involve temporal data based on the provided context.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a train-test split to create a validation set for evaluating model performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates on a dedicated validation split, not on the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_fit, X_val, y_fit, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE)",
+   "reasoning": "The agent uses a single train/validation split and evaluates once, which does not account for variance in the stochastic models or the split itself.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_scores[name] = float(np.sqrt(mean_squared_error(y_val, pred)))",
+   "reasoning": "The agent only calculates RMSE and does not verify performance using other metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated as a standard regression problem, which matches the objective.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def fit_target_stats(X, y, cat_cols, smoothing=SMOOTHING):",
+   "reasoning": "Beyond basic target encoding for categorical columns, the agent uses raw features as-is and creates no derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "weights = {name: 1.0 / max(score, 1e-8) for name, score in val_scores.items()}",
+   "reasoning": "The agent weights the models inversely proportional to their RMSE validation score, which is a tuned ensemble approach rather than a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage",
+   "description": "The agent applies target encoding to the training set by computing target statistics on the whole training set and mapping them directly back, without using out-of-fold (OOF) techniques. This causes target leakage where the sample's own label contributes to its feature value, leading to severe overfitting in powerful models like gradient boosted trees.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_stats, final_global = fit_target_stats(X, y, cat_cols)\nX_train_enc = transform_target(X, cat_cols, final_stats, final_global)"
+  }
+ ],
+ "summary": "The agent implements a generally well-structured pipeline using tree-based models and validation-weighted ensembling. However, the solution suffers from a critical data leakage flaw by applying target encoding directly to the full training set without out-of-fold predictions. It also lacks feature engineering and relies on a single validation split for evaluation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

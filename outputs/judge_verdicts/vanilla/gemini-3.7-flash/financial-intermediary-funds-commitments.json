@@ -1,0 +1,156 @@
+{
+ "task": "financial-intermediary-funds-commitments",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or use test data statistics during preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing categorical values by filling them with 'Missing', though it relies on the tree models to handle missing numerical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fills missing values with a constant string ('Missing'), which does not compute or leak any dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "While financial commitments data often has a temporal component (dates), it is unclear from the provided code if temporal ordering is relevant or available to use for splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation, creating internal train/validation splits.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates across 5 folds (averaging the test predictions), rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics at all, so it does not rely on just one inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col]).copy()",
+   "reasoning": "The agent uses the raw columns directly as features with no derived features or domain-specific transformations applied.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent uses a naive, unweighted average to combine the predictions of the two models without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Training on identifier columns",
+   "description": "The agent drops only the target column when defining the feature matrix. Any non-feature columns, such as IDs or indices present in the dataset, will be passed to the models as features, which can lead to overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col]).copy()"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates the output 'id' column using a simple numerical range instead of extracting the actual identifier column from the test set. This typically results in a misaligned or invalid submission file.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(final_predictions))"
+  },
+  {
+   "name": "Silent validation / No metric reported",
+   "description": "The agent sets up cross-validation and imports a metric function, but never actually calculates or prints the validation score. This makes it impossible to assess the model's performance without submitting.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import mean_squared_error\n... (never used in the script)"
+  }
+ ],
+ "summary": "The agent successfully implements a cross-validated ensemble of LightGBM and CatBoost regressors but relies entirely on raw features and a naive 50/50 model blend. Furthermore, it suffers from several execution-level flaws: it fails to calculate or report any validation metrics, likely trains on identifier columns by only dropping the target, and hardcodes the submission IDs instead of preserving them from the test set.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

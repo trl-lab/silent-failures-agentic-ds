@@ -1,0 +1,150 @@
+{
+ "task": "corporate-procurement-contract-awards",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled via constant imputation and missingness indicator columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling for the neural network is correctly applied inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies purely on constant filling (e.g., fillna(0.0)), which does not calculate statistics and therefore cannot leak data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal information (contract award dates), but the agent uses a random cross-validation split, which can introduce look-ahead bias by training on future events to predict past ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates dropout, weight decay, and LayerNorm.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a strict 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions and is not evaluated against.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "return np.sqrt(mean_squared_error(y_raw, pred))",
+   "reasoning": "The agent evaluates and optimizes the ensemble solely using RMSE, without checking if other metrics like MAE might be more robust or informative given the extreme outliers typical in financial contract amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including date components, text meta-features, TF-IDF SVD, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes ensemble weights using SLSQP rather than relying on a naive simple average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target transformation metric mismatch",
+   "description": "The agent trains all models on a log-transformed target, which effectively optimizes for RMSLE. However, the final evaluation metric is RMSE on the original scale. Because RMSE heavily penalizes large absolute errors on extreme values, transforming predictions back via `expm1` without bias correction results in severe underprediction of large values and suboptimal RMSE performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "target_log = np.log1p(np.maximum(0.0, train_df[target_col].values))\n...\nreturn np.sqrt(mean_squared_error(y_raw, pred))"
+  }
+ ],
+ "summary": "The agent implements a highly rigorous machine learning pipeline with excellent out-of-fold feature engineering, deep learning integration, and ensemble optimization. However, it fails to account for the temporal nature of the dataset during splitting, and it introduces a severe metric mismatch by training models on a log-transformed target while evaluating on raw RMSE, which will heavily penalize the inevitable underprediction of large contract amounts.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

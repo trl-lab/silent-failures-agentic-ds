@@ -1,0 +1,141 @@
+{
+ "task": "fts-requirement-and-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(text_data)\n...\nfreq = df_all[col].value_counts()\ndf_all[f\"{col}_freq\"] = df_all[col].map(freq)",
+   "reasoning": "The agent fits TfidfVectorizer, TruncatedSVD, and calculates categorical frequency encodings on df_all (which includes both training and test data), leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_cols.append(col)",
+   "reasoning": "The agent makes no explicit effort to impute or handle missing values in numerical columns, implicitly relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No numerical scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(...)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD, which is a dimensionality reduction/feature selection technique, is fitted on the combined train and test text data before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted on the full dataset (only a constant fillna is used for text).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Although the dataset likely has a temporal component based on the extraction of date features, it's not strictly clear without looking at the data whether a time-based split is required over the used random K-Fold split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM with objective='regression') is correctly selected for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold CV, which inherently trains and averages predictions over multiple distinct splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))",
+   "reasoning": "The agent computes and reports only the RMSE metric, without validating performance across other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated appropriately using standard target extraction and log transformation.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features, including date parts, text embeddings (TF-IDF + SVD), and frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only averages the predictions of CV folds (which is standard bagging), and does not attempt naive ensembling of different model types.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding original test IDs",
+   "description": "The agent drops the ID column from the test set features and fails to use the original IDs for the final submission, instead generating a new sequence using `np.arange()`. If the original test IDs were non-sequential or alphanumeric, this will cause the submission to fail evaluation completely.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test_preds)), ...})"
+  }
+ ],
+ "summary": "The agent successfully implements a standard LightGBM regression pipeline with 5-fold cross-validation and engineers reasonable text, date, and categorical features. However, the solution suffers from critical data leakage as transformers (TF-IDF, SVD) and frequency encodings are fitted on the combined train and test sets prior to splitting. Furthermore, the agent hallucinates generic test IDs for the submission file instead of retaining the original ones, which would likely invalidate the submission.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

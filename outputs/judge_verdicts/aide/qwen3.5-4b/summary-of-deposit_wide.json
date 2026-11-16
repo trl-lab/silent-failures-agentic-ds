@@ -1,0 +1,145 @@
+{
+ "task": "summary-of-deposit_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna()\ntest_df = test_df.dropna()",
+   "reasoning": "The agent drops all rows with any missing values without attempting any explicit imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed; missing values are dropped instead.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear from the task context whether the dataset has a strict temporal order that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with 'objective': 'regression') for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, satisfying the requirement for internal validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent runs a 5-fold cross-validation, so the stochastic model is evaluated more than once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(mean_squared_error(y_val_fold, y_pred_val))",
+   "reasoning": "The agent evaluates the model using only a single metric (RMSE) and does not report secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem on the target variable DEPSUM.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"DEPSUM\", axis=1)",
+   "reasoning": "The agent uses the raw columns as features and performs absolutely no feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dropping rows from test set",
+   "description": "Applying `dropna()` to the test dataset removes rows that need to be predicted, which will cause the submission file to have missing predictions and fail evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = test_df.dropna()"
+  },
+  {
+   "name": "Sub-optimal model selection from CV",
+   "description": "The agent selects the single best-performing model across CV folds to make test predictions, rather than ensembling predictions from all fold models or retraining on the full dataset. This discards training data and introduces selection bias by favoring the fold with the easiest validation set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_rmse < best_score:\n        best_score = fold_rmse\n        best_model = model\n...\ntest_predictions = best_model.predict(X_test)"
+  }
+ ],
+ "summary": "The agent successfully sets up a LightGBM model with cross-validation but completely neglects feature engineering and sensible data cleaning. Crucially, the agent drops rows with missing values from both train and test sets, which will result in an invalid submission shape. Additionally, it uses an anti-pattern of picking the single 'best' fold model from cross-validation rather than ensembling or retraining.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

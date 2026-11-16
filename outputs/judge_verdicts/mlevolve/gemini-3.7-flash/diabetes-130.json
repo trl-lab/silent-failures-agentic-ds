@@ -1,0 +1,153 @@
+{
+ "task": "diabetes-130",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "all_patients = pd.concat([df_train[\"patient_nbr\"], df_test[\"patient_nbr\"]]); patient_counts = all_patients.value_counts()",
+   "reasoning": "The agent concatenates training and test datasets to compute frequency encodings and patient encounter counts. Counting patient encounters across both sets is a critical target leakage, as the presence of future test set encounters directly informs the model about whether a patient will be readmitted.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive data cleaning and handles missing values via median imputation and 'Missing' categorical assignment.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on the training fold (X_trn) inside the CV loop and then applied to the validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation medians are computed only on the training dataset (train_feat), preventing test missing-value statistics from leaking.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Random splitting with patient grouping is standard and acceptable for predicting readmissions; strict temporal splitting is not mandated here.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is multiclass classification and the agent correctly configures models for this (e.g., objective='multiclass', MultiClass loss).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)",
+   "reasoning": "The custom neural network includes Dropout layers, and the optimizer utilizes weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 cross-validation folds, which inherently accounts for variance over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The specified evaluation metric (accuracy) is appropriately targeted via threshold optimization, while models optimize multi-class log loss internally.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification task is appropriately formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements highly sophisticated clinical domain-specific feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "res_weights = minimize(blend_loss, [0.0, 0.0, 0.0, 0.0], method=\"Nelder-Mead\")",
+   "reasoning": "The agent uses Nelder-Mead optimization to find optimal blend weights rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Mismatched Model State for Test Predictions",
+   "description": "When training the neural network, the agent performs manual early stopping by tracking the best validation loss and saving the corresponding validation probabilities. However, it fails to restore the model weights from this best epoch before making predictions on the test set, instead using the overfitted weights from the final epoch. This leads to a mismatch between OOF metrics and actual test performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "best_nn_val_probs = np.vstack(val_probs_list) ... nn_test_probs = torch.softmax(test_logits, dim=1).cpu().numpy()"
+  },
+  {
+   "name": "Cross-Validation Leakage in Feature Aggregation",
+   "description": "The agent computes grouped aggregation statistics (e.g., mean and std of numerical features by diagnosis and age) across the entire training dataset before splitting into cross-validation folds. This leaks distribution information from the validation folds into the training folds, making the out-of-fold scores overly optimistic.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "grp_mean = train_feat.groupby(grp)[num_col].mean().to_dict()"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated solution with excellent clinical feature engineering, proper out-of-fold target encoding, and an advanced ensembling strategy. However, it introduces critical target leakage by using the test set to compute patient encounter counts, allowing the model to look ahead at future test encounters to predict readmissions (FM02). Additionally, there is feature aggregation leakage across CV folds, and a bug where the neural network uses final epoch weights instead of best epoch weights for test set predictions.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

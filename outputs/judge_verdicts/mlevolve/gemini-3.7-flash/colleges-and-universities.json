@@ -1,0 +1,142 @@
+{
+ "task": "colleges-and-universities",
+ "failure_modes": {
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_raw, X_val_raw, y_train, y_val = train_test_split(X, y, test_size=0.20, random_state=SEED, shuffle=True)",
+   "reasoning": "The agent performs a single 80/20 train/validation split and evaluates the stochastic models exactly once, without using cross-validation or multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse_lgb = root_mean_squared_error(y_val, val_pred_lgb)",
+   "reasoning": "The agent only calculates and reports RMSE, without computing complementary metrics like MAE or R2 to better understand model performance and robustness to outliers.",
+   "applicable": true
+  },
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and specialized categorical encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fitted only on the training split (X_train_proc) after the train/test split has been established.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like medians and group aggregations) are calculated strictly on the training set and applied to validation/test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression and the agent correctly uses regression models (LGBMRegressor, XGBRegressor, TabularResNet, etc.).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The TabularResNet includes LayerNorm, Dropout, and weight decay regularization in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is created and utilized.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates multiple models on a designated validation set, not the final held-out test set.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including text SVD, spatial rotations, KNN density, and numerical interaction ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find optimal ensemble weights, rather than a naive equal-weight average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage in Ensembling",
+   "description": "The agent optimizes ensemble combination weights using the same validation set that was used for early stopping and hyperparameter tuning of the base models. This causes the ensemble weights to overfit to the optimistically biased validation predictions. A separate holdout set or out-of-fold cross-validation predictions should be used to fit the meta-learner/ensemble.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_val_proc, y_val)] ... opt_result = minimize(ensemble_objective, initial_weights, ...)"
+  }
+ ],
+ "summary": "The agent provides a robust and well-structured tabular regression pipeline, featuring comprehensive feature engineering, deep learning integration, and proper data splitting. However, it suffers from a single-split evaluation methodology and leaks validation data into the ensemble weight optimization by reusing the early-stopping validation set.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

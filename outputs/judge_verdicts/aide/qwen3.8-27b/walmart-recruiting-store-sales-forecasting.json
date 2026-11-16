@@ -1,0 +1,145 @@
+{
+ "task": "walmart-recruiting-store-sales-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing; missing values in test are handled independently.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in the test set's 'IsHoliday' column and handles missing lag values with fillna(0.0).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a time-based split, assigning the last 13 weeks of dates to the validation set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a regression model (LightGBM with 'regression_l1') which matches the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split and evaluates the model on it before retraining on the full dataset.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    dtrain,\n    num_boost_round=2000,\n    valid_sets=[dval],",
+   "reasoning": "The LightGBM model uses stochastic parameters (bagging_fraction, feature_fraction) but is evaluated only once on a single random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"Validation WMAE: {wmae(y_val, val_pred):.6f}\")",
+   "reasoning": "The agent reports only their custom WMAE metric and fails to calculate other standard regression metrics (like MAE or RMSE) to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem to forecast weekly sales.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts multiple date parts and engineers sophisticated lag features to capture yearly seasonality.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect custom metric implementation",
+   "description": "The agent implements a custom metric that entirely contradicts the competition's definition. The true WMAE for this task relies on a 5x weight multiplier for holiday weeks, but the agent's function ignores the `IsHoliday` column entirely and incorrectly divides by the sum of true values rather than the sum of weights.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "def wmae(y_true, y_pred):\n    ...\n    denom = np.sum(y_true)\n    ...\n    return float(np.sum(np.abs(y_true - y_pred)) / denom)"
+  },
+  {
+   "name": "Ignoring sample weights during model training",
+   "description": "When a task evaluates performance using a weighted metric (e.g., placing higher penalty on specific subsets like holidays), the model should be trained with corresponding sample weights. The agent uses an unweighted L1 objective, failing to optimize for the heavily-weighted holiday weeks.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=categorical_cols)"
+  }
+ ],
+ "summary": "The agent demonstrates good structural practices, including a correct time-based validation split and clever engineering of 52-week lag features that avoid test-set leakage. However, they critically misunderstand the WMAE metric. They implement a flawed custom metric that ignores holiday weights and normalizes by the sum of sales, and they fail to pass sample weights to the LightGBM objective to optimize for the weighted task properly.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

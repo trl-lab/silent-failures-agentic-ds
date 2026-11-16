@@ -1,0 +1,101 @@
+{
+ "task": "vehicle",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "imputer = SimpleImputer(strategy='median')\ndf_all_imputed = pd.DataFrame(imputer.fit_transform(df_all), columns=df_all.columns)",
+   "reasoning": "The SimpleImputer is fit on the concatenated train and test dataset, leaking test set statistics (medians) into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_tr, y)):\n    X_fold_tr, y_fold_tr = X_tr[train_idx], y[train_idx]\n    ...\n    test_preds += preds",
+   "reasoning": "The agent sets up cross-validation but never computes a validation score or evaluates out-of-fold performance, leaving no way to estimate model generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += preds\n...\ntest_preds /= total_models",
+   "reasoning": "The agent combines predictions from a diverse set of 11 different models (across 10 folds) using a naive unweighted average, without attempting to tune the ensemble weights or use stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unused validation split",
+   "description": "The agent creates cross-validation splits but completely ignores the validation indices (never evaluates on them or uses them for early stopping). This wastes a portion of the training data per fold without yielding any validation insights, resulting in models trained on less data for no benefit.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_tr, y)):\n    X_fold_tr, y_fold_tr = X_tr[train_idx], y[train_idx]"
+  }
+ ],
+ "summary": "The solution suffers from a critical data leakage by applying missing value imputation on the combined train and test sets (FM04). Furthermore, while the agent implements a cross-validation loop, it completely ignores the validation indices, failing to evaluate model generalisation (FM06) and effectively wasting 10% of the training data per fold. Finally, the agent employs a highly diverse 11-model ensemble but naively averages their probabilities without any weight tuning or stacking (FM12).",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

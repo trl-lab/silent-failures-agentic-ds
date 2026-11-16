@@ -1,0 +1,141 @@
+{
+ "task": "total-contributions-ibrd-ida-ifc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by handling missing values and parsing dates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in num_cols:\n    df_all[col] = df_all[col].fillna(df_all[col].median())",
+   "reasoning": "The median for imputation is calculated on the combined train and test sets, leaking test set distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent extracts date features and uses a random KFold split, but it is unclear if the specific dataset strictly requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoost/HistGradientBoosting) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using cross-validation, which intrinsically accounts for variance across data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = root_mean_squared_error(y_train, oof_preds)",
+   "reasoning": "The agent only calculates and reports the provided RMSE metric without evaluating secondary metrics like MAE for robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The standard regression task formulation is correct, with a log1p transformation appropriately applied to the target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering by parsing dates and calculating group-level aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages fold predictions (standard bagging), and does not attempt naive ensembling of distinct models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering data leakage",
+   "description": "The agent applies feature engineering transformations (such as group-level mean/std aggregations and categorical encoding) on the combined train and test datasets before splitting. This leaks information about the test set feature distributions into the training process.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped = df_all.groupby(c_col)[n_col]\n            df_all[f\"{c_col}_{n_col}_mean\"] = grouped.transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a generally solid modeling pipeline utilizing K-fold cross-validation, log transformations, and robust regressor choices. However, by concatenating the train and test sets for preprocessing, it introduces critical data leakage through median imputation and group-level aggregations calculated across the entire dataset.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

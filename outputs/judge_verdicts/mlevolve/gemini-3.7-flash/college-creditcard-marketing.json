@@ -1,0 +1,108 @@
+{
+ "task": "college-creditcard-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_score = np.sqrt(mean_squared_error(y, final_oof))",
+   "reasoning": "The agent computes and optimizes solely on RMSE without validating its robustness or tracking secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent train/test feature schema",
+   "description": "Feature engineering logic applies conditionally based on properties of the data slice it is processing (e.g., creating a log1p feature only if the column minimum is >= 0). If a column is non-negative in the training set but contains a negative value in the test set, the test DataFrame will be missing that feature column entirely, causing predictions to crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "col_min = df[col].min()\nif pd.notna(col_min) and col_min >= 0:\n    df[f\"{col}_log1p\"] = np.log1p(df[col].fillna(0).clip(lower=0))"
+  },
+  {
+   "name": "String IDs corrupted during submission",
+   "description": "The submission logic checks if the ID array is an integer subtype. If it is not (e.g., if the IDs are strings), the true IDs are completely discarded and replaced with a generated integer range, ruining the submission mapping.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": (test_ids.astype(int) if np.issubdtype(test_ids.dtype, np.integer) else np.arange(len(final_test)))"
+  },
+  {
+   "name": "OOM risk from unbatched deep learning inference",
+   "description": "The agent converts the entire test set into a single tensor and passes it through the PyTorch neural network at once rather than using a DataLoader for batching. For larger test sets, this will trigger a GPU Out of Memory (OOM) error.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_tensor = torch.tensor(X_te_proc, dtype=torch.float32).to(device)\nnn_test_norm_pred = nn_model(test_tensor).cpu().numpy()"
+  }
+ ],
+ "summary": "The agent provides a robust regression solution with diverse modeling (GBDTs and a Tabular ResNet), leakage-free target encoding inside CV, and a constrained optimization ensemble. However, there are critical execution risks: conditional feature generation could produce mismatched train/test schemas, the submission builder will overwrite string IDs with integers, and passing the full test set through the NN at once risks an OOM crash.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

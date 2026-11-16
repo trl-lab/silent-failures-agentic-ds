@@ -1,0 +1,138 @@
+{
+ "task": "schools",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to handle missing values using a SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within a pipeline fitted only on the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is defined within a pipeline that is fitted only on the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not explicitly temporal, and no validation split is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regressor (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_processed, y_train)\n    \n    # Predictions\n    y_pred = model.predict(X_test_processed)",
+   "reasoning": "The agent trains on the entire training set and immediately predicts on the test set without any validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(random_state=42, n_estimators=1000, verbose=-1, learning_rate=0.05, num_leaves=31)\n    model.fit(X_train_processed, y_train)",
+   "reasoning": "The agent trains a single instance of a stochastic model (LGBMRegressor) without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, failing to verify performance using any appropriate metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_columns = [col for col in train_df.columns if col != target_column]",
+   "reasoning": "The agent uses the raw columns as features without creating any derived features or domain-specific interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Pipeline used instead of ColumnTransformer",
+   "description": "The agent mistakenly uses `sklearn.pipeline.Pipeline` to group column-specific transformations instead of `sklearn.compose.ColumnTransformer` (despite importing the latter). This causes the pipeline to run sequentially on all columns, passing categorical strings into numerical imputers and scalers, resulting in a fatal ValueError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "transformer = Pipeline(steps=[\n        ('num_transformer', Pipeline([\n            ('imputer', SimpleImputer(strategy='median')),\n            ('scaler', StandardScaler())\n        ])),\n        ('cat_transformer', Pipeline([\n            ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False, drop='first'))\n        ]))\n    ])"
+  }
+ ],
+ "summary": "The agent attempts a straightforward regression using LightGBM but makes a critical coding error by using `Pipeline` instead of `ColumnTransformer` for feature preprocessing, which causes a fatal execution crash. Furthermore, the agent fails to implement any validation strategy (training directly on the full dataset and predicting on the test set) and bypasses feature engineering completely.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

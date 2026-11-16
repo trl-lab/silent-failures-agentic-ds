@@ -1,0 +1,145 @@
+{
+ "task": "historic-perimeters-wildfires",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for exploration or preprocessing decisions before splitting; preprocessing logic is derived from the training set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by handling missing values, converting data types, dropping all-NaN columns, and dropping duplicate columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution (which is acceptable for LightGBM).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the combined dataset; dropping constant columns is based entirely on the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)",
+   "reasoning": "The dataset contains historical wildfire data with temporal components (as evidenced by datetime feature extraction), but the agent uses a random K-Fold split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 distinct CV folds, which inherently averages predictions and accounts for some variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates using RMSE, which is the specific metric explicitly requested by the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task predicting 'gisacres'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering by extracting cyclical calendar features from datetime columns.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target transformation mismatch with evaluation metric",
+   "description": "The agent applies a log transformation to the target variable but the required evaluation metric is RMSE on the original scale. This causes the model to optimize for RMSLE (relative error) instead of RMSE (absolute error), which will likely result in poor RMSE performance because large absolute errors on large target values are heavily under-penalized during training.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_target = np.log1p(y) if use_log else y.values"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent drops potential ID columns from the test set and generates the submission ID column using `np.arange`. If the test set relies on specific, non-sequential identifier strings or numbers, this will result in a misaligned or invalid submission file.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_preds), dtype=int)"
+  }
+ ],
+ "summary": "The agent provides a well-structured LightGBM solution with proper CV, feature engineering, and data cleaning. However, it fails to account for the temporal nature of the historical wildfire data by using a random split (look-ahead bias). Additionally, optimizing on a log-transformed target while evaluating on RMSE will misalign the model's loss with the target metric, and hardcoding submission IDs may break the submission format.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

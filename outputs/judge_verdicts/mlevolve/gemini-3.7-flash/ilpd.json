@@ -1,0 +1,149 @@
+{
+ "task": "ilpd",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking during EDA is present in the code.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using domain-specific rules and median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes imputation medians on the training set only, avoiding leakage of test statistics into the training data (though it does leak validation stats into train folds during CV).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models are used for this binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model uses dropout and weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code uses RepeatedStratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated over 25 CV folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code optimizes for ROC AUC, which is the correct and robust metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive domain-informed feature engineering is applied.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a proper stacking meta-learner with Logistic Regression on logit-transformed predictions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Independent test set parametric transformation",
+   "description": "Applying a parameterized data transformation (like Yeo-Johnson) independently on the test set without saving and reusing the parameters learned from the training set. This maps the same raw feature values to different transformed values in train vs test, corrupting the feature space for inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "transformed_vals, _ = yeojohnson(series.fillna(series.median()))\n        data[col_name] = transformed_vals"
+  },
+  {
+   "name": "Validation leakage during imputation",
+   "description": "Computing imputation statistics (e.g., medians) on the entire training set before the cross-validation loop. This leaks validation fold statistics into the training folds, making the out-of-fold validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_medians = X_train_engineered.median(numeric_only=True)\nX_train_engineered = X_train_engineered.fillna(train_medians).astype(np.float32)"
+  }
+ ],
+ "summary": "The agent demonstrates strong practices overall, including excellent clinical feature engineering, a rigorous cross-validation setup, and proper logit-space ensembling. However, a critical flaw exists in the feature engineering pipeline where the Yeo-Johnson transformation is applied independently to the test set, meaning its transformation parameters are fit on test data rather than inherited from training data. Additionally, there is minor data leakage due to calculating imputation medians on the full training set prior to cross-validation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

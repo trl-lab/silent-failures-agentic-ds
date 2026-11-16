@@ -1,0 +1,101 @@
+{
+ "task": "beijing-pm25",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_df[col].fillna(full_df[col].median() if len(full_df[col].dropna()) > 0 else 0.0)",
+   "reasoning": "Imputing missing values using the median of the entire combined dataset (train + test) before splitting leaks test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is temporal, but random shuffling is used for cross-validation, leading to future data predicting past data (severe look-ahead bias).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_metric=\"rmse\"",
+   "reasoning": "The agent only tracks RMSE and does not verify performance with other metrics like MAE, which would be useful to understand the model's robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignoring temporal gaps during temporal feature generation",
+   "description": "Dropping rows with missing targets before computing time-based shift or rolling features disrupts regular time intervals. As a result, 'lag_1' no longer strictly corresponds to the immediately preceding time step, but rather the preceding available time step, corrupting temporal features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna(subset=[\"pm2.5\"]).reset_index(drop=True)\n...\nfull_df[f\"{col}_lag_{lag}\"] = full_df[col].shift(lag).bfill()"
+  }
+ ],
+ "summary": "The agent performs extensive and well-structured feature engineering, including domain-specific meteorological features and optimized ensembling. However, it critically fails to respect the temporal nature of the dataset during cross-validation by using a shuffled K-Fold split. Additionally, there is moderate data leakage from computing imputation medians on the combined train and test sets, and time-series features are corrupted by dropping missing target rows prior to feature generation.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

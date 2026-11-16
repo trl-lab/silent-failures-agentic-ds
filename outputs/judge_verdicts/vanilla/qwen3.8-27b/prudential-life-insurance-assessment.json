@@ -1,0 +1,141 @@
+{
+ "task": "prudential-life-insurance-assessment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including handling missing values, constant columns, and dummy encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting (aside from dropping constant columns, which is a structural cleanup rather than feature selection).",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fill_value = X_train[col].median()",
+   "reasoning": "Imputation statistics (median) are computed on X_full (passed as X_train to prepare_features) before it is split into X_train and X_val, leaking validation distribution into the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier combined with ordinal threshold optimization on cumulative probabilities, which is a highly appropriate formulation for this task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used to tune the prediction thresholds.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(\n        n_estimators=800,\n        learning_rate=0.05,\n        num_leaves=31,\n        max_depth=8,\n        subsample=0.9,\n        subsample_freq=1,\n        colsample_bytree=0.8",
+   "reasoning": "A stochastic LGBMClassifier (with subsample and colsample_bytree < 1.0) is trained exactly once, without averaging over multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The script optimizes for QWK, which is the exact and correct evaluation metric for this competition.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a multi-class probability output followed by ordinal threshold tuning.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[TARGET, ID_COL], errors=\"ignore\").copy()",
+   "reasoning": "The agent uses raw columns as-is (applying only basic imputation and dummy encoding) without engineering domain-specific or interaction features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect Submission IDs",
+   "description": "The script discards the original test set identifiers and replaces them with a generated sequential integer range, which will result in an invalid or entirely incorrect submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(predictions), dtype=int)"
+  },
+  {
+   "name": "No Evaluation Metrics Reported",
+   "description": "The script runs a full training and validation pipeline but fails to log or print any evaluation metrics (e.g., QWK score) to the console, rendering it impossible to assess the model's performance without modifying the code.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "thresholds, _ = tune_thresholds(val_cum, y_val_idx, n_classes, weight_matrix)"
+  }
+ ],
+ "summary": "The agent sets up a reasonably sophisticated ordinal classification pipeline using cumulative probabilities and threshold tuning. However, the solution contains a critical flaw where it discards the original test IDs and replaces them with a sequential range, breaking the submission format entirely. Furthermore, it leaks validation set statistics by imputing missing values before splitting, fails to report any evaluation metrics, and skips feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

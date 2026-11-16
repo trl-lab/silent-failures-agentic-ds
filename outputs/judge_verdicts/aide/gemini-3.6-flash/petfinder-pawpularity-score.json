@@ -1,0 +1,145 @@
+{
+ "task": "petfinder-pawpularity-score",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_test = create_features(train_df, test_df, meta_cols)",
+   "reasoning": "The agent makes no explicit effort to check for or handle missing values, duplicates, or outliers before engineering features and training.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pca_tr = pca.fit_transform(X_tr[feature_cols])",
+   "reasoning": "PCA is fit strictly on the training data (not the combined train/test dataset), so test data is not leaked into feature choice. (Note: Validation data is leaked, which is covered separately).",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = xgb.XGBRegressor(**xgb_params)",
+   "reasoning": "The agent uses XGBRegressor which is appropriate for a regression task. The use of 'binary:logistic' objective is a valid and common technique for bounded regression targets scaled to [0,1].",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, bins)):",
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, accounting for some variance rather than relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y_train, oof_preds))",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying if other metrics might be informative.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a regression problem on the Pawpularity score.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pca = PCA(n_components=min(4, len(feature_cols)), random_state=42)",
+   "reasoning": "The agent explicitly creates statistical summaries, pairwise interactions, PCA features, and KMeans cluster distances.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (model.predict(X_test) * 100.0) / skf.n_splits",
+   "reasoning": "The agent combines the predictions of the 5 cross-validation fold models using a simple unweighted average without any tuning.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Transformations that learn from the data (like PCA or clustering) are fit on the entire training set before performing the cross-validation split. This leaks information from the validation folds into the training folds, making the CV scores artificially optimistic.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_test = create_features(train_df, test_df, meta_cols)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train, bins)):"
+  },
+  {
+   "name": "Ignoring primary data modality",
+   "description": "The agent completely ignores the primary data modality (e.g., images) provided for the task, relying exclusively on secondary tabular metadata. This discards the vast majority of the predictive signal.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "exclude_cols = {\"id\", \"Id\", \"Pawpularity\", \"pawpularity\", \"path\", \"filepath\", \"image_path\"}"
+  }
+ ],
+ "summary": "The agent successfully sets up a cross-validation loop and applies several feature engineering techniques to the tabular metadata. However, it commits a critical error by fitting data-dependent transformations (PCA, KMeans) on the entire training set before the CV split, causing validation leakage. Furthermore, it completely ignores the image data, which is the primary source of predictive signal for this multimodal task.",
+ "agent": "aide",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

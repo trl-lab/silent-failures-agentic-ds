@@ -1,0 +1,149 @@
+{
+ "task": "commitments-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking occurs during EDA since EDA is not performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values in categorical columns are explicitly filled with a constant string.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the data; missing values are filled with a constant string which does not leak statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no obvious temporal column to order by, making it impossible to determine if temporal splitting is needed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to split the data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model predictions are averaged over 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any metrics at all, so they do not rely on just one reported metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates text length, word count, and frequency encoding features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent ensembles the two models using a simple unweighted 50/50 average rather than optimizing the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage in frequency encoding",
+   "description": "Frequency encoding is applied to the combined train and test dataset before splitting. This leaks the categorical value distribution statistics of the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "all_data = pd.concat([X_train, X_test], axis=0).reset_index(drop=True)\n...\nfreq = all_data[col].value_counts()\nall_data[f'{col}_freq'] = all_data[col].map(freq)"
+  },
+  {
+   "name": "Missing validation metric computation",
+   "description": "The agent sets up a cross-validation loop to train the models and generate test predictions, but fails to compute or log the validation metric (RMSE) for the out-of-fold predictions, making it impossible to evaluate generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X_train_processed):\n...\n    lgb_preds += lgb_model.predict(X_test_processed) / kf.n_splits\n...\n    cat_preds += cb_model.predict(X_test_cat) / kf.n_splits"
+  }
+ ],
+ "summary": "The agent successfully applies a K-Fold cross-validation strategy, basic feature engineering, and ensembling. However, the solution suffers from a naive 50/50 blend for the ensemble and critical data leakage due to applying frequency encoding on the concatenated train and test sets. Additionally, the agent entirely neglects to calculate or log any validation metric during the cross-validation process.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

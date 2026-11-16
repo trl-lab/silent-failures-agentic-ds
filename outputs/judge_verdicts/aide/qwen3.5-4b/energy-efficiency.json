@@ -1,0 +1,141 @@
+{
+ "task": "energy-efficiency",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or inspect the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_features = train_features.fillna(train_features.median())",
+   "reasoning": "The agent handles missing values by filling them with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_features.fillna(train_features.median())\n\n# Create 5-fold cross-validation\nkf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Imputation is applied to the entire training set before the K-Fold split, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "The agent correctly uses a regression objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"5-Fold Cross-Validation RMSE: {np.mean(fold_rmses):.6f}\")",
+   "reasoning": "The stochastic model is evaluated across 5 cross-validation folds and the scores are averaged.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = mean_squared_error(y_val, val_pred, squared=False)",
+   "reasoning": "The agent only computes and relies on RMSE, without verifying model performance using other metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "target_col = \"heating_load\"",
+   "reasoning": "The task is correctly formulated as predicting the continuous heating_load target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw features exactly as provided without generating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Using test statistics for test set imputation",
+   "description": "The agent imputes missing values in the test set using the test set's own statistics (e.g., median) rather than the statistics learned from the training set. This is a form of transductive learning that violates the assumption of test data being independent and unseen.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_features = test_features.fillna(test_features.median())"
+  },
+  {
+   "name": "Selecting best fold model instead of ensembling",
+   "description": "The agent uses only the single best-performing model from the cross-validation folds to generate final test predictions. This approach discards a significant portion of the training data and risks overfitting to a specific validation fold, rather than ensembling all fold models or retraining on the full dataset.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_rmse < best_rmse:\n        best_rmse = fold_rmse\n        best_model = model\n...\ntest_pred = best_model.predict(test_features)"
+  }
+ ],
+ "summary": "The agent successfully implements a LightGBM regression pipeline with 5-fold cross-validation. However, it introduces data leakage by imputing missing values before splitting the folds, and improperly uses test set statistics to impute the test data. Additionally, it leaves performance on the table by applying no feature engineering and generating test predictions using only a single fold's model instead of an ensemble.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

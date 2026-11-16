@@ -1,0 +1,58 @@
+{
+ "task": "osha-accidents",
+ "failure_modes": {
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "weights = [0.35, 0.25, 0.25, 0.15]\noof_ensemble = (\n    weights[0] * oof_lgb\n    + weights[1] * oof_xgb...",
+   "reasoning": "The agent hardcodes the blend weights without any tuning or optimization, despite importing scipy.optimize.minimize for this exact purpose.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "categorical_as_continuous_in_nn",
+   "description": "Label-encoded categorical variables are passed directly into a neural network as continuous numerical features (after standardization), which falsely implies an ordinal relationship. Embeddings or one-hot encoding should be used instead.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_cat_encoded[f\"{c}_le\"] = le.transform(train_cats[c])\n...\nX_tr = scaler.fit_transform(X_tr_imp).astype(np.float32)\n...\nlogits = nn_model(bx)"
+  },
+  {
+   "name": "ignoring_native_cat_handling",
+   "description": "The agent uses models that support native categorical features (CatBoost, LightGBM) but passes the data as a standardized float32 numpy array without specifying categorical feature indices, degrading the models' ability to handle categorical data optimally.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_cat.fit(X_tr, y_tr, eval_set=(X_va, y_va), verbose=False)"
+  },
+  {
+   "name": "cv_target_leakage_in_oof_features",
+   "description": "The agent uses the exact same K-Fold split object (same seed and splits) for generating out-of-fold features (Target Encoding, Text predictions) as for the final model cross-validation. This leaks the validation fold's target information into the training folds' features, resulting in an overly optimistic CV score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf_text = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)\n...\nskf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)"
+  },
+  {
+   "name": "feature_leakage_in_group_aggregations",
+   "description": "Group-by aggregations (mean/std of numerical features) and TF-IDF vectorizers are fitted on the entire training set before cross-validation splitting, leaking the feature distributions of validation folds into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "group_agg_train[f\"{c}_{n}_grp_mean\"] = train_raw.groupby(c)[n].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent provides a comprehensive pipeline with extensive feature engineering and model diversity. However, it fails to tune the ensemble weights, treats categorical variables as continuous in the neural network, ignores native categorical support in tree models, and introduces target leakage into the CV process by reusing the same folds for out-of-fold feature generation.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

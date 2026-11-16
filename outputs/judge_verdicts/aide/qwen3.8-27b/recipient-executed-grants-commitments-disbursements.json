@@ -1,0 +1,138 @@
+{
+ "task": "recipient-executed-grants-commitments-disbursements",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only compares column names between train and test sets to identify common features, which is a structural necessity rather than peeking at test distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by correctly handling missing targets, coercing numeric types, handling infinities, and filling missing categorical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation transformations are applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant or all-NaN columns) is safely computed using only the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fitted on the full dataset; categorical NaNs are filled with a constant string and numerical NaNs are left for LightGBM to handle natively.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset likely contains temporal elements (e.g., grant approval dates), but without seeing the specific columns, it's impossible to confirm if a time-based split should have been used over the random K-Fold employed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly identifies the task as regression and uses LightGBM regressor.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold cross-validation strategy to properly evaluate the model on holdout folds.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which intrinsically averages the performance over 5 separate models, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(rmse(y_valid_fold, valid_pred))",
+   "reasoning": "The agent evaluates and tracks performance using only RMSE, without verifying if it's the most appropriate metric or tracking secondary metrics like MAE to understand outlier impact.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately framed as a standard regression task matching the target requirements.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = clean_frame(X, cat_cols)\nX_test = clean_frame(X_test, cat_cols)",
+   "reasoning": "The agent exclusively uses raw columns and performs no feature engineering, completely ignoring potential derived features like date components or ratios.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation for monetary data",
+   "description": "Monetary targets (like USD disbursements) are almost always heavily right-skewed. Training a model on raw, un-transformed monetary values usually results in poor performance because the loss function (RMSE) becomes overly dominated by a few massive outliers. A log transformation (e.g., log1p) is standard practice here but is missing.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train[TARGET].astype(float).copy()"
+  }
+ ],
+ "summary": "The agent wrote a structurally sound baseline script, correctly applying LightGBM with 5-fold cross-validation and proper categorical handling that avoids data leakage. However, the model will likely underperform due to a complete lack of feature engineering and the failure to log-transform a highly skewed monetary target variable.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

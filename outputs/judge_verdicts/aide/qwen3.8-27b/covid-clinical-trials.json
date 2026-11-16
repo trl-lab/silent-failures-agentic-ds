@@ -1,0 +1,98 @@
+{
+ "task": "covid-clinical-trials",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if s.isna().all() or s.nunique(dropna=True) <= 1 or s.isna().mean() > 0.95:\n        drop_cols.append(col)\n...\nX = X.drop(columns=drop_cols)",
+   "reasoning": "Dropping features based on a missingness threshold across the entire training dataset before cross-validation leaks validation fold statistics into the training process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Clinical trials occur over time, and a random K-Fold split ignores this temporal structure, potentially introducing look-ahead bias by allowing the model to learn from future trials.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = float(np.sqrt(mean_squared_error(y[val_idx], pred)))\n    rmse_scores.append(rmse)",
+   "reasoning": "The agent evaluates the model solely on RMSE, without verifying if a metric more robust to outliers (like MAE) would be appropriate for a duration-based target like days_to_complete.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_out[col] = s.astype(\"int64\") / 1e9\n            X_out[col] = X_out[col].replace({-9223372036854775808: np.nan})",
+   "reasoning": "The agent converts datetimes to absolute timestamps but fails to engineer derived features, such as time differences or durations between key dates, which are highly relevant for predicting completion times.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a generally robust LightGBM pipeline with proper categorical encoding and cross-validation. However, it fails to engineer any meaningful features (especially derived time differences from datetimes) and ignores the likely temporal nature of clinical trials by using random K-Fold splitting. Minor feature selection leakage also occurs by dropping high-missingness columns before the CV split.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

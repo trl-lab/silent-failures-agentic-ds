@@ -1,0 +1,138 @@
+{
+ "task": "beijing-pm25",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used to generate the final predictions, and no EDA is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]\ny_train = train_df[\"pm2.5\"]",
+   "reasoning": "The agent makes no explicit effort to handle missing values, outliers, or duplicate rows, relying entirely on the model's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly sorts the dataset by year, month, day, and hour before splitting, correctly preserving temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a time-based validation set and evaluates the model on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n    n_estimators=500,\n    learning_rate=0.05,\n    num_leaves=31,\n    min_child_samples=20,\n    subsample=0.8,\n    colsample_bytree=0.8,\n    reg_alpha=0.1,\n    reg_lambda=0.1,\n    random_state=42,\n    verbose=-1,\n)",
+   "reasoning": "The agent uses a stochastic model (due to subsample and colsample_bytree) but only evaluates it once with a fixed random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_val = np.sqrt(mean_squared_error(y_test_val, y_pred_val))\nprint(f\"RMSE on validation set: {rmse_val:.4f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without looking at other metrics like MAE which might be informative for air quality data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a time-series regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\"DEWP\", \"TEMP\", \"PRES\", \"cbwd\", \"Iws\", \"Is\", \"Ir\"]",
+   "reasoning": "The agent uses only the raw feature columns as-is and fails to engineer any new features, such as cyclical time features from the available date/time columns.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unhandled categorical feature type",
+   "description": "A categorical string column is passed directly to the model without being encoded or cast to a proper categorical data type, which typically causes execution errors in libraries like LightGBM.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [\"DEWP\", \"TEMP\", \"PRES\", \"cbwd\", \"Iws\", \"Is\", \"Ir\"]"
+  }
+ ],
+ "summary": "The agent correctly approaches the task by applying a time-based train/validation split to avoid data leakage and uses early stopping to prevent overfitting. However, it fails to perform any data cleaning or feature engineering, missing out on valuable temporal features available in the dataset. Additionally, it passes a raw categorical string column ('cbwd') to LightGBM without encoding it or casting it to a categorical dtype, which is a critical execution hazard.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

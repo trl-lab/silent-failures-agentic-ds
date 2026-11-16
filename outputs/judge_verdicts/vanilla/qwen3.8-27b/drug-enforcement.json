@@ -1,0 +1,146 @@
+{
+ "task": "drug-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col], X_test[col]], axis=0)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on the combined training and holdout test sets, leaking the test set's categories into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by dropping mostly missing columns and imputing remaining missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping missing columns) is correctly applied based only on the training set statistics.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation uses a constant value ('MISSING'), so no distribution statistics are leaked from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear from the code if the dataset has a temporal component requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is created and used for evaluation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not used for intermediate evaluation or model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n    X_train, y_train_encoded, test_size=0.2, random_state=42, stratify=y_train_encoded\n)",
+   "reasoning": "The agent evaluates stochastic models on a single random train/validation split without using cross-validation or multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent evaluates the models using only accuracy, without checking other metrics (like log-loss or F1-score) that could provide deeper insight.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categorical_cols = X_train.columns.tolist()",
+   "reasoning": "The agent performs no feature engineering, only applying basic label encoding to the raw columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "avg_proba = np.mean(final_predictions, axis=0)",
+   "reasoning": "The agent uses a simple unweighted average of probabilities to ensemble the models without optimising the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Destructive preprocessing of numerical features",
+   "description": "The agent unconditionally converts all features to strings and applies label encoding, effectively treating continuous numerical variables as categorical. This destroys the ordinality and continuous nature of numerical features, significantly degrading the model's ability to learn meaningful splits.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].astype(str).replace('None', np.nan).replace('nan', np.nan)\n...\ncategorical_cols = X_train.columns.tolist()\n...\nle = LabelEncoder()\nle.fit(combined)"
+  }
+ ],
+ "summary": "The agent implements a solid basic pipeline with proper holdout validation and ensembling, but critically flaws the preprocessing by converting all features (including numerical ones) to strings and label encoding them. This destructive transformation is compounded by a minor test set leakage during the label encoding phase and a lack of feature engineering or ensemble tuning.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "home-credit-credit-risk-model-stability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent processes the train and test sets separately without using test data statistics to inform training.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[features]\ny = train_df[\"target\"].values",
+   "reasoning": "The agent makes no explicit effort to clean the data or handle missing values, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classifier (LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold for validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross-validation, which evaluates the model across multiple data splits rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_val, val_probs)",
+   "reasoning": "The agent evaluates the model using only the ROC-AUC score, without checking other metrics like PR-AUC or log loss to ensure a robust understanding of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date features and performs aggregations on grouped data.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / kf.n_splits",
+   "reasoning": "The agent combines the predictions from the 5 cross-validation folds using a simple unweighted average without attempting to optimize the fold weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent feature generation between train and test",
+   "description": "The feature engineering logic depends on data-dependent conditions (like the presence of duplicates in a specific chunk) which can differ between train and test sets. If a table has duplicates in the train set but not in the test set, the generated feature columns will have completely different names, leading to all those features being passed as NaNs during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if df_group[\"case_id\"].duplicated().any():"
+  }
+ ],
+ "summary": "The agent successfully implements a standard LightGBM pipeline with cross-validation and basic feature engineering. However, it introduces a critical bug in the feature generation logic where the naming and aggregation of features depend on whether duplicates exist in the current dataset, likely causing a massive misalignment of features between train and test sets. Additionally, the solution relies entirely on the model to handle missing values and naive averaging for ensembling.",
+ "agent": "aide",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

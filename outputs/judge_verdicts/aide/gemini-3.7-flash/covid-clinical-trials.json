@@ -1,0 +1,149 @@
+{
+ "task": "covid-clinical-trials",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit EDA on test data is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code handles missing values by coercing dates, filling NaNs with empty strings for text, and filling with 'missing' for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Standard scalers are not explicitly applied before splitting, though other forms of leakage occur.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_components, random_state=42)\n        svd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (a dimensionality reduction technique akin to PCA) is fitted on the combined train and test dataset before splitting, causing data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No sklearn imputers are fitted on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains dates, which suggests a temporal component, but it is unclear if the prediction task inherently requires a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model is correctly used for a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "5-fold cross-validation is properly implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold CV, which inherently provides multiple evaluations over different data subsets.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"5-Fold CV RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "Only RMSE is used for evaluation, which is highly sensitive to outliers that are exceptionally common in long-tailed time-to-event tasks like days_to_complete.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date parsing, date differences, and text processing.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (\n        model.predict(X_test, num_iteration=model.best_iteration) / kf.n_splits\n    )",
+   "reasoning": "The agent averages predictions across folds but uses a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "Frequency encoding or target encoding is applied to the combined train and test dataset before splitting. This leaks the distribution of categories from the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = series_str.value_counts(normalize=True)\n        cat_df[f\"{col}_freq\"] = series_str.map(freq)"
+  },
+  {
+   "name": "Data Leakage via TF-IDF",
+   "description": "A TF-IDF Vectorizer is fit on the combined train and test datasets. This leaks the document frequencies (IDF weights) of terms in the test set into the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=5000, stop_words=\"english\", ngram_range=(1, 2))\n    tfidf_mat = tfidf.fit_transform(text_data)"
+  }
+ ],
+ "summary": "The agent performs extensive feature engineering but introduces severe data leakage by fitting transformers (TF-IDF, TruncatedSVD) and computing frequency encodings on the combined train and test dataset before splitting. Furthermore, the evaluation relies solely on RMSE, which may not be robust for this specific target, and the ensembling logic uses a naive unweighted average.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

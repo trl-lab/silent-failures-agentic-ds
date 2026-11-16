@@ -1,0 +1,138 @@
+{
+ "task": "michelin-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at test data distributions; it only uses test data to identify common columns and fully empty columns.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements data cleaning, such as sanitising labels and handling missing values with a MedianImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is applied correctly within a scikit-learn Pipeline (ColumnTransformer) after the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection based on target correlation or full-dataset statistics is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is handled safely inside a Pipeline during the evaluation and final fitting stages.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the michelin-ratings dataset contains temporal data that would necessitate time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multi-class classifier (LGBMClassifier) for the multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n                X, y, test_size=0.2, random_state=42, stratify=y\n            )",
+   "reasoning": "The agent evaluates the stochastic LightGBM model on a single validation split without cross-validation or averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_metric = \"multi_logloss\" if y_train.nunique() > 2 else \"logloss\"",
+   "reasoning": "The agent optimises for logloss/multi_logloss during early stopping but never calculates or evaluates the model using the actual target metric (accuracy).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_cols = [c for c in X.columns if pd.api.types.is_numeric_dtype(X[c])]\n    text_cols = [c for c in X.columns if c not in numeric_cols]",
+   "reasoning": "The agent uses raw columns directly, relying solely on TF-IDF for text and scaling for numerics, without attempting any derived feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Treating categoricals as free text",
+   "description": "The agent concatenates all non-numeric columns into a single string and processes them with TF-IDF, failing to use proper categorical encoding for structured categorical variables.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "text_cols = [c for c in X.columns if c not in numeric_cols] ... df[cols[0]].str.cat([df[c].str.strip() for c in cols[1:]], sep=\" | \")"
+  }
+ ],
+ "summary": "The agent builds a robust training pipeline that avoids data leakage by securely nesting imputation and scaling within scikit-learn Pipelines. However, the solution lacks substantive feature engineering (falling back on TF-IDF for all non-numeric columns) and relies on a single validation split for a stochastic model without evaluating against the specified task metric.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

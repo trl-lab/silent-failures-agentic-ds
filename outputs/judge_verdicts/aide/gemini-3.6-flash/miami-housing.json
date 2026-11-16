@@ -1,0 +1,159 @@
+{
+ "task": "miami-housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train_df.drop(columns=[\"SALE_PRC\"]), test_df], axis=0).reset_index(\n    drop=True\n)",
+   "reasoning": "The agent makes no effort to clean the data, check for missing values, or handle outliers before proceeding to feature engineering.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Although 'month_sold' is present, there is no explicit year or clear temporal sequence, making a random split acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-Fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated via 5-fold cross-validation, which appropriately accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = root_mean_squared_error(y_train_orig, oof_ensemble)\n\nprint(f\"Validation RMSE: {final_rmse:.4f}\")",
+   "reasoning": "The agent only computes and prints RMSE, ignoring other potentially informative metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including spatial transformations and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses scipy.optimize to find the optimal blending weights rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Transductive feature engineering (Feature leakage)",
+   "description": "The agent fits unsupervised algorithms (KMeans, NearestNeighbors) and calculates frequency counts on the combined train and test sets before splitting. This leaks information about the test set feature distribution into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train_df.drop(columns=[\"SALE_PRC\"]), test_df], axis=0)\n...\nkmeans.fit_predict(coords)\n...\nnn_struct.fit(coords)"
+  },
+  {
+   "name": "Treating categorical features as continuous",
+   "description": "The agent generates categorical cluster labels using KMeans but feeds them into tree-based models as continuous numerical variables without one-hot encoding or specifying them as categorical. This inadvertently imposes an arbitrary ordinal relationship on the clusters.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[f\"cluster_{n_clusters}\"] = kmeans.fit_predict(coords)"
+  },
+  {
+   "name": "Mismatch between training objective and evaluation metric",
+   "description": "The models are trained on a log-transformed target, effectively optimizing RMSLE, but the final task evaluation metric is RMSE on the original scale. This mismatch between the training objective and the evaluation metric can lead to suboptimal performance on the target metric.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train_log = np.log1p(y_train_orig)\n...\nlgb_model.fit(X_tr, y_tr, ...)\n...\nfinal_rmse = root_mean_squared_error(y_train_orig, oof_ensemble)"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated pipeline with spatial feature engineering, KNN target encoding, and optimized model blending. However, it fails to perform basic data cleaning and leaks test set feature distributions by fitting clustering and neighbor algorithms on the combined dataset. Additionally, it improperly treats categorical cluster labels as continuous variables and optimizes a log-scaled objective despite the task requiring RMSE on the original scale.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

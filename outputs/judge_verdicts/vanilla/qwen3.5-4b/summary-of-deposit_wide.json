@@ -1,0 +1,138 @@
+{
+ "task": "summary-of-deposit_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_test_processed[col].fillna(fill_stats[col], inplace=True)",
+   "reasoning": "The agent correctly computes imputation statistics only on the training set and applies them to the test set, avoiding data leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in numeric_cols:\n    df_train_processed[col].fillna(fill_stats[col], inplace=True)",
+   "reasoning": "The agent explicitly implements imputation for missing values in both numeric and categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed in the provided code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed; all non-target columns are used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "fill_stats = {} ... valid_series = df_train[col].dropna() ... fill_stats[col] = valid_series.mode()[0]",
+   "reasoning": "Imputation statistics are derived exclusively from the training data before being applied to the test data, so there is no leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear from the code alone whether the dataset contains temporal columns that require time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'objective': 'regression'",
+   "reasoning": "The agent correctly uses a regression objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_set,\n    num_boost_round=500\n)",
+   "reasoning": "The agent trains the model on the entire training dataset without creating a validation split or using cross-validation to evaluate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_set,\n    num_boost_round=500\n)",
+   "reasoning": "The stochastic LightGBM model is trained exactly once, with no mechanism to average predictions or metrics over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "'metric': 'rmse'",
+   "reasoning": "The agent configures LightGBM to optimise solely for RMSE without evaluating or tracking other potentially relevant regression metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'objective': 'regression'",
+   "reasoning": "The task is appropriately framed as a regression problem targeting the DEPSUM column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in df_train.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns directly, applying only basic missing value imputation, and fails to implement any derived features or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "API Misuse / Execution Crash",
+   "description": "The code passes an invalid keyword argument to a library API, causing a runtime error that prevents the model from executing.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_set = lgb.Dataset(\n    df_train_processed,\n    label=y_train,\n    feature_names=feature_cols,\n    categorical_feature=categorical_cols\n)"
+  }
+ ],
+ "summary": "The agent correctly isolates the training set for computing imputation statistics, preventing data leakage. However, it fails to perform any validation split or feature engineering, and the script ultimately crashes due to an incorrect argument name (`feature_names` instead of `feature_name`) in the LightGBM Dataset instantiation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

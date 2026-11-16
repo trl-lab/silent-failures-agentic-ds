@@ -1,0 +1,140 @@
+{
+ "task": "pol-terminal",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[c].value_counts(normalize=True).to_dict()",
+   "reasoning": "The agent computes frequency encodings for categorical variables on the combined train and test dataset, leaking test set category distribution frequencies into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing categorical values and creates missing value indicators, rather than completely ignoring missing data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "mean_lat, mean_lon = df_all[lat_name].mean(), df_all[lon_name].mean()",
+   "reasoning": "The agent centers spatial coordinates by subtracting their global means calculated across both the train and test sets, leaking test set statistics.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation uses a constant string ('missing'), which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There are no explicit temporal features to necessitate a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LightGBM and CatBoost Regressors) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models using 5-fold cross-validation, averaging predictions over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE, which is the required metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates numerous derived features, including spatial calculations, categorical interactions, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_preds = np.clip(0.5 * oof_lgb + 0.5 * oof_cat, 0, None)",
+   "reasoning": "The agent blends predictions using a hardcoded, unweighted 50/50 average rather than optimising the blend weights based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Categorical features treated as continuous",
+   "description": "The agent label-encodes categorical variables into integers but fails to cast them to pandas 'category' dtype or explicitly specify them as categorical features for LightGBM and CatBoost, causing the tree models to treat these unordered categories as continuous numerical values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_proc[c] = le.transform(X_train_proc[c].astype(str))"
+  }
+ ],
+ "summary": "The agent provides a robust cross-validated solution with substantial feature engineering and an ensemble of LightGBM and CatBoost. However, they introduce data leakage by computing frequency encodings and coordinate means across the combined train and test sets prior to splitting. Furthermore, the ensembling strategy uses a naive 50/50 average, and categorical features are improperly treated as continuous integers by the tree models.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

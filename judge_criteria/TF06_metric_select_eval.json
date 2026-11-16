@@ -1,0 +1,73 @@
+{
+  "workload": "TF06_metric_select",
+  "description": "Evaluates whether agents choose appropriate evaluation metrics for imbalanced classification (goals_label=1 is ~5% of data), handle class imbalance, and report meaningful test performance beyond accuracy.",
+  "criteria": [
+    {
+      "key": "pipeline_failed",
+      "question": "Did the pipeline fail to execute? Return True if there are any runtime errors in the error log OR if no valid test performance metric is available in the output.",
+      "schema": {
+        "type": "boolean",
+        "description": "True if pipeline crashed or produced no valid test metric"
+      }
+    },
+    {
+      "key": "selection_metric",
+      "question": "What metric did the agent use to select the best model from the validation set? Look for explicit comparisons such as 'max by accuracy', 'max by f1_score', 'max by roc_auc', 'max by macro_f1', etc. Return one of: 'accuracy', 'f1_binary', 'roc_auc', 'macro_f1', 'f1_weighted', 'average_precision', or 'other'. Use 'f1_binary' if sklearn default f1_score() was used (average='binary', i.e. only the positive class). Use 'macro_f1' only if macro averaging was explicit. Use 'average_precision' if sklearn average_precision_score(), 'Average Precision Score', or auc(recall, precision) from precision_recall_curve() (i.e. any form of area under the precision-recall curve) was used.",
+      "schema": {
+        "type": ["string", "null"],
+        "description": "The metric used to pick the best model: 'accuracy', 'f1_binary', 'roc_auc', 'macro_f1', 'f1_weighted', 'average_precision', 'other', or null if unclear"
+      }
+    },
+    {
+      "key": "best_validation_metric_value",
+      "question": "What is the best validation set score for the metric used to select the model (i.e. the score of the winning model on the selection metric)? For example, if selection_metric is 'roc_auc', return the highest validation ROC-AUC across all models; if 'f1_binary', return the highest validation binary F1. Round to 4 decimal places. Return null if not reported.",
+      "schema": {
+        "type": ["number", "null"],
+        "description": "Best validation score of the selection metric for the chosen model (0-1), or null if not reported"
+      }
+    },
+    {
+      "key": "final_model",
+      "question": "What is the name of the final selected model? Return the model name as a string (e.g., 'XGBoost', 'RandomForest', 'GradientBoosting', 'LogisticRegression'). Return null if no model was selected.",
+      "schema": {
+        "type": ["string", "null"],
+        "description": "Name of the final selected model"
+      }
+    },
+    {
+      "key": "test_macro_f1",
+      "question": "What is the macro-averaged F1 score on the test set ('player_goals_imbalance_test.csv'), rounded to 4 decimal places? Look for 'macro avg' -> 'f1-score' in a classification_report, or explicit macro F1 output. Return null if not reported.",
+      "schema": {
+        "type": ["number", "null"],
+        "description": "Macro F1 on test set (0-1), or null if not reported"
+      }
+    },
+    {
+      "key": "test_recall_class1",
+      "question": "What is the recall for class 1 (goals_label=1) on the test set, rounded to 4 decimal places? Look for '1' -> 'recall' in a classification_report. Return null if not reported.",
+      "schema": {
+        "type": ["number", "null"],
+        "description": "Recall for goals_label=1 on test set (0-1), or null if not reported"
+      }
+    },
+    {
+      "key": "imbalance_methods",
+      "question": "What methods, if any, did the agent use to handle class imbalance? You MUST find explicit evidence in the code for each method — do NOT infer or assume. Check for each of the following and include only those with a literal match in the code: 'stratify' (the keyword stratify= appears inside a train_test_split() call), 'class_weight' (class_weight='balanced' or a dict is passed to the model constructor), 'scale_pos_weight' (scale_pos_weight= appears in an XGBoost constructor), 'oversampling' (SMOTE, RandomOverSampler, or similar is imported and called), 'undersampling' (RandomUnderSampler or similar is imported and called), 'threshold_tuning' (decision threshold is explicitly set to a value other than 0.5). Return a list of matching method names. Return an empty list [] if none of the above are explicitly present in the code.",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of imbalance-handling methods used, e.g. ['stratify', 'class_weight']. Empty list if none."
+      }
+    },
+    {
+      "key": "failure_reason",
+      "question": "If the pipeline failed, briefly describe the root cause in one sentence. Return null if the pipeline succeeded.",
+      "schema": {
+        "type": ["string", "null"],
+        "description": "Short description of failure reason, or null if succeeded"
+      }
+    }
+  ]
+}

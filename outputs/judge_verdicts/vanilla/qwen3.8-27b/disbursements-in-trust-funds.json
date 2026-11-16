@@ -1,0 +1,146 @@
+{
+ "task": "disbursements-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_full[col], X_test[col]], axis=0).astype(str)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on the combined training and test sets, peeking at the test data to learn all possible categorical values.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly fills missing values for both categorical and numeric columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df[col] = train_df[col].fillna(train_df[col].median())\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The median of the entire training dataset is computed and used for imputation before splitting into train and validation sets, leaking validation statistics into the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear from the code whether the trust fund disbursements dataset has a strict temporal ordering that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split using train_test_split and evaluates the models on it.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent ensembles the models rather than using the validation set to select the best one and discarding the others.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The agent trains and evaluates the stochastic models on a single train/validation split without using cross-validation or multiple random seeds to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((val_pred - y_val) ** 2))",
+   "reasoning": "Only RMSE is calculated and reported, without exploring other metrics like MAE to verify model robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_full = train_df.drop(target, axis=1)",
+   "reasoning": "The agent uses the raw features as-is (with basic imputation and label encoding) and makes no attempt to engineer new features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ensemble_val = np.mean(val_predictions, axis=0)",
+   "reasoning": "The agent uses a simple unweighted average to combine predictions, missing the opportunity to optimize blend weights or use a meta-model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputing test data using test statistics",
+   "description": "The agent imputes missing values in the test set using statistics calculated from the test set itself rather than statistics learned from the training set. This violates the assumption that test data is independent and unseen, and causes failures during real-world inference when large test batches aren't available.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df[col] = test_df[col].fillna(test_df[col].median())"
+  }
+ ],
+ "summary": "The agent implements a standard regression pipeline using an ensemble of gradient boosting models, but introduces multiple forms of data leakage. Specifically, it leaks validation data into training via pre-split imputation, peeks at the test data to fit categorical encoders, and critically relies on test set statistics to impute missing values in the test set. Furthermore, the pipeline is overly simplistic, lacking any feature engineering or cross-validation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

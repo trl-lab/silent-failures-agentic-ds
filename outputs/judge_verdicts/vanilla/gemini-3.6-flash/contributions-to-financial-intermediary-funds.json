@@ -1,0 +1,101 @@
+{
+ "task": "contributions-to-financial-intermediary-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in num_cols:\n    df_all[c] = df_all[c].astype(float)",
+   "reasoning": "The agent makes no effort to clean or impute missing values in numerical columns, relying entirely on the gradient boosting models' native handling of missing values without an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features (as evidenced by datetime feature extraction), but the agent uses a randomized KFold split instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (lgb_preds + cat_preds + xgb_preds) / 3.0",
+   "reasoning": "The agent uses a naive, unweighted average to combine predictions from LightGBM, CatBoost, and XGBoost without any tuning of the ensemble weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage: Feature Engineering Before Splitting",
+   "description": "Applying feature engineering techniques like frequency encoding or label encoding on the concatenated train and test datasets leaks test set information (such as category distributions or unique values) into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([train_df[feature_cols], test_df[feature_cols]], axis=0)\n...\nfor c in cat_cols:\n    freq = df_all[c].value_counts().to_dict()\n    df_all[c + '_freq'] = df_all[c].map(freq)"
+  }
+ ],
+ "summary": "The agent builds an ensemble of three gradient boosting models but introduces significant flaws. It leaks test data into the training set by applying frequency and label encoding on the concatenated dataset prior to splitting. Furthermore, it ignores the temporal nature of the data by using a randomized cross-validation split rather than a time-based split, and relies on a naive unweighted average for ensembling.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

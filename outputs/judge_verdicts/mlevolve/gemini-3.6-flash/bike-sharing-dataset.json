@@ -1,0 +1,152 @@
+{
+ "task": "bike-sharing-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data during any exploratory analysis or preprocessing setup.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning and imputation (filling numerical NaNs with train medians) are explicitly performed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fit only on the training set and then applied to the validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (medians) are correctly calculated solely on the training data and then applied elsewhere.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly respects the temporal nature of the dataset by using a chronological train/validation split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models and loss functions (MSE) are used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes both dropout layers and weight decay (L2 penalty) for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A holdout validation set is created and used to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_rmse = float(np.sqrt(np.mean((y_val - final_val_cnt) ** 2)))",
+   "reasoning": "The agent trains stochastic models (NN, LightGBM, XGBoost, CatBoost) once with a single random seed and reports a single score without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = float(np.sqrt(np.mean((y_val - final_val_cnt) ** 2)))",
+   "reasoning": "The agent evaluates and reports only RMSE, without exploring other metrics like MAE that might be robust to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem predicting the target 'cnt'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is implemented, including cyclical encodings, interaction terms, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP convex optimization to find optimal ensemble weights rather than defaulting to a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-fold target encoding",
+   "description": "The agent calculates target means on the entire training set and applies these values directly back onto the training data. This causes target leakage within the training set, which can lead models (especially tree-based ones) to overfit the encoded features. A more robust approach would use out-of-fold (K-fold) target encoding.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_df[\"target_enc_hr_work\"] = apply_target_encoding(train_df, hr_workingday_target_map, global_cnt_mean)"
+  },
+  {
+   "name": "Validation set reuse for early stopping and ensembling",
+   "description": "The agent uses the same validation set to trigger early stopping during base model training and to optimize the SLSQP ensemble weights. This double-dipping leaks information from the validation set into both the model weights and the ensemble blend, resulting in an overly optimistic final validation score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(objective, init_w, method=\"SLSQP\", bounds=bounds, constraints=constraints) # Optimising on val_preds_matrix"
+  }
+ ],
+ "summary": "The agent provides a strong solution overall, correctly handling chronological splitting, extensive feature engineering, and robust neural network regularisation. However, it suffers from a few moderate flaws, including in-fold target encoding that risks training leakage, reusing the validation set for both early stopping and ensemble weight optimisation, and failing to evaluate stochastic models across multiple random seeds.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

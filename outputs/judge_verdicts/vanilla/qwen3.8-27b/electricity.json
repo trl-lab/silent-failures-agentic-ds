@@ -1,0 +1,146 @@
+{
+ "task": "electricity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent inspects test set dtypes to determine if columns are categorical, but does not use test distribution statistics for EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are handled via scikit-learn's SimpleImputer in the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is performed; preprocessing is correctly placed inside pipelines.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before the train/validation split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is handled safely inside a scikit-learn Pipeline after the split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly performs a time-based split by sorting on chronological columns and selecting the last 20% for validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models (LGBM, XGBoost, CatBoost) are used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split (X_val, y_val) to evaluate models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates multiple models on the validation set, not the held-out test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "pipeline.fit(X_train, y_train)\n        proba = pipeline.predict_proba(X_val)[:, 1]",
+   "reasoning": "Stochastic models (LGBM, XGBoost, CatBoost) are trained and evaluated exactly once without multiple seeds or cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "validation_scores[name] = accuracy_score(y_val, pred)",
+   "reasoning": "The agent relies entirely on accuracy for model evaluation and ensemble weighting, without checking other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task is formulated and solved correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives multiple domain-specific features (e.g., trigonometric transformations for time periods, price/demand differences).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses validation accuracy to weight the predictions of the ensemble, which is a step above naive unweighted averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "label_misalignment_after_sort",
+   "description": "When sorting the dataset chronologically, the agent resets the features dataframe's index before using it to index the target series. This completely misaligns the features and labels, silently destroying the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = train_df.sort_values(sort_cols, na_position=\"last\").reset_index(drop=True)\n        y_full = y_full.loc[train_df.index].reset_index(drop=True)"
+  }
+ ],
+ "summary": "The agent correctly frames the problem, derives relevant features, and employs a pipeline for safe preprocessing. However, a critical logic bug during the temporal sorting of the data causes the labels to become completely misaligned with the features, invalidating all subsequent training. Additionally, the agent evaluates its stochastic models only once and relies solely on a single metric (accuracy) for validation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

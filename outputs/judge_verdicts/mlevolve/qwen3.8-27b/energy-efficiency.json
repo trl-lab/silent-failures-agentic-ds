@@ -1,0 +1,112 @@
+{
+ "task": "energy-efficiency",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna(subset=feature_cols + [target_col]).reset_index(drop=True)\ntest_df = test_df.dropna(subset=feature_cols).reset_index(drop=True)",
+   "reasoning": "The agent handles missing values by indiscriminately dropping rows with NaNs, which discards training data and crucially drops test samples.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "prelim_lgb.fit(train_df[new_feature_cols], train_df[target_col])\n...\ntrain_sub_df, val_sub_df = train_test_split(train_df, test_size=0.2, random_state=42)",
+   "reasoning": "Feature selection is performed using a preliminary model trained on the entire training dataset before splitting, leaking validation targets into the feature choice.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dropping test set rows",
+   "description": "The agent applies `.dropna()` to the test set dataframe. In predictive modeling tasks, test set predictions must correspond exactly to the provided test samples; dropping rows will result in a mismatched submission length and cause the evaluation to fail.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = test_df.dropna(subset=feature_cols).reset_index(drop=True)"
+  },
+  {
+   "name": "Incorrect XGBoost iteration range",
+   "description": "When generating OOF predictions for XGBoost, the agent uses `iteration_range=(1, best_iter + 1)`. Because XGBoost trees are 0-indexed, this skips the crucial first tree (index 0) which contains the base score and the most important initial splits, severely degrading the model's predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_xgb[va_idx] = xgb_model.predict(X_va, iteration_range=(1, best_iter + 1))"
+  },
+  {
+   "name": "Scaling leakage in cross-validation",
+   "description": "The agent correctly fits the scaler on the 80% holdout training split, but then recombines the scaled train and holdout splits to perform 10-fold cross-validation. This means the validation folds during CV contain samples that were used to fit the scaler, causing a slight feature leakage.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scaler.fit(train_sub_df[selected_features])\n...\nX_full = np.vstack([X_train, X_val])\n...\nkf.split(X_full)"
+  }
+ ],
+ "summary": "The agent implements a comprehensive pipeline with domain-specific feature engineering, 10-fold cross-validation, and NNLS ensembling. However, there are critical data science flaws: feature selection is applied to the full dataset before splitting (causing data leakage), and missing values are handled by dropping rows indiscriminately, which would drop test set samples and invalidate the submission. Additionally, a bug in the XGBoost prediction step skips the first tree, severely degrading its OOF predictions.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

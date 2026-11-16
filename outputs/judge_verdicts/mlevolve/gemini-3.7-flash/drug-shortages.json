@@ -1,0 +1,153 @@
+{
+ "task": "drug-shortages",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or print statistics on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and a missing category fallback.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly applies StandardScaler only on the training split and transforms validation/test sets separately.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp_actual, random_state=42)\n        train_svd = svd.fit_transform(train_tfidf)",
+   "reasoning": "TF-IDF and TruncatedSVD (PCA) are fit on the full training dataset before it is split into training and validation sets, leaking validation text statistics into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = train_df[col].median()\n...\n    train_filled = train_df[col].fillna(median_val).astype(np.float32)",
+   "reasoning": "The median for numerical imputation is computed on the entire training dataset before splitting off the validation set, causing data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset contains date features which implies a temporal aspect, but without knowing the specific task data constraints, it is unclear if a time-based split is strictly required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates models for a multi-class classification task (e.g., using objective 'multiclass' for LightGBM and CrossEntropyLoss for the neural network).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The TabularResNet model includes dropout layers and the AdamW optimizer uses weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly performs a train/validation split using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_indices, val_indices = train_test_split(\n    np.arange(len(train_df)), test_size=0.2, stratify=y_train_full, random_state=42\n)",
+   "reasoning": "The agent trains stochastic models (LightGBM, TabularResNet) exactly once on a single random train/validation split without multiple runs or cross-validation to assess variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y_val, pred_val)",
+   "reasoning": "The agent evaluates the models and searches for ensemble blend weights using only accuracy, which may be misleading if the multi-class target is imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly models the task as a multi-class prediction problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including date part extraction, text metadata, target encoding, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a linear search over a grid to optimize the weighting ratio between LightGBM and the neural network.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Encoding before splitting",
+   "description": "Categorical feature encoding (such as frequency encoding or label encoding) is fit on the full dataset before the train/validation split, which leaks the validation set's distribution into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq_map = train_df[col].value_counts(normalize=True).to_dict()\n    train_cat_df[f\"{col}_freq\"] = (\n        train_df[col].map(freq_map).fillna(0.0).astype(np.float32)\n    )"
+  },
+  {
+   "name": "Ignoring original test IDs for submission",
+   "description": "The agent constructs the submission file using a generated sequential ID instead of extracting and preserving the original identifier column from the test set, which will likely cause a mismatch during evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(final_test_pred_labels))"
+  }
+ ],
+ "summary": "The agent builds a robust multi-model ensemble (LightGBM and a TabularResNet) with extensive feature engineering and a weighted blend. However, it introduces significant data leakage by performing imputation, TF-IDF/SVD fitting, and categorical frequency encoding on the full training dataset before splitting out the validation set. Additionally, it evaluates stochastic models on a single validation split using only accuracy, and fails to preserve the original test identifiers for the final submission file.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

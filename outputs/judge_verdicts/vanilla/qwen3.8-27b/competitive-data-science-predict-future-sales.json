@@ -1,0 +1,98 @@
+{
+ "task": "competitive-data-science-predict-future-sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_model = lgb.LGBMRegressor(... random_state=42 ...)\n    final_model.fit(X_all, y_all)",
+   "reasoning": "The agent trains a stochastic model (LightGBM with subsampling) only once with a fixed random seed, without estimating variance across multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_metric=\"rmse\"",
+   "reasoning": "The agent optimizes and evaluates solely using RMSE without checking other metrics to verify robustness, despite potential outliers in sales data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing test features imputed with inappropriate constants",
+   "description": "Features that are present in the training set but missing from the test set (such as temporal indices or continuous values like price) are filled with a hardcoded constant (e.g., 0) instead of being dropped or properly estimated. This causes a severe train-test feature distribution mismatch; for instance, setting a time-block index to 0 makes the model treat future test data as if it were from the very first time step.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if BLOCK_COL in df.columns:\n        df[BLOCK_COL] = pd.to_numeric(df[BLOCK_COL], errors=\"coerce\").fillna(0).astype(\"int64\")\n    else:\n        df[BLOCK_COL] = 0\n\n    if \"item_price\" in df.columns:\n...\n    else:\n        df[\"item_price\"] = 0.0"
+  }
+ ],
+ "summary": "The agent correctly implements a time-aware validation split and expanding-mean target encoding to prevent temporal data leakage. However, it fails to appropriately handle missing columns in the test set. By filling critical missing features like item price and the temporal block index with 0, the agent introduces a massive distribution shift at inference time (e.g., treating the test set as time block 0). Additionally, the stochastic LightGBM model is evaluated only once, and only RMSE is tracked.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "satimage",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for any EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values\ny_train = train_df[target_col].values",
+   "reasoning": "The agent directly extracts the raw data into numpy arrays and feeds them to the model without any missing value imputation, duplicate removal, or outlier handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is correctly fit only on the training set (X_train) and then used to transform the test set (X_test).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No data imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements 5-fold cross-validation to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, which inherently averages over multiple training runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scoring=\"accuracy\"",
+   "reasoning": "The agent only measures accuracy, which might be misleading for a multiclass problem if there is a class imbalance (metrics like macro F1-score would provide better insight).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as multiclass classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent uses the raw columns as-is without engineering any new features or domain-specific transforms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage in cross-validation",
+   "description": "Applying a transformation (like StandardScaler) to the entire training dataset before splitting it into cross-validation folds leaks statistical information from the validation folds into the training folds, resulting in overly optimistic cross-validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n...\ncv_scores = cross_val_score(..., X_train_scaled, ...)"
+  },
+  {
+   "name": "Missing target label encoding",
+   "description": "LightGBM requires multiclass target labels to be contiguous integers starting from 0. If the dataset's target classes are not 0-indexed or have gaps (like in the satimage dataset), passing them directly to LightGBM causes a fatal execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = train_df[target_col].values\n...\nmodel.fit(X_train_scaled, y_train)"
+  }
+ ],
+ "summary": "The agent establishes a basic modeling pipeline but fails to clean the data, engineer features, or properly encode the target variable, which leads to a fatal execution error in LightGBM due to non-contiguous class labels. Furthermore, fitting the scaler before the cross-validation split introduces data leakage into the CV evaluation.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "medically-underserved-areas-populations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes feature statistics (frequencies, means, standard deviations) strictly on the training set and maps them to the test set, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col])",
+   "reasoning": "The agent makes no effort to impute missing values in the original features, relying entirely on LightGBM/XGBoost/CatBoost's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scalers are fit on the combined train and test datasets before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is a general tabular regression task, and random splitting (KFold) is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble weights are optimized on out-of-fold (OOF) predictions, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 5 cross-validation folds, which inherently averages performance and accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_final)",
+   "reasoning": "The agent only computes RMSE and does not verify model performance with secondary regression metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as predicting the continuous IMU Score.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives several new features, including missing value counts, frequency encoding, date parts, and group-level statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble blend weights via a grid search rather than using a naive simple average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering before cross-validation split (Validation Leakage)",
+   "description": "Global feature statistics (like target encoding, frequencies, or group-wise means/std) are calculated on the entire training set prior to cross-validation. This leaks information from the validation folds into the training folds, making the CV score overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_prep, X_test_prep = preprocess(X, X_test)\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_prep, y)):"
+  },
+  {
+   "name": "Categorical features passed as numerical codes without model declaration",
+   "description": "Categorical columns are converted to integer codes, but they are not explicitly declared as categorical features when fitting tree models. Consequently, the models treat them as continuous numerical variables, which can lead to suboptimal splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tr[c] = tr[c].astype('category').cat.codes\n...\ncat_model.fit(X_tr, y_tr, eval_set=(X_va, y_va), use_best_model=True)"
+  }
+ ],
+ "summary": "The agent delivers a well-structured solution featuring a 3-model ensemble and grid-search weight optimization. However, it applies group-wise feature engineering on the full training set before cross-validation, leaking validation fold statistics into the training folds. Additionally, it relies entirely on the models to handle missing original features and fails to declare integer-encoded categorical features to the tree models, causing them to be treated as continuous variables.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

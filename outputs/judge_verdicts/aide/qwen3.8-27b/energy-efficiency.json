@@ -1,0 +1,134 @@
+{
+ "task": "energy-efficiency",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by handling missing values, coercing types, and replacing infinite values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied after splitting, using fit_transform on train and transform on validation/test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses K-Fold CV, which evaluates the model multiple times to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmses.append(float(np.sqrt(mean_squared_error(y_va, val_pred))))",
+   "reasoning": "The agent only uses RMSE for evaluation and does not report any secondary metrics like MAE or R2 to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\n    col for col in train.columns if col not in {TARGET, ID_COL} and col in test.columns\n]",
+   "reasoning": "The agent uses raw features directly without attempting to derive any new features or domain-informed transforms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Over-optimistic CV score due to early stopping on validation fold",
+   "description": "The agent uses the validation fold for early stopping during cross-validation, and then uses the score from that same validation fold to estimate generalization error. This leads to an over-optimistic estimate because the number of iterations was optimized directly on the validation fold.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "callbacks=[lgb.early_stopping(50, verbose=False), ...] \nbest_iter = max(1, int(model.best_iteration)) \nval_pred = model.predict(X_va_imp, num_iteration=best_iter) \ncv_rmses.append(float(np.sqrt(mean_squared_error(y_va, val_pred))))"
+  }
+ ],
+ "summary": "The agent provides a structurally sound LightGBM regression pipeline with proper imputation and handling of missing values, avoiding common data leakage issues. However, it fails to implement any feature engineering and reports an over-optimistic CV score by evaluating on the exact same holdout set used to optimize early stopping.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

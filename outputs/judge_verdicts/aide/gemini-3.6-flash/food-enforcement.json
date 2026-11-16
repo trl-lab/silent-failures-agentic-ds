@@ -1,0 +1,144 @@
+{
+ "task": "food-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "col_train = train_df[col].fillna(\"\").astype(str)",
+   "reasoning": "The agent handles missing values by filling them with empty strings, which is appropriate for text data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is fitted on the combined train and test dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a strict temporal order that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LogisticRegression is an appropriate model type for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y, oof_preds)\nprint(f\"Validation Accuracy: {acc:.5f}\")",
+   "reasoning": "The agent evaluates using only accuracy and does not check if it is appropriate (e.g., verifying class balance).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "word_vec = TfidfVectorizer(...)",
+   "reasoning": "The agent engineers features by applying TF-IDF vectorization to aggregated text and specific columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_probs += model.predict_proba(X_test) / skf.n_splits",
+   "reasoning": "The agent averages predictions across CV folds, which is a standard bagging approach rather than naive ensembling of different models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM14": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Transformations like TF-IDF are fitted on the entire training set before cross-validation splitting. This leaks vocabulary and IDF statistics from the validation folds into the training folds, making the out-of-fold validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_word = word_vec.fit_transform(full_train_text)\n... for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y)):"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates submission IDs using a simple numerical sequence instead of extracting the actual ID column from the test dataset. This can lead to incorrect or misaligned submission formats if the test IDs are not 0-indexed sequences.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test_df)), \"classification\": test_pred_labels})"
+  }
+ ],
+ "summary": "The agent correctly frames the multi-class classification problem and uses standard TF-IDF feature engineering along with a logistic regression model in a cross-validation setup. However, it applies the TF-IDF vectorization on the entire training dataset before splitting it into CV folds, leading to data leakage during validation. Additionally, it hardcodes submission IDs instead of extracting them from the test dataset, which is a brittle practice.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

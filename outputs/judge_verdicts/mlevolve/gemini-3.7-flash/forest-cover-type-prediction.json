@@ -1,0 +1,153 @@
+{
+ "task": "forest-cover-type-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or inspect the test data to inform choices.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\nprint(\"Generating topographical and domain interaction features...\")\ntrain_fe = create_topographical_features(train_df)",
+   "reasoning": "The agent loads the raw data and immediately proceeds to feature engineering without any strategy to check for or handle missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_tr_scaled = scaler.fit_transform(X_tr)\nX_va_scaled = scaler.transform(X_va)",
+   "reasoning": "Scaling is correctly fitted only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection or dimensionality reduction is applied to the combined train and test sets before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for this multi-class task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model is defined but never instantiated or trained in the execution pipeline.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a robust 10-fold stratified cross-validation setup.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold in range(n_splits):",
+   "reasoning": "The agent evaluates models using 10-fold cross-validation, implicitly averaging across multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Accuracy is the correct and specified evaluation metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def create_topographical_features(df: pd.DataFrame) -> pd.DataFrame:",
+   "reasoning": "The agent includes extensive and highly domain-specific feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "meta_clf = LogisticRegression(\n    C=c_val,\n    penalty=\"l2\",",
+   "reasoning": "The agent implements a sophisticated stacking meta-learner trained on OOF predictions, rather than a naive ensemble.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "validation_leakage",
+   "description": "The agent computes dataset-wide statistics (such as frequency encoding value counts and TruncatedSVD) on the full training set prior to cross-validation splitting. This leaks information from the validation folds into the training folds, artificially inflating out-of-fold performance estimates.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "soil_freq = train_fe[\"Soil_Type_Dense\"].value_counts(normalize=True).to_dict()\n... svd = TruncatedSVD(n_components=5, random_state=42)\nsoil_svd_train = svd.fit_transform(train_fe[soil_binary_cols].values)"
+  },
+  {
+   "name": "dead_code_architecture",
+   "description": "The agent implements a deep learning model architecture and training loop but never actually instantiates or invokes it during the pipeline execution.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "class TabularResNet(nn.Module):\n... def build_tabular_neural_network(...) ...\n# The execution loop only trains LGB, XGB, CatBoost, ExtraTrees, RF, and KNN."
+  }
+ ],
+ "summary": "The agent implements an extremely thorough and robust solution featuring deep domain-specific feature engineering, 10-fold cross-validation, and meta-learner stacking. However, it fails to implement any basic data cleaning checks, contains dead code for a deep learning model that is never used, and subtly leaks validation fold statistics by applying frequency encoding and SVD dimensionality reduction to the entire training set before the CV split.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 8,
+ "stage_count_max": 8,
+ "no_code": false
+}

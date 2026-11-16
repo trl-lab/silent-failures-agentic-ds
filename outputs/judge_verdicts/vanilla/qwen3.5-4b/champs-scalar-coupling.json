@@ -1,0 +1,148 @@
+{
+ "task": "champs-scalar-coupling",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to clean the data and impute missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalising is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the combined dataset before splitting (though it is done incorrectly in other ways).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_arr, y_train.values)\n            \n            preds = model.predict(X_test_arr)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without establishing any validation split or cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(objective='regression', \n                                     n_estimators=500, \n                                     max_depth=-1, \n                                     num_leaves=31, \n                                     learning_rate=0.05,\n                                     random_state=42, \n                                     subsample=0.8, \n                                     colsample_bytree=0.8,\n                     )",
+   "reasoning": "The agent trains a stochastic LightGBM model (using subsampling) exactly once to generate predictions, without running multiple seeds to average out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally, so it doesn't rely on a single wrong metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "features = df.drop(columns=[target_col])\n    if id_col is not None:\n        features = features.drop(columns=[id_col])",
+   "reasoning": "The agent uses the raw columns as-is (with basic encoding) and does not derive any features, which is highly detrimental for a complex molecular task like champs-scalar-coupling.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Syntax error and undefined variables",
+   "description": "The code contains fatal syntax errors (an `except Exception as e:` block without a matching `try` block) and references undefined variables (e.g., `numin_cols` instead of `numeric_cols`), causing immediate execution failure.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[numin_cols] = num_imputer.fit_transform(X_train[numin_cols].values)\n...\n    except Exception as e:\n        print(f\"Error during execution: {e}\")"
+  },
+  {
+   "name": "Test data leakage during imputation",
+   "description": "The code fills missing values in the training set using data directly from the test set, which leaks test information into the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_final_train[col] = X_train[col].fillna(X_test[col].fillna(pd.na_value))"
+  },
+  {
+   "name": "Transductive imputation",
+   "description": "The code imputes missing values in the test set using statistics calculated from the test set itself (e.g., test set median), rather than using statistics learned from the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_final_test[col] = X_final_test[col].fillna(X_final_test[col].median())"
+  }
+ ],
+ "summary": "The agent entirely fails to implement an internal validation strategy and performs no feature engineering, which is critical for this molecular dataset. Additionally, the submitted code contains multiple fatal execution bugs (syntax errors and undefined variables) alongside critical data leakage issues where test data is used to fill missing values in the training set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

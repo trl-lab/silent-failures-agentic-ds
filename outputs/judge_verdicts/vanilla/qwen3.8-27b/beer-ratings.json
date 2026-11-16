@@ -1,0 +1,149 @@
+{
+ "task": "beer-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_df[col], test_df[col]], axis=0)\n    le.fit(combined)",
+   "reasoning": "The agent fits a LabelEncoder on the combined train and test sets, leaking test set categorical distributions into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df[col] = train_df[col].fillna(train_df[col].median())",
+   "reasoning": "The agent explicitly handles missing values by imputing them with the median or a constant value.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_df[col] = test_df[col].fillna(train_df[col].median())",
+   "reasoning": "The agent correctly uses only the training set's median to impute both the train and test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "LGBMRegressor",
+   "reasoning": "The agent correctly uses regression models for a continuous regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The agent holds out a proper validation set to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(np.mean((y_val - val_pred) ** 2))",
+   "reasoning": "The test set is only used for generating final predictions and is not evaluated during model training or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The stochastic models and random split are evaluated only once with a single random seed, without cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(np.mean((y_val - val_pred) ** 2))",
+   "reasoning": "The agent evaluates the models using only RMSE, without calculating secondary regression metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "y = train_df['review_overall']",
+   "reasoning": "The problem is correctly framed as standard regression on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = numeric_cols + categorical_cols",
+   "reasoning": "The agent relies entirely on raw columns and basic encodings without creating derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_test_pred = np.mean(test_predictions, axis=0)",
+   "reasoning": "The agent averages predictions using a naive, unweighted mean without optimizing blend ratios.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates submission IDs using a simple range sequence instead of extracting the actual identifiers from the test set, which will cause misaligned or invalid submissions if test IDs do not strictly follow a 0-indexed contiguous sequence.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "'id': range(len(final_test_pred))"
+  },
+  {
+   "name": "Treating encoded categorical features as numeric",
+   "description": "The agent label-encodes categorical variables but does not specify them as categorical features to the tree-based models (such as setting categorical parameters in LightGBM/CatBoost or converting to pandas 'category' dtype). This causes the models to treat these nominal features as continuous numeric variables.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "models = {\n    'LGBM': LGBMRegressor(...)"
+  }
+ ],
+ "summary": "The agent correctly establishes a regression pipeline with a valid internal validation split and avoids data leakage during imputation. However, it leaks test set categorical information by fitting LabelEncoders on the combined dataset. The solution is also limited by a lack of feature engineering, failure to specify categorical features to models, naive unweighted ensembling, and the potentially fatal decision to hardcode submission IDs rather than extracting them from the test dataframe.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

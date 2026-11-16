@@ -1,0 +1,152 @@
+{
+ "task": "workforce-demographics-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]",
+   "reasoning": "The agent passes the raw dataset directly into LightGBM, relying entirely on the model to handle missing values and inconsistencies without any explicit cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not clear if the demographics dataset has a temporal component, though it is generally cross-sectional.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a regression objective is an appropriate model type for predicting a continuous percentage target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 distinct cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = mean_squared_error(y_val_fold, y_pred_val)\n    scores.append(rmse)",
+   "reasoning": "The agent evaluates the model solely using one metric and assumes it is sufficient without checking others.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != \"Female (%)\"]\nX_train = train_df[feature_cols]",
+   "reasoning": "The agent uses the raw columns directly with no attempt to engineer any derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Predicting with only the last fold's model",
+   "description": "The agent trains a model inside a cross-validation loop but generates predictions on the test set entirely outside the loop, meaning the test predictions rely exclusively on the model trained during the final fold rather than an ensemble average of all folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_predictions = model.predict(X_test)"
+  },
+  {
+   "name": "Incorrect RMSE calculation",
+   "description": "The agent uses `mean_squared_error` from scikit-learn without setting `squared=False` (or taking the square root manually), resulting in the calculation of Mean Squared Error (MSE) instead of Root Mean Squared Error (RMSE).",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = mean_squared_error(y_val_fold, y_pred_val)"
+  },
+  {
+   "name": "Unsanitised feature names for LightGBM",
+   "description": "The agent passes a pandas DataFrame directly to LightGBM without sanitising the column names. If feature names contain special JSON characters (like spaces, brackets, or parentheses), LightGBM will throw a fatal error and crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  }
+ ],
+ "summary": "The agent sets up a 5-fold cross-validation loop using LightGBM but fails to clean the data, sanitise feature names, or engineer any features. Notably, the test predictions are generated using only the model from the final cross-validation fold rather than an ensemble, and the evaluation metric intended to be RMSE actually calculates MSE.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

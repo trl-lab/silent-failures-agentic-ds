@@ -1,0 +1,141 @@
+{
+ "task": "electric-generating-plants",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].astype(str).value_counts(normalize=True, dropna=False).to_dict()\n    df_all[f\"{col}_freq\"] = df_all[col].astype(str).map(freq).astype(np.float32)",
+   "reasoning": "The agent uses the concatenated train and test dataset to compute frequency encodings and group aggregations, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna(subset=[target_col]).reset_index(drop=True)",
+   "reasoning": "The agent only drops NaNs in the target column and relies entirely on LightGBM to handle missing values in features without an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection algorithms are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputation models are fit.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Although datetime features are parsed, it is unknown if the dataset represents a time series requiring chronological splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is properly implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is evaluated across 5 folds, which provides an averaged estimate over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y_train, oof_preds))\nprint(f\"5-Fold Cross-Validation RMSE: {cv_rmse:.5f}\")",
+   "reasoning": "The agent only computes and reports RMSE, lacking a secondary metric like MAE or R2 for a more robust evaluation of the regression.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates derived features, including datetime components, frequency encodings, and numerical group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The only ensembling is the standard averaging of cross-validation folds, which is mathematically sound and an appropriate standard practice.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Group Aggregations on Full Dataset",
+   "description": "The agent computes group-wise statistics (e.g., mean, std) on the concatenated train and test datasets. This explicitly leaks test set feature distributions into the training data, contaminating the training process and potentially leading to overly optimistic cross-validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped = df_all.groupby(cat_col, observed=False)[num_col]\nmean_s = grouped.transform(\"mean\").astype(np.float32)"
+  }
+ ],
+ "summary": "The solution employs a LightGBM regressor with 5-fold cross-validation and extensive feature engineering. However, it suffers from critical data leakage by computing frequency encodings and group aggregations on the concatenated train and test sets. Additionally, the agent relies entirely on the model to handle missing feature values and evaluates the model using only a single metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

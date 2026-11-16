@@ -1,0 +1,145 @@
+{
+ "task": "steel-plates-fault",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or feature engineering design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = engineer_features(train_df[feature_cols]).fillna(0)",
+   "reasoning": "The agent explicitly handles missing values by filling them with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the data, so there is no leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses constant imputation (fillna(0)) which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses appropriate multiclass classification models and objectives.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a proper 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_cv_acc = accuracy_score(y, np.argmax(meta_oof_preds, axis=1))\nprint(f\"Validation Accuracy: {final_cv_acc:.5f}\")",
+   "reasoning": "The agent evaluates the model using only accuracy, without verifying if it is appropriate for a potentially imbalanced multiclass problem.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_features(df):\n    df_feat = df.copy()\n    # Bounding Box features",
+   "reasoning": "The agent implements extensive domain-informed feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "meta_model = LogisticRegression(C=0.5, max_iter=1000, random_state=42 + fold)\nmeta_model.fit(oof_features[train_idx], y[train_idx])",
+   "reasoning": "The agent uses a sophisticated Logistic Regression meta-learner for stacking instead of a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates submission IDs using a simple range (np.arange) rather than extracting the actual identifier column from the test dataset. This will result in an invalid submission if the test IDs are not perfectly sequential starting from 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test_df)), \"target\": test_labels})"
+  },
+  {
+   "name": "Training on ID column",
+   "description": "The agent defines features as all columns except the target, failing to explicitly exclude identifier columns (like 'id'). This causes the model to train on the ID column if one is present, which can lead to overfitting or learning spurious correlations.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]"
+  }
+ ],
+ "summary": "The agent provides a robust and well-structured solution featuring comprehensive domain-specific feature engineering and a proper out-of-fold stacking ensemble. However, it fails to explicitly exclude potential ID columns from the training features and hardcodes the submission IDs with `np.arange`, which will likely break the submission formatting. Additionally, it relies solely on accuracy for evaluation without considering class imbalances.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

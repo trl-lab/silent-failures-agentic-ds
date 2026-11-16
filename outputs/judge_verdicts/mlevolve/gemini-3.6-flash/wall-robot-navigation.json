@@ -1,0 +1,141 @@
+{
+ "task": "wall-robot-navigation",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or feature engineering; functions are cleanly applied to train and test sets separately.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "imputer = SimpleImputer(strategy=\"median\")",
+   "reasoning": "The agent handles missing values appropriately using a median imputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train_imp)\nX_val_scaled = scaler.transform(X_val_imp)",
+   "reasoning": "Scaling is correctly applied after the train/validation split, preventing data leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_imp = imputer.fit_transform(X_train_raw)\nX_val_imp = imputer.transform(X_val_raw)",
+   "reasoning": "Imputation is correctly fit only on the training set after splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"multiclass\",\n\"num_class\": num_classes",
+   "reasoning": "The agent correctly frames the task as multiclass classification and uses appropriate models and loss functions.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)\noptimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)",
+   "reasoning": "The deep learning model includes Dropout, LayerNorm, and weight decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_test_split(train_feat, test_size=0.20, random_state=42, stratify=train_feat[target_col])",
+   "reasoning": "The agent uses an 80/20 train/validation split to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.train(...) \n ... \n final_val_score = accuracy_score(...)",
+   "reasoning": "The stochastic models (LightGBM and PyTorch NN) are trained and evaluated only once, without multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y_val, np.argmax(blend_val, axis=1))",
+   "reasoning": "The agent only calculates and optimises accuracy, without checking other metrics (like F1-score or confusion matrices) to verify performance robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def create_engineered_features(df_input):",
+   "reasoning": "Extensive domain-informed feature engineering is applied, including spatial aggregations, clearances, and non-linear proximity transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for alpha in np.linspace(0.0, 1.0, 101):",
+   "reasoning": "The agent systematically optimises the ensemble weights on the validation set rather than using naive equal weighting.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Temporal leakage due to random split",
+   "description": "When the dataset represents sequential or time-series data, generating lag and rolling window features before randomly splitting the data causes temporal leakage. The validation set will contain rows whose immediate past (and implicitly future) data points are present in the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[f\"{col}_lag{lag}\"] = df[col].shift(lag).bfill()\n...\ntrain_split, val_split = train_test_split(train_feat, test_size=0.20, random_state=42, stratify=train_feat[target_col])"
+  }
+ ],
+ "summary": "The agent provides a robust and well-structured solution, using LightGBM and a PyTorch ResNet, with proper preprocessing (scaling/imputation after splitting) and an optimised ensemble. However, the agent treats sequential data incorrectly by computing lag/rolling features and then performing a random stratified split, which introduces significant temporal leakage. Additionally, it evaluates the stochastic models only once and relies solely on accuracy.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

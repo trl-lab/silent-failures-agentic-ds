@@ -1,0 +1,138 @@
+{
+ "task": "awarded-grants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly uses SimpleImputer to handle missing values, so they made an effort to clean the data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied, and the preprocessing is correctly encapsulated in a pipeline fitted only on the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fitted inside a pipeline strictly on the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not clear if temporal order exists in this dataset, and the agent doesn't split the data anyway.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_pipeline.fit(df_train[feature_columns], train_df[target_col])",
+   "reasoning": "The agent fits the model on the entire training set and generates test predictions without any internal validation split to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any scores, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics, so they cannot be relying on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly formulated as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_columns = [col for col in train_df.columns if col != target_col and col.lower() != \"id\"]",
+   "reasoning": "The agent uses raw feature columns directly with no attempt to create derived features or capture interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "parallel_imputation_and_encoding_bug",
+   "description": "The agent places a categorical imputer and a one-hot encoder in parallel within a ColumnTransformer rather than chaining them in a sub-pipeline. This causes the unencoded categorical strings (from the imputer) and the one-hot encoded features (from the un-imputed encoder) to both be appended to the final feature matrix, which will crash models that expect strictly numeric inputs (like CatBoost without `cat_features` specified).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "('imputer_cat', SimpleImputer(strategy='most_frequent'), categorical_cols),\n        ('one_hot', OneHotEncoder(sparse_output=False, handle_unknown='ignore', categories='auto'), categorical_cols)"
+  }
+ ],
+ "summary": "The agent sets up a basic pipeline but makes a critical execution error by placing categorical imputation and one-hot encoding in parallel within a ColumnTransformer, which will result in string arrays being passed to a CatBoostRegressor that expects floats, causing a crash. Furthermore, the agent fails to perform any internal validation or feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "insurance-company-complaints",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA, though it does use it programmatically for unsupervised feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by handling missing values with median imputation and filling residual NaNs and infinities with 0.0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting; StandardScaler is imported but never used.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection mechanisms are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation uses metrics computed strictly from the training data (e.g., train_df[c].median()).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly employs regression models (LightGBM, CatBoost, XGBoost) for predicting a continuous recovery amount.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a rigorous 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is used only for final inference, not for model evaluation or hyperparameter selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated over 5 cross-validation folds, which robustly accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_lgb_rmse = np.sqrt(mean_squared_error(y_val_f, oof_lgb[val_mask]))",
+   "reasoning": "The agent evaluates and reports only RMSE, ignoring other metrics like MAE which are critical for assessing robustness to outliers in zero-inflated insurance recovery data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a regression task and smartly stratifies the folds based on the target's zero-inflation.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including cyclical date components, text TF-IDF SVD embeddings, and rigorous out-of-fold target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated ensemble approach, utilizing Nelder-Mead optimization to find the best blending weights rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Data Leakage in Feature Engineering",
+   "description": "The agent concatenates the training and test datasets to compute frequency, count, and unique-value encodings for categorical features. This practice leaks the test set's feature distribution into the training data, which is an invalid assumption since test distribution statistics would be unavailable for unseen data in a real-world production environment.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_series = pd.concat([tr_series, te_series], axis=0)\n\n    freq_map = combined_series.value_counts(normalize=True).to_dict()"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated and robust solution, featuring zero-inflation stratified k-fold CV, rigorous out-of-fold target encoding, and optimized ensembling. However, it improperly leaks test set distribution statistics into the training data by calculating categorical frequency and count encodings on the combined train and test sets. Additionally, it relies solely on RMSE for evaluation, missing the opportunity to use metrics like MAE for better outlier robustness.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

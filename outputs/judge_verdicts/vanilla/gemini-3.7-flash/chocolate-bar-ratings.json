@@ -1,0 +1,54 @@
+{
+ "task": "chocolate-bar-ratings",
+ "failure_modes": {
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_val, y_val = X_train_raw.iloc[val_idx], y_train[val_idx]",
+   "reasoning": "The agent extracts validation folds but never evaluates the models' performance on them, leaving it with no estimation of generalisation.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_proba = (\n      model_lgb.predict_proba(X_test_proc.astype(np.float32)) * 0.45\n      + model_rf.predict_proba(X_test_proc) * 0.35\n      + model_lr.predict_proba(X_test_proc) * 0.20\n  )",
+   "reasoning": "The agent combines predictions using hardcoded, arbitrary weights without any tuning or blend-ratio optimisation.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "StratifiedKFold minimum class count violation",
+   "description": "When determining the number of splits for cross-validation, the logic forces a minimum of 2 splits even if the smallest class has only 1 sample. This will cause StratifiedKFold to raise a ValueError at runtime if any single-sample classes exist.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "min_class_count = np.min(np.bincount(y_train))\nn_splits = min(5, max(2, min_class_count))\n\nskf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)"
+  }
+ ],
+ "summary": "The agent sets up a cross-validation loop to train an ensemble of models but entirely fails to evaluate them on the validation sets, preventing any performance estimation. Furthermore, the ensemble uses arbitrary hardcoded weights without tuning, and the cross-validation setup risks an execution crash if any target class contains only a single sample.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

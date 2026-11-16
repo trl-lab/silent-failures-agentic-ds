@@ -1,0 +1,142 @@
+{
+ "task": "metro-interstate-traffic-volume",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking is evident during feature engineering or EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans data for sensor anomalies (e.g., temp < 100).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation before splitting is present.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series (traffic volume over time), but the agent uses a randomly shuffled K-Fold split, introducing severe look-ahead bias by training on future observations to predict past/intermediate ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regressor is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation (K-Fold) to evaluate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which averages over multiple subsets.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent relies entirely on a single metric (RMSE) for evaluation without checking secondary metrics like MAE to understand the impact of outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers many relevant features including temporal, cyclical, and weather interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (\n        model.predict(X_test_feat, num_iteration=model.best_iteration) / n_splits\n    )",
+   "reasoning": "The agent uses an unweighted average of fold predictions for the test set without attempting a more robust blending or stacking approach.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in training set target encoding",
+   "description": "When applying target encoding to the training set, the agent computes the mean of the target on the entire training fold and maps it directly back to the same training fold. Without out-of-fold encoding (e.g., leave-one-out) or smoothing, the target value of each row leaks into its own features, leading to severe model overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "how_mean_map = pd.Series(y_tr).groupby(X_tr[\"hour_of_week\"].values).mean().to_dict()\n    how_std_map = pd.Series(y_tr).groupby(X_tr[\"hour_of_week\"].values).std().to_dict()\n...\n    X_tr[\"target_enc_how_mean\"] = (\n        X_tr[\"hour_of_week\"].map(how_mean_map).fillna(y_tr_mean)\n    )"
+  }
+ ],
+ "summary": "The agent implements a thorough feature engineering pipeline for this time-series forecasting task but makes two critical errors that invalidate the cross-validation score. First, it uses a randomly shuffled K-Fold split instead of a time-based split, causing severe look-ahead bias. Second, it computes target encodings on the training fold and directly maps them back without leave-one-out smoothing, causing the target to leak into the training features.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

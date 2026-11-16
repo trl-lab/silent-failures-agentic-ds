@@ -1,0 +1,134 @@
+{
+ "task": "food-prices_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking is performed during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=cat_cols)",
+   "reasoning": "The agent drops missing targets but relies entirely on LightGBM's default handling for missing feature values without any explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    dtrain,\n    num_boost_round=1000,\n    valid_sets=[dval],\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)",
+   "reasoning": "The agent trains and evaluates the LightGBM model (which uses stochastic bagging and feature fractions) only once without averaging over multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = root_mean_squared_error(y_val, val_pred)",
+   "reasoning": "Only RMSE is calculated, providing a limited view of model performance without considering metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task predicting 'usdprice'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype(\"category\")",
+   "reasoning": "Raw features are used directly with only categorical type casting; no domain-specific or derived features are engineered.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Suboptimal early stopping iteration reuse",
+   "description": "When retraining on the full dataset, the agent uses the exact `best_iteration` found on the smaller training split. Since the full dataset is larger, the model usually requires more iterations to converge, leading to underfitting.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_full = lgb.train(\n    params,\n    dtrain_full,\n    num_boost_round=model.best_iteration,\n    callbacks=[lgb.log_evaluation(-1)],\n)"
+  }
+ ],
+ "summary": "The agent provides a basic but functional LightGBM pipeline that correctly avoids data leakage by not applying transformations before splitting. However, the solution is overly simplistic: it lacks feature engineering, relies entirely on the model to handle missing values, and evaluates a stochastic model only once. Additionally, retraining on the full dataset using the exact early-stopping iteration from a smaller split may lead to suboptimal performance.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

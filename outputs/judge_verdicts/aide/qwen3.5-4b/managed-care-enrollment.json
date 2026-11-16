@@ -1,0 +1,145 @@
+{
+ "task": "managed-care-enrollment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for EDA or manual inspection.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are handled via median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[col] = combined[col].fillna(combined[col].median())",
+   "reasoning": "Median imputation is calculated on the combined dataset containing both train and test sets, leaking test distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear from the code alone whether the dataset has a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM regression model is correctly chosen for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code explicitly performs a train/validation split and attempts cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code attempts to use 5-fold cross-validation, which evaluates the model multiple times rather than exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, cv_predictions))",
+   "reasoning": "The agent only uses RMSE to evaluate the model and does not compute any other metrics to build a comprehensive view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a single-target regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Feature engineering\n# Combine train and test for feature extraction\ncombined = pd.concat([train_df, test_df], ignore_index=True)",
+   "reasoning": "Despite a 'Feature engineering' comment, the agent relies solely on raw columns and basic imputation, without creating any derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Mismatched X and y lengths",
+   "description": "The feature matrix X is extracted from the combined train and test datasets, while the target vector y is extracted only from the train dataset. This will cause a ValueError during `train_test_split` due to an inconsistent number of samples.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X = combined[feature_cols].values\ny = train_df[\"Total Enrollment\"].values\n\n# Train/validation split (70/30)\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=42)"
+  },
+  {
+   "name": "Invalid estimator for cross_val_predict",
+   "description": "A LightGBM `Booster` object (returned by `lgb.train`) is passed to scikit-learn's `cross_val_predict`, which expects a scikit-learn compatible estimator API (e.g., with a `fit` method). This causes an AttributeError/TypeError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n...\n)\n\n# Cross-validation for final evaluation\ncv_predictions = cross_val_predict(model, X, y, cv=5)"
+  }
+ ],
+ "summary": "The agent's solution contains a data leak by calculating the imputation medians over the combined train and test sets (FM04). Furthermore, the code contains two critical execution bugs that prevent it from running: passing mismatched lengths for X and y into `train_test_split` (combining train and test rows for X, but only using train rows for y), and passing an incompatible LightGBM `Booster` object to `cross_val_predict` instead of a scikit-learn wrapper.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

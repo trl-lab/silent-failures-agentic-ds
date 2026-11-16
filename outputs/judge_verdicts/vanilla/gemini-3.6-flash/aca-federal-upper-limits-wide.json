@@ -1,0 +1,148 @@
+{
+ "task": "aca-federal-upper-limits-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles categorical missing values and relies on tree models to handle coerced numeric NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string ('missing') for categoricals, which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses random splitting. ACA Federal Upper Limits is typically time-series panel data (drug prices over time), meaning random splitting would introduce look-ahead bias, but without seeing the exact test split design, this cannot be definitively confirmed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 folds, which inherently accounts for some variance, and averages test predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "return np.sqrt(mean_squared_error(y, pred))",
+   "reasoning": "The agent optimizes ensemble weights using solely RMSE and does not compute or report any other metrics (like MAE) to check robustness against outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col + '_year'] = X_train[col].dt.year",
+   "reasoning": "The agent only applies a generic date-part extraction and ordinal encoding, failing to construct any domain-specific features or interactions for a complex dataset like ACA limits.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses SciPy minimize to tune the ensemble blend weights rather than using a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent completely drops the ID column and forces the final submission to use `np.arange(n_test)`. If the test set uses non-sequential or non-integer IDs (like strings or UUIDs), the submission will be misaligned or rejected by the evaluation platform.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({'id': np.arange(n_test), 'ACA FUL': final_preds})"
+  },
+  {
+   "name": "Misclassifying numeric columns as categorical",
+   "description": "The agent determines column types before attempting numeric coercion. If a numeric column contains string artifacts (e.g., 'N/A' or spaces), pandas will read it as 'object'. The agent will therefore treat it as a categorical column and ordinal encode it, destroying the continuous numeric relationship.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if X_train[col].dtype == 'object' or X_train[col].dtype.name == 'category': cat_cols.append(col)"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold cross-validated ensemble of LightGBM, CatBoost, and XGBoost, successfully optimising blend weights. However, it fails to perform any substantive feature engineering and critically drops test IDs, relying on an assumed zero-indexed sequence for the submission file. Furthermore, its simplistic type-checking logic risks treating dirty numeric columns as categoricals.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

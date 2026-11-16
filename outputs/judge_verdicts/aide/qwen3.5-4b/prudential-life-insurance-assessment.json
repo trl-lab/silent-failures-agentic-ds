@@ -1,0 +1,113 @@
+{
+ "task": "prudential-life-insurance-assessment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_data[feature_cols] = train_data[feature_cols].fillna(\n        train_data[feature_cols].median()\n    )",
+   "reasoning": "The agent computes the median and imputes missing values on the entire training dataset before performing the K-Fold split, which leaks validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"binary\",",
+   "reasoning": "The target variable has 8 classes, but the model is incorrectly configured with a binary classification objective.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred_binary = (y_pred >= 0.5).astype(int)",
+   "reasoning": "The agent incorrectly formulates the 8-class ordinal classification problem as a binary classification, discarding the true target scale.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in feature_cols:\n        if train_data[col].dtype == \"object\":\n            train_data[col] = train_data[col].astype(\"category\")",
+   "reasoning": "The agent performs no feature engineering beyond basic type casting and missing value imputation, missing out on potentially important derived features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution error: Invalid metric parameter",
+   "description": "Providing an unsupported string value to a metric function's parameter will cause a ValueError at runtime. Scikit-learn's cohen_kappa_score only supports None, 'linear', or 'quadratic' for the weights parameter.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "return cohen_kappa_score(y_true, y_pred_binary, weights=\"quartile\")"
+  },
+  {
+   "name": "Execution error: Early stopping without validation set",
+   "description": "Using an early stopping callback in LightGBM requires a validation set to be passed. Training without `valid_sets` will result in an execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n        params,\n        train_set_final,\n        callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n    )"
+  }
+ ],
+ "summary": "The agent fundamentally mischaracterizes the 8-class ordinal classification target as a binary classification problem, discarding the actual structure of the task. Furthermore, the solution contains execution errors such as using an invalid weight parameter for the kappa metric and passing an early stopping callback without a validation set, alongside data leakage by performing imputation before cross-validation splitting.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,146 @@
+{
+ "task": "bnp-paribas-cardif-claims-management",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_series = pd.concat([X_train[col].astype(str), X_test[col].astype(str)], axis=0)\nfreq_map = combined_series.value_counts(dropna=False, normalize=True).to_dict()",
+   "reasoning": "The agent computes categorical frequency encodings using the combined distribution of both the training and test sets, which leaks test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent effectively handles missing data by creating null count features, using SimpleImputer for the neural network, and relying on native missing value support for tree-based models.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on the training folds and then applied to the validation and test folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection before splitting is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "SimpleImputer is correctly fit strictly inside the cross-validation loop on training folds only.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is binary classification, and the agent correctly uses binary classifiers (LGBMClassifier, XGBClassifier, CatBoostClassifier) and BCEWithLogitsLoss.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The TabularResNet model employs dropout layers, weight decay in the AdamW optimizer, and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation strategy to evaluate models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final inference, and models are evaluated on out-of-fold validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 cross-validation folds, which inherently accounts for variance in model performance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While the agent only uses log_loss, this is the explicitly requested and appropriate competition metric for this probability prediction task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including numeric interactions, categorical interactions, frequency encoding, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimally blends models by using Nelder-Mead optimization to find the best ensemble weights on out-of-fold logits.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "categorical_features_treated_as_continuous",
+   "description": "Categorical features are label-encoded into integers, but the agent does not specify them as categorical variables to the gradient boosting models (e.g., via `cat_features` in CatBoost or `categorical_feature` in LightGBM) or use embeddings in the neural network. This forces all models to treat arbitrary integer labels as continuous ordinal values, which is suboptimal.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "unique_cats = {val: idx for idx, val in enumerate(train_vals.unique())}\nX_train[col] = train_vals.map(unique_cats).fillna(-1).astype(np.int32)"
+  }
+ ],
+ "summary": "The agent provides a highly robust and sophisticated solution, featuring out-of-fold target encoding, careful cross-validation, and an optimized logit-space ensemble. However, it introduces data leakage by computing frequency encodings across the combined train and test sets, and it treats label-encoded categorical variables as continuous integers across all models without utilizing native categorical support.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

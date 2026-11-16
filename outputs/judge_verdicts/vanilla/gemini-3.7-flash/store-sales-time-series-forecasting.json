@@ -1,0 +1,138 @@
+{
+ "task": "store-sales-time-series-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during exploration or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df['onpromotion'].fillna(0)",
+   "reasoning": "The agent explicitly handles missing values in the 'onpromotion' column.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputers are fitted on the combined dataset; missing values are filled with a constant 0.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not split the training data at all, so they do not make the mistake of splitting it randomly.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "LGBMRegressor(",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_df, y_train)\n\n# Predict on test data",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without any internal validation split to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "model = LGBMRegressor(\n    n_estimators=500,\n    learning_rate=0.08,\n    num_leaves=63,\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n    n_jobs=-1\n)",
+   "reasoning": "The agent trains a stochastic model (using subsampling) exactly once to generate predictions, without running multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally, so no metric is reported or optimized improperly during validation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The time-series forecasting problem is correctly framed as a regression task using time-derived features.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_feat['year'] = dates.dt.year\ndf_feat['month'] = dates.dt.month",
+   "reasoning": "The agent extracts multiple useful date components and features for the model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarded test IDs",
+   "description": "The agent ignores the original identifier column in the test dataset and creates a new sequential ID column from scratch for the submission file. This will cause a submission failure or misalignment if the test IDs do not start at 0 or are not perfectly sequential.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "output_df = pd.DataFrame({\n    'id': np.arange(len(test_preds)),\n    'sales': test_preds\n})"
+  }
+ ],
+ "summary": "The agent applies a reasonable approach by using LightGBM with date-based feature engineering and correctly transforming the target using log1p to optimize for RMSLE. However, the solution completely lacks a validation strategy (FM06), meaning the agent has no way to assess model generalization before submission. Furthermore, a critical error in generating the submission file discards the original test IDs in favor of a zero-indexed sequence, which will invalidate the submission.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

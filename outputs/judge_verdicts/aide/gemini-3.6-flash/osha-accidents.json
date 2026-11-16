@@ -1,0 +1,148 @@
+{
+ "task": "osha-accidents",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking during EDA is observed as there is no EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing medians and filling with 'Missing' or empty strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd_word = TruncatedSVD(n_components=25, random_state=42)\n    svd_word_feats = svd_word.fit_transform(word_mat)",
+   "reasoning": "The agent applies TruncatedSVD (a form of PCA) to the combined train and test text data, leaking test information into the learned components.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "features_dict[col] = combined[col].fillna(combined[col].median()).values",
+   "reasoning": "The agent imputes missing numerical values using the median of the combined (train + test) dataset, leaking test statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "While accident datasets often have timestamps, it is not possible to confirm if a temporal split was necessary without the dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly utilizes a 5-fold StratifiedKFold for out-of-fold validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs 5-fold cross-validation, implicitly evaluating the models across multiple subsets to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_auc = roc_auc_score(y, oof_ensemble)\nprint(f\"Validation Out-Of-Fold ROC AUC: {oof_auc:.5f}\")",
+   "reasoning": "The agent evaluates the model using only ROC AUC, without supplementing it with other metrics like log-loss, precision, or recall to holistically assess performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including target encoding, TF-IDF, SVD, and text statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_ensemble = 0.4 * oof_lgb_rank + 0.3 * oof_cat_rank + 0.3 * oof_xgb_rank",
+   "reasoning": "The agent combines models using arbitrary, hardcoded weights without performing weight optimization, stacking, or a systematic search.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage via global frequency encoding",
+   "description": "Categorical feature frequencies are computed on the concatenated train and test dataset, leaking the target distribution and test set frequencies into the training data features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "s = combined[col].fillna(\"Missing\").astype(str)\n    freq_map = s.value_counts().to_dict()\n    features_dict[f\"{col}_freq\"] = s.map(freq_map).values"
+  },
+  {
+   "name": "Leakage via global text feature extraction",
+   "description": "Text vectorization (like TF-IDF) is fitted on the combined train and test set, meaning the vocabulary and document frequencies incorporate information strictly from the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_word = TfidfVectorizer(\n        max_features=10000, stop_words=\"english\", ngram_range=(1, 2)\n    )\n    word_mat = tfidf_word.fit_transform(s)"
+  }
+ ],
+ "summary": "The agent's solution contains severe data leakage issues stemming from processing the combined train and test datasets together. Specifically, median imputation, TF-IDF vectorization, TruncatedSVD, and categorical frequency encoding are all fitted globally, meaning test set statistics leak into the training data. Additionally, the agent uses hardcoded weights for ensembling instead of optimizing them systematically.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

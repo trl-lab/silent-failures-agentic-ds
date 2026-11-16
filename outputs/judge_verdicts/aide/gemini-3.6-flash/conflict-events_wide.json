@@ -1,0 +1,144 @@
+{
+ "task": "conflict-events_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or print test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by handling missing values and extracting datetime features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use a traditional scaler (like StandardScaler) on the combined dataset, though it does perform other transformations before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any explicit feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = df_all[col].median()\n    df_all[col] = df_all[col].fillna(median_val if not pd.isna(median_val) else 0)",
+   "reasoning": "The agent computes the median for imputation on the combined train and test dataset, leaking test set distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor, XGBRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which inherently averages performance over multiple folds rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y_train, oof_preds))\nprint(f\"Validation RMSE: {oof_rmse:.5f}\")",
+   "reasoning": "The agent solely evaluates and optimizes using RMSE, without checking secondary metrics like MAE which might be more robust given that a target like 'fatalities' is likely highly skewed with extreme outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a regression problem on the fatalities column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including datetime extraction, categorical interactions, frequency encoding, and grouped aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses scipy's SLSQP minimizer to optimally tune the weights of the ensemble, avoiding a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering leakage before splitting",
+   "description": "The agent computes frequency encodings and group-based aggregate statistics (mean/std) on the combined train and test dataset before splitting. This leaks the distribution of test data features into the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq_map = df_all[col].value_counts(normalize=True).to_dict()\n    df_all[f\"{col}_freq\"] = df_all[col].map(freq_map).astype(np.float32)\n...\ngroup_stats = df_all.groupby(cat)[num_cols_for_agg].transform(\"mean\")"
+  },
+  {
+   "name": "Unspecified categorical features for tree models",
+   "description": "The agent applies label encoding to categorical features but fails to pass the categorical column indices to tree models like CatBoost or LightGBM. Consequently, the models treat categorical encodings as continuous numerical variables, which can severely degrade splitting logic and performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cb_model = CatBoostRegressor(**cb_params)\n    cb_model.fit(\n        X_tr,\n        y_tr,\n        eval_set=(X_va, y_va),"
+  }
+ ],
+ "summary": "The agent implements a generally solid modeling pipeline featuring K-fold cross-validation, extensive feature engineering, and a well-optimized ensemble. However, the solution suffers from critical data leakage (Severity 3) by performing median imputation and computing distributional features (frequency encoding and group aggregates) on the concatenated train and test datasets. Additionally, it fails to specify categorical variables to the gradient boosting libraries and relies solely on RMSE for a likely heavily skewed target.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

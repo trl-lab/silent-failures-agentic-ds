@@ -1,0 +1,146 @@
+{
+ "task": "summary-of-deposit_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or to influence preprocessing decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by replacing infinities, dropping high-cardinality/missing columns, and filling missing categorical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_test = select_features(train_raw, test_raw)\n    X_train, X_test, cat_cols = prepare_features(X_train, X_test)\n    ...\n    X_tr, X_val, y_tr, y_val = train_test_split(",
+   "reasoning": "Feature dropping based on constant values and missingness is applied to the full training set before splitting, leaking validation set properties into the feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed prior to splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal component provided in the task format that requires a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation set and evaluates the individual models on it.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for sequential optimization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n            X_train, y, test_size=0.2, random_state=42\n        )",
+   "reasoning": "The stochastic models are trained and evaluated on a single train-test split without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmse(y_true, y_pred):\n    return float(np.sqrt(mean_squared_error(y_true, y_pred)))",
+   "reasoning": "The agent only calculates and utilizes RMSE for evaluation and weighting, without evaluating secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def prepare_features(train: pd.DataFrame, test: pd.DataFrame):\n    train = train.copy()\n    ...",
+   "reasoning": "The agent only casts column types and does basic cleaning but implements no derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses inverse-RMSE weighting for the ensemble, which is a step above naive unweighted ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Silent failure of XGBoost due to missing categorical flag",
+   "description": "When passing pandas 'category' type columns to XGBoost, it will raise a ValueError unless 'enable_categorical=True' is explicitly set. The agent wraps model fitting in a broad try-except block, causing XGBoost to fail silently and be entirely omitted from the ensemble.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "\"xgb\": XGBRegressor(..., tree_method=\"hist\"), \n...\ntry:\n...\nexcept Exception:\n    continue"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline but misses some critical implementation details. Feature selection is applied before the internal train-validation split (causing minor data leakage), no feature engineering is attempted, and models are only evaluated on a single split. Furthermore, a broad try-except block masks a fatal error where XGBoost fails due to categorical variables missing the required `enable_categorical=True` flag, silently reducing the ensemble's power.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

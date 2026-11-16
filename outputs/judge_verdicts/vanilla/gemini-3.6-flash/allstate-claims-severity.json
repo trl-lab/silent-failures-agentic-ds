@@ -1,0 +1,144 @@
+{
+ "task": "allstate-claims-severity",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_df = pd.concat([train[features], test[features]], axis=0).reset_index(drop=True)\n\nfor c in cat_cols:\n    all_df[c] = all_df[c].astype('category').cat.codes",
+   "reasoning": "The agent concatenates train and test sets to compute pandas categorical codes across the full dataset, leaking test set categories into the training preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(train_path)\n...\nall_df = pd.concat([train[features], test[features]], axis=0)",
+   "reasoning": "The agent loads the data and passes it directly to encoding and modelling without any explicit checks or cleaning steps for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses appropriate regression models (LightGBM and CatBoost) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 folds and averages their predictions, meaning models are not evaluated just once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for MAE, which is the official task metric and perfectly appropriate.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correct, including an appropriate log-transform for the skewed target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = [c for c in train.columns if c not in drop_cols]",
+   "reasoning": "The agent uses only the raw columns provided in the dataset and performs basic categorical encoding, without any attempt to engineer new features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds_log = 0.5 * lgb_test_preds + 0.5 * cat_test_preds",
+   "reasoning": "The agent combines the predictions of LightGBM and CatBoost using a simple 50/50 average, rather than tuning or searching for an optimal blend ratio.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid Submission IDs",
+   "description": "The agent creates a submission file using a generated sequence (`np.arange`) for the 'id' column instead of retaining the original IDs from the test set, which will cause the submission to be rejected or misaligned.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(final_preds))"
+  },
+  {
+   "name": "Unspecified Categorical Features",
+   "description": "The agent label-encodes categorical columns into integers but does not inform the gradient boosting models that these are categorical (e.g., omitting `cat_features` in CatBoost), causing the models to treat nominal categories as continuous ordinal values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_cat.fit(X_tr, y_tr, eval_set=(X_va, y_va), early_stopping_rounds=50, verbose=False)"
+  }
+ ],
+ "summary": "The agent correctly formulates the regression task, applies a log transform to the skewed target, and sets up a robust 5-fold cross-validation scheme with two gradient boosting models. However, it fails to optimize the ensemble weights, performs no feature engineering, and leaks test categorical information by fitting the encoder on the combined dataset. Additionally, there are critical execution flaws: the agent discards the actual test IDs in favor of a generated sequence for the submission file, and fails to specify categorical features to the models, causing nominal data to be treated as continuous.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,97 @@
+{
+ "task": "avito-demand-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_mean_price = full_df.groupby(\"category_name\")[\"price_log\"].transform(\"mean\")\ncat_std_price = full_df.groupby(\"category_name\")[\"price_log\"].transform(\"std\").fillna(0)\nfull_df[\"price_zscore_cat\"] = (\n    (full_df[\"price_log\"] - cat_mean_price) / (cat_std_price + 1e-5)\n).astype(np.float32)",
+   "reasoning": "The agent performs Z-score standardisation for price within categories using the combined train and test dataset ('full_df'), leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "activation_date = pd.to_datetime(full_df[\"activation_date\"])\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a clear temporal component ('activation_date'), but the agent evaluates the model using a random K-Fold split, introducing look-ahead bias and inflating validation scores.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Unsupervised Text Feature Extraction",
+   "description": "Fitting text vectorizers (like TF-IDF) on the combined train and test datasets leaks the vocabulary and document frequency statistics of the test set into the training process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_title = pd.concat([title_train, title_test], ignore_index=True)\ntfidf_title = TfidfVectorizer(max_features=25000, ngram_range=(1, 2), min_df=3)\nX_tfidf_title = tfidf_title.fit_transform(all_title)"
+  }
+ ],
+ "summary": "The agent implements a generally robust pipeline with proper out-of-fold target encoding, text-feature stacking via Ridge regression, and LightGBM. However, the solution suffers from data leakage due to calculating grouped price standardisation and fitting TF-IDF on the combined train and test sets. Crucially, it ignores the temporal nature of the dataset by using a standard random K-Fold cross-validation, which introduces look-ahead bias.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

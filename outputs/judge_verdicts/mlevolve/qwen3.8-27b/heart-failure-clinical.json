@@ -1,0 +1,142 @@
+{
+ "task": "heart-failure-clinical",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"\\nMissing values in test:\\n{test.isnull().sum()}\")",
+   "reasoning": "The agent prints the missing value counts for the test set during the exploratory phase, which is a mild form of test data peeking.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_full = train_full.drop_duplicates().reset_index(drop=True)",
+   "reasoning": "The agent explicitly checks for and drops duplicate rows in the training data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed (LightGBM natively handles missing values).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series (rows represent individual patients), so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"binary\"",
+   "reasoning": "The agent correctly uses a binary classification objective for the binary target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(...)",
+   "reasoning": "A proper stratified train/validation split is created and used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "seeds = [42, 123, 456, 789, 1024]",
+   "reasoning": "The agent uses 5 different seeds to train and evaluate the stochastic LightGBM models.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val, val_pred)",
+   "reasoning": "The agent only computes and reports ROC-AUC, ignoring other useful metrics for clinical/imbalanced datasets like PR-AUC or calibration.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[\"time_ef\"] = df[\"time\"] * df[\"ejection_fraction\"]",
+   "reasoning": "The agent completely ignores the time-to-event nature of the clinical data, collapsing a survival analysis problem into plain binary classification and even using the survival time as a feature.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_features(df):",
+   "reasoning": "The agent implements extensive domain-informed feature engineering including interactions and ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_pred_ensemble = np.mean(val_preds_list, axis=0)",
+   "reasoning": "The agent uses a naive unweighted average to combine predictions from multiple seeds without tuning the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage via Follow-up Time",
+   "description": "Using the 'time' column (follow-up duration until death or censoring) as a predictive feature for the death event. Since follow-up time is structurally dependent on the event occurring (patients who die naturally have shorter follow-up times), this introduces massive target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[\"time_log\"] = np.log1p(df[\"time\"])"
+  }
+ ],
+ "summary": "The agent implemented a robust machine learning pipeline with multi-seed training, stratified splitting, and extensive domain-informed feature engineering. However, the solution suffers from a critical task formulation and data leakage error: it incorrectly uses the 'time' column (follow-up duration) as a predictive feature for the death event, collapsing a survival analysis problem into a naive binary classification task. Other minor issues include simple unweighted ensembling, relying solely on ROC-AUC, and mild test data peeking during exploratory analysis.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

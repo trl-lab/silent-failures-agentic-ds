@@ -1,0 +1,156 @@
+{
+ "task": "porto-seguro-safe-driver-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans data by dropping uninformative columns and handling missing values appropriately.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No target-aware feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fit before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Binary classification models are correctly used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated using 5-fold CV, which averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the explicitly required task metric (Normalized Gini).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including interactions, frequency encoding, and aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the blending weights of the ensemble using Out-Of-Fold predictions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in target encoding",
+   "description": "Target encoding is computed on the training fold and applied directly to the same training data without using an out-of-fold, leave-one-out, or noise-injection strategy. This causes the target variable to leak directly into the training features, leading to severe model overfitting on the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_encoded = train_series.map(smooth_map).fillna(global_mean).astype(np.float32)"
+  },
+  {
+   "name": "Feature leakage from test data",
+   "description": "Grouped aggregations (mean, std, min, max) and frequency encodings are calculated on the concatenated train and test datasets before splitting. This leaks the distribution of the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_df = pd.concat([train_df[feature_cols], test_df[feature_cols]], axis=0)\n...\ngrouped = combined_df.groupby(\"ps_car_11_cat\")[group_target]\n...\nfreq_map = combined_df[col].value_counts(normalize=True).to_dict()"
+  },
+  {
+   "name": "Categorical features treated as continuous in XGBoost",
+   "description": "Categorical features are encoded as integers and passed to XGBoost without one-hot encoding or specifying them as 'category' dtypes with enable_categorical=True. XGBoost will incorrectly treat these nominal categories as ordered continuous variables.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined_df[col] = combined_df[col].astype(np.int32)\n...\ndtrain_xgb = xgb.DMatrix(X_train_fold, label=y_train_fold)"
+  }
+ ],
+ "summary": "The solution employs a solid overall structure with 5-fold cross-validation, LightGBM/XGBoost ensembling, and optimized blending weights. However, it suffers from a critical target leakage flaw because target encoding is applied naively to the training folds without an out-of-fold strategy. Additionally, it leaks test set distributions into the training data by calculating frequency encodings and grouped aggregations on the combined train and test sets before splitting.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

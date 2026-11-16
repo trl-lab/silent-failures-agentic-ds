@@ -1,0 +1,137 @@
+{
+ "task": "sf-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_address = pd.concat([train_df['Address'], test_df['Address']], axis=0)\n...\nfreq_addr = combined_address.value_counts()\n...\nle_addr = LabelEncoder().fit(combined_address)",
+   "reasoning": "The agent concatenates the training and test sets to compute value counts and fit LabelEncoders, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by handling coordinate outliers and standardising address strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (median filling for coordinates) is performed independently on the train and test sets within the process_df function.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any internal splitting, so there is no random split of temporal data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMClassifier is an appropriate model type for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train, categorical_feature=cat_cols)\n\npreds_raw = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training dataset and predicts on the test set without creating any validation split to evaluate model generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(\n    n_estimators=200,\n...\n    random_state=42,\n...\n)\n\nmodel.fit(X_train, y_train, categorical_feature=cat_cols)",
+   "reasoning": "The agent trains a stochastic LightGBM model exactly once with a fixed random seed and does not average predictions over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally at all, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the core problem as a classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, coordinate rotations, and address processing.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Predicting hard labels instead of probabilities for log loss",
+   "description": "The evaluation metric for this task is log loss, which inherently requires the model to output predicted probabilities for each class. The agent predicts hard class labels instead, which will result in an invalid or extremely poor score, and fails to match the expected Kaggle submission format (one column per class).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "preds_raw = model.predict(X_test)\npreds_category = target_le.inverse_transform(preds_raw)\n\nsub = pd.DataFrame({\n    'id': np.arange(len(test_df)),\n    'Category': preds_category\n})"
+  }
+ ],
+ "summary": "The agent successfully engineers a variety of logical features and handles spatial outliers. However, the solution suffers from critical target leakage by computing frequency encodings and fitting LabelEncoders on the concatenated train and test sets. Furthermore, the agent fails to implement a validation strategy and critically outputs hard class labels instead of probabilities, which will fail evaluation under the log loss metric.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

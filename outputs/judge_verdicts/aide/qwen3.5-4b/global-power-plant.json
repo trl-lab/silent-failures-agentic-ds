@@ -1,0 +1,159 @@
+{
+ "task": "global-power-plant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA, though it improperly uses test statistics for test set imputation.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to clean the data by imputing missing values with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is fitted exclusively on the training data, avoiding leakage from the test set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the combined dataset; train and test are handled separately.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is not a time-series forecasting task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, not a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(mean_squared_error(y_val_fold, val_pred))",
+   "reasoning": "The agent relies entirely on RMSE for evaluation without computing complementary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns directly without engineering any derived features, missing opportunities to extract stronger signals.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "test_statistic_leakage",
+   "description": "Imputing missing values in the test set using test set statistics rather than statistics learned from the training set. This leaks test distribution information and is an invalid practice for real-world inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median())"
+  },
+  {
+   "name": "cv_data_leakage",
+   "description": "Applying data transformations (like scaling and imputation) to the entire training set before splitting into cross-validation folds. This leaks information from the validation folds into the training folds, making the validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())\n...\nX_train_scaled = scaler.fit_transform(X_train)\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)"
+  },
+  {
+   "name": "model_reference_bug",
+   "description": "Assigning the best model during a loop using `best_model = model` without creating a copy. Because `model` is instantiated outside the loop and modified in-place, `best_model` ends up being a reference to the model trained on the final fold rather than the best fold.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "best_model = model"
+  },
+  {
+   "name": "unhandled_categorical_features",
+   "description": "Passing all raw columns directly into a StandardScaler without filtering or encoding categorical/string columns. If the dataset contains any string features, this will cause a runtime error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)"
+  }
+ ],
+ "summary": "The agent correctly frames the regression task and employs cross-validation, but the code contains severe logical bugs and instances of data leakage. Missing test values are improperly imputed using test set statistics, and training data is scaled prior to CV splitting, leaking validation data into training folds. Furthermore, an object reference bug in the CV loop ensures predictions are made using the last fold's model rather than the best one, and raw string features are dangerously passed straight to a StandardScaler.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

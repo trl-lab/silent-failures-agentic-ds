@@ -1,0 +1,148 @@
+{
+ "task": "gainful-employment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by handling suppression tokens and parsing numeric strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (LightGBM importance) is applied only on the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation via medians is correctly done inside the cross-validation loops.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for predicting a continuous rate.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes dropout, layer normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Evaluation is done over 5 cross-validation folds, which accounts for variance across data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_score = np.sqrt(mean_squared_error(y_train, oof_blend))",
+   "reasoning": "The agent only computes RMSE and does not verify performance with other metrics to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including text SVD, aggregations, and interaction ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A meta-learner (RidgeCV) is trained on out-of-fold predictions, which is a sound ensembling strategy.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Global Transformations",
+   "description": "Applying data-dependent transformations (like frequency encoding or skewness computation) on the concatenated train and test datasets before splitting. This leaks the test set distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq_map = full_df[ccol].value_counts().to_dict()\nfull_df[f\"{ccol}_freq\"] = full_df[ccol].map(freq_map).fillna(0)"
+  },
+  {
+   "name": "Overoptimistic Ensemble Evaluation",
+   "description": "The final performance metric for an ensemble is computed by predicting on the same data used to train the meta-learner, without a separate holdout set or nested cross-validation, leading to an artificially inflated score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "meta_model.fit(oof_poly_scaled, y_train)\noof_blend = np.clip(meta_model.predict(oof_poly_scaled), 0, None)\nfinal_score = np.sqrt(mean_squared_error(y_train, oof_blend))"
+  }
+ ],
+ "summary": "The agent implements a robust pipeline with multiple models, cross-validation, and stacking. However, it introduces data leakage by computing frequency encodings and skewness on the combined train and test sets. Additionally, the final ensemble score is overly optimistic because the meta-learner is evaluated on its own training data.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

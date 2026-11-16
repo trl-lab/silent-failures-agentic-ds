@@ -1,0 +1,134 @@
+{
+ "task": "forest-cover-type-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on or leak information from the test dataset.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by using median imputation for numerical features and a designated default value for categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied in this solution.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The custom `FeaturePreprocessor` is correctly fit only on the training split before transforming the validation set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses LGBMClassifier, which is perfectly suited for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly splits the training data into train and validation sets using `train_test_split`.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_raw, X_val_raw, y_train, y_val = train_test_split(...)\n...\nmodel.fit(...)\nval_pred = model.predict(X_val)\nval_accuracy = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model exactly once on a single train/validation split without averaging across multiple seeds or using cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent only computes accuracy for evaluation, without checking other metrics (like F1-score or confusion matrices) to verify model performance across classes.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a standard multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "class FeaturePreprocessor:\n...",
+   "reasoning": "The agent uses the raw columns as-is (with basic missing value imputation) and fails to implement any derived features, which are highly beneficial for the forest cover type dataset (e.g., Euclidean distance to hydrology).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid submission ID generation",
+   "description": "The agent discards the original identifier column from the test set and hardcodes a sequence (e.g., using np.arange) for the submission file. This leads to misaligned predictions and an invalid submission on platforms like Kaggle.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(predictions), dtype=int),"
+  }
+ ],
+ "summary": "The agent's solution follows a mostly solid data science workflow, including proper train/validation splitting, avoiding data leakage during imputation, and retraining on the full dataset with the optimal number of iterations. However, it completely lacks feature engineering, which is known to be critical for the Forest Cover Type dataset. Crucially, it commits a fatal flaw by discarding the original test IDs and generating a sequential index for the submission file, which will result in an invalid or entirely misaligned submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

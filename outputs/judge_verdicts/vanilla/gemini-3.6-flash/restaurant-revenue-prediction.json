@@ -1,0 +1,133 @@
+{
+ "task": "restaurant-revenue-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "city_counts = df['City'].value_counts()\n    df['City_freq'] = df['City'].map(city_counts)",
+   "reasoning": "The agent computes city frequencies on the combined train and test dataset, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning like handling date columns, dropping IDs, and filling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is correctly fit only on X_train and then applied to X_test.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0), which does not compute or leak statistics from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "rkf = RepeatedKFold(n_splits=10, n_repeats=5, random_state=42)",
+   "reasoning": "The dataset contains an 'Open Date' indicating a temporal component, but the agent uses standard random K-Fold splits instead of a time-based split, risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for predicting the continuous revenue target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in rkf.split(X_train, y_log):",
+   "reasoning": "The agent sets up a cross-validation loop but completely ignores val_idx and never calculates or reports any validation metrics to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the models at all, so it does not report a single evaluation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed at all.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a regression problem on revenue.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts date parts and aggregates P-variables, showing feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "final_preds = (\n    0.20 * lgb_preds +\n    0.20 * cb_preds +\n    0.20 * xgb_preds +\n    0.15 * rf_preds +\n    0.15 * et_preds +\n    0.10 * ridge_preds\n)",
+   "reasoning": "The agent hardcodes arbitrary weights to combine models without any tuning, blend-ratio optimization, or stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a robust set of models and feature engineering steps but completely fails at evaluation. It sets up cross-validation but ignores the validation indices, leaving the models un-evaluated. Furthermore, it leaks test set distribution statistics into the training data through frequency encoding on the combined dataset and ignores the temporal aspect of the data by splitting randomly.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

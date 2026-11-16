@@ -1,0 +1,169 @@
+{
+ "task": "tmdb-box-office-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive data cleaning, including parsing JSON fields, handling missing values, and formatting dates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling (StandardScaler) is correctly applied within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit feature selection performed on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_raw_df = pd.concat([train_df, test_df], ignore_index=True)\n...\nfull_budgets = full_raw_df[\"budget\"].fillna(0).astype(float)\n...\ndecade_budget_medians = (\n    budget_df[budget_df[\"budget\"] > 0]\n    .groupby(\"decade\")[\"budget\"]\n    .median()\n    .to_dict()\n)",
+   "reasoning": "The agent computes median budgets per decade using the combined train and test datasets, leaking test set statistics into the imputation process.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a temporal component (release date), but the agent uses a random K-Fold split, which conceptually introduces look-ahead bias by predicting past box office revenues using future trends.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for the regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm, and weight decay in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final inference, not for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated using 5-fold cross validation, averaging predictions rather than relying on a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly optimizes for RMSLE (via RMSE on a log1p transformed target), which matches the competition requirements.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a rich set of features including JSON extractions, temporal features, text embeddings, and interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensembling weights using scipy's SLSQP minimizer rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target encoding validation leakage",
+   "description": "Out-of-fold target encodings are pre-computed using the exact same K-Fold splits as the model training loop. Because the target encoding for a training fold uses data from the validation fold, the validation targets directly leak into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf_te = KFold(n_splits=5, shuffle=True, random_state=42)\ntrain_te, test_te = calc_oof_target_encodings(train_df, test_df, y_train, cat_cols, kf_te, m=5.0)\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train, y_train)):"
+  },
+  {
+   "name": "Data leakage via global feature extraction",
+   "description": "Text feature extraction (TF-IDF and TruncatedSVD) is fitted on the entire training set before cross-validation. This leaks vocabulary and component information from the validation folds into the training folds, making out-of-fold evaluation overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=5000, stop_words=\"english\", ngram_range=(1, 2))\ntrain_tfidf = tfidf.fit_transform(train_text)\nsvd = TruncatedSVD(n_components=50, random_state=42)\ntrain_svd = svd.fit_transform(train_tfidf)"
+  },
+  {
+   "name": "Test data leakage via frequency encoding",
+   "description": "Frequency mappings for categorical features are computed on the concatenated train and test sets, which improperly leaks test set distribution information into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_collections = pd.concat([train_df[\"collection_name\"], test_df[\"collection_name\"]])\ncollection_freq_map = full_collections.value_counts().to_dict()"
+  },
+  {
+   "name": "Execution failure due to version incompatibility",
+   "description": "The script attempts to import a metric function that was introduced in a newer version of scikit-learn (1.4+), which likely causes a crash in environments running older versions.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "from sklearn.metrics import root_mean_squared_error"
+  }
+ ],
+ "summary": "The solution demonstrates strong feature engineering and a solid ensembling approach, but is fundamentally undermined by multiple forms of data leakage. It improperly computes imputation statistics, frequency encodings, and out-of-fold target encodings in ways that leak test or validation information into the training set. Additionally, fitting TF-IDF and SVD globally before cross-validation compromises the integrity of the out-of-fold evaluation.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 7,
+ "no_code": false
+}

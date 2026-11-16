@@ -1,0 +1,149 @@
+{
+ "task": "eucalyptus",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for any EDA or preprocessing design; transformations are strictly fit on the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans data by imputing missing numeric values with medians and handling missing categorical values as a separate category.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The FeatureTransformer (which includes imputation) is fit on X_train during validation and on the full train set for final predictions, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The eucalyptus dataset is not a time-series dataset, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (LightGBM, XGBoost, RandomForest) for this multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a validation split to evaluate the models before refitting on the full training set.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for the final prediction output, not for selecting models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = make_validation_split(X, y)\n...\nscore = evaluate_model(model, X_train_proc, y_train, X_val_proc, y_val)",
+   "reasoning": "The agent evaluates stochastic models (Random Forest, LightGBM, XGBoost) exactly once on a single validation split rather than using cross-validation or multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "return float(accuracy_score(y_val, pred))",
+   "reasoning": "The agent evaluates the models using only accuracy, without checking other metrics (like F1-score or log-loss) which might be more informative for multiclass classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def transform(self, X): ... values = values.fillna(self.medians_[col]) ... out[f\"{col}__{self._safe_name(cat)}\"] = (values == cat).to_numpy(dtype=int)",
+   "reasoning": "The agent only applies basic imputation and one-hot encoding, completely skipping any derived features, interactions, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "XGBoost string target failure",
+   "description": "XGBClassifier requires integer-encoded target labels in recent versions. The agent passes the target variable as strings, which will cause the XGBoost model to throw an exception during fitting and be ignored.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train_df[TARGET].astype(str).str.strip().reset_index(drop=True)"
+  },
+  {
+   "name": "Hardcoded prediction IDs",
+   "description": "The agent generates a new 'id' column using np.arange() instead of extracting it from the test dataset. If the test set IDs are non-sequential or don't start at zero, the predictions will be misaligned when evaluated.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(predictions), dtype=int),"
+  }
+ ],
+ "summary": "The agent successfully prevents data leakage by properly fitting its imputation and encoding logic only on the training splits. However, it fails to encode the target variable for XGBoost (causing it to fail silently), lacks any meaningful feature engineering, and uses a hardcoded ID index for its output predictions which risks misaligning the submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

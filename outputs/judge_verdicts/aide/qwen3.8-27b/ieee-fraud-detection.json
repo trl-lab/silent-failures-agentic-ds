@@ -1,0 +1,102 @@
+{
+ "task": "ieee-fraud-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The IEEE Fraud Detection dataset has a strong temporal component (transactions over time), making a shuffled random split inappropriate as it inherently causes look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "fold_auc = roc_auc_score(y_va, val_pred)",
+   "reasoning": "The agent only calculates ROC AUC and does not evaluate other metrics like PR AUC, which is highly relevant for evaluating models on extremely imbalanced fraud datasets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in feature_cols:\n    if col in cat_cols:\n        continue\n    train[col] = pd.to_numeric(train[col], errors=\"coerce\")",
+   "reasoning": "The agent uses the raw features without any domain-informed feature engineering, missing out on crucial derived features like date parts from the TransactionDT column or frequency encodings.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission ID",
+   "description": "The agent generates a submission file with an incorrect ID column (e.g., using a sequential range instead of the actual IDs from the test set), which will result in an evaluation failure or score of zero.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame(\n    {\n        \"id\": np.arange(len(test), dtype=int),\n        \"isFraud\": test_pred.astype(float),\n    }\n)"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM model with 5-fold cross-validation but completely ignores the temporal nature of the dataset by using a shuffled split, which introduces significant look-ahead bias. Additionally, it applies no feature engineering (a core requirement for this dataset) and critically hardcodes an arbitrary sequential ID for the submission file rather than using the actual test set IDs, which will cause the submission to fail.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

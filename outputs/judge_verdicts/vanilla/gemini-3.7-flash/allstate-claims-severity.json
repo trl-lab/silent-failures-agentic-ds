@@ -1,0 +1,109 @@
+{
+ "task": "allstate-claims-severity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "# Convert categorical columns to category dtype\nfor col in cat_cols:",
+   "reasoning": "The agent skips any explicit data cleaning, missing value handling, or outlier removal, passing raw data directly to the model (relying entirely on LightGBM's native handling).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = [col for col in train_df.columns if col not in drop_cols]\n... \nX_train = train_df[features].copy()",
+   "reasoning": "The agent uses the raw features as-is without creating any derived features, domain-informed transforms, or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (np.exp(pred_log) - shift) / n_splits",
+   "reasoning": "The agent ensembles the K-fold models using a naive unweighted average without exploring any blend-ratio optimization or stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Submission ID mismatch",
+   "description": "The agent constructs the submission file using a generated sequence of IDs (e.g., np.arange) instead of using the actual ID column from the test dataset, which will cause the submission to fail or be evaluated incorrectly on the platform.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_preds))"
+  },
+  {
+   "name": "Independent categorical encoding",
+   "description": "Converting categorical columns to 'category' dtype independently for train and test sets can result in mismatched integer codes if the unique category values differ between the sets, leading to incorrect feature mapping and corrupt predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].astype('category')\n    X_test[col] = X_test[col].astype('category')"
+  }
+ ],
+ "summary": "The agent implements a LightGBM regression model using K-Fold cross-validation but fails to perform any data cleaning or feature engineering. Additionally, the solution contains two critical bugs: casting train and test sets to category dtypes independently (which risks category code misalignment) and ignoring the test dataset's original ID column when saving predictions.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

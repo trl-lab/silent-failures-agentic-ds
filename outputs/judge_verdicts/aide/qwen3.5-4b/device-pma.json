@@ -1,0 +1,152 @@
+{
+ "task": "device-pma",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent using test data during the EDA or setup phase.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent skips explicit data cleaning, relying entirely on LightGBM's internal handling for any missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the device-pma dataset requires a temporal split, though the cross-validation uses random shuffling.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification objective for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates an explicit train/validation split and also performs 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the model multiple times.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_roc_auc_scores.append(roc_auc_score(y_fold_val, y_val_pred))",
+   "reasoning": "The agent only computes and reports the ROC-AUC score, lacking secondary metrics like precision-recall or accuracy to provide a holistic view.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [\"decision_code\", \"id\"]]",
+   "reasoning": "The agent uses the raw columns directly without engineering any new features or applying domain-informed transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Suboptimal Test Prediction Strategy",
+   "description": "The agent performs cross-validation but uses a separately trained model on an 80/20 split for final test predictions. This wastes the potential of ensembling the CV models and leaves 20% of the training data completely unused for the final submission.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_pred = model.predict(X_test)"
+  },
+  {
+   "name": "Unshuffled Sequential Split",
+   "description": "The initial train/validation split is created using sequential slicing without shuffling. If the dataset is sorted by class label, time, or any other characteristic, this could result in drastically different distributions between the training and validation sets.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_split, y_train_split = (\n    X_train[: int(len(X_train) * 0.8)],\n    y_train[: int(len(y_train) * 0.8)],\n)"
+  },
+  {
+   "name": "Categorical Data Handling Crash",
+   "description": "The agent extracts values directly into a numpy array using `.values` before passing it to LightGBM. If the dataset contains any string or object columns, LightGBM will crash because it cannot natively process object arrays without explicit categorical encoding or conversion to a pandas `category` dtype.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM pipeline with cross-validation but makes several critical implementation errors. It fails to handle missing data explicitly or engineer any features. Most notably, it performs an unshuffled sequential split which risks severe distribution mismatch, uses `.values` which will crash on string columns, and makes final predictions using an isolated 80% model rather than an ensemble of CV models or retraining on the full dataset.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

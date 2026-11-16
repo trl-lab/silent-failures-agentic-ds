@@ -1,0 +1,117 @@
+{
+ "task": "wine-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train_df, test_df], axis=0).reset_index(drop=True)\n...\nfreq = series_str.value_counts(normalize=True)\n...\ntfidf_mat = tfidf.fit_transform(text_data)",
+   "reasoning": "The agent computes distribution statistics (frequency encoding) and fits transformers (TF-IDF) on the combined train and test dataset, leaking test information into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "num_df[c] = pd.to_numeric(num_df[c], errors=\"coerce\")",
+   "reasoning": "The agent coerces invalid numeric values to NaN but relies entirely on LightGBM to handle these missing values natively without any explicit imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=25, random_state=42)\n...\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (a form of PCA) is applied to the combined dataset before splitting, which leaks test information into the chosen feature representations.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "overall_rmse = np.sqrt(mean_squared_error(y, oof_preds))\nprint(f\"5-Fold CV Out-Of-Fold RMSE: {overall_rmse:.4f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying if it is the most appropriate metric or evaluating other metrics like MAE for robustness to price outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += (\n        model.predict(X_test, num_iteration=model.best_iteration) / kf.n_splits\n    )",
+   "reasoning": "The agent naively averages the test predictions from the 5 cross-validation folds with equal weights, without any tuning of the combination.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No hyperparameter tuning",
+   "description": "The agent uses hardcoded or default hyperparameters without any search or optimization process, which may lead to sub-optimal model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_params = {\n    \"objective\": \"regression\",\n    \"metric\": \"rmse\",\n    \"boosting_type\": \"gbdt\",\n    \"n_estimators\": 2000,\n..."
+  },
+  {
+   "name": "No model comparison",
+   "description": "The agent only trains a single type of model (LightGBM) and does not compare it against any baselines or other algorithm families.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n        lgb_params,"
+  }
+ ],
+ "summary": "The agent sets up a reasonably structured LightGBM pipeline featuring cross-validation and feature engineering (TF-IDF, SVD, frequency encoding). However, the solution suffers from critical test data leakage because it combines the train and test sets before computing frequency distributions and fitting feature transformers. Additionally, the approach lacks hyperparameter optimization and model comparison.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

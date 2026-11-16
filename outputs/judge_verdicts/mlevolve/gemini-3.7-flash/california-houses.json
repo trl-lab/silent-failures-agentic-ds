@@ -1,0 +1,160 @@
+{
+ "task": "california-houses",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing; transformers are fit only on training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the target variable and explicitly handles missing values in features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "SVD and TF-IDF are fit exclusively on the training text, not the combined dataset, avoiding test leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is handled using constants (e.g., fillna(0) or fillna('Missing')), which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is cross-sectional (housing prices), so random K-Fold splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for the continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly held out and only used for final predictions at the end.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold CV, which averages over multiple runs and accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is the specific metric required by the task and appropriate for this regression problem.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as predicting a continuous area target using regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive domain-specific feature engineering, including text parsing, spatial aggregations, and ratio features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the best blending weights for the ensemble, which is sophisticated, not naive.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates the submission file using `np.arange` for the 'id' column instead of extracting and using the actual IDs from the test dataset. This will cause evaluation to fail or mismatch predictions if the test set IDs are non-sequential or do not start from 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame({\n        \"id\": np.arange(len(final_test_preds), dtype=int),\n        \"Total interior livable area\": final_test_preds,\n    })"
+  },
+  {
+   "name": "Train/Test feature mismatch due to dynamic column selection",
+   "description": "In the text extraction helper, the agent filters columns to concatenate based on a dynamic condition (`mean length > 3`) applied to the currently passed dataframe. Since this is applied independently to train and test, different columns may be selected for concatenation if a column is populated in train but mostly empty in test.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if s.str.len().mean() > 3:\n            combined_text = combined_text + \" \" + s"
+  },
+  {
+   "name": "Feature aggregation before CV splitting",
+   "description": "The agent computes grouped statistics (mean, median, std) for numerical features over the entire training set before performing cross-validation. This causes an unsupervised validation leak, as the validation fold's feature values influence the aggregated statistics seen during model training.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "stats_df = (\n                X_train_processed.groupby(loc_key, observed=False)[num_c]\n                .agg(mean=\"mean\", median=\"median\", std=\"std\")\n                .reset_index()\n            )"
+  }
+ ],
+ "summary": "Overall, the agent provides a highly sophisticated and structurally sound data science solution with excellent feature engineering, robust OOF target encoding, and an optimized ensemble. However, it introduces a critical failure by hardcoding sequential IDs in the final submission instead of using the provided test IDs. Additionally, there are moderate issues with dynamic column selection causing train/test feature mismatches, and minor validation leakage from aggregating features before cross-validation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

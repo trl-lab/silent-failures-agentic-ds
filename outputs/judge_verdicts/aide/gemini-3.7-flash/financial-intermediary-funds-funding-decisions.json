@@ -1,0 +1,146 @@
+{
+ "task": "financial-intermediary-funds-funding-decisions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with medians for numeric columns and 'Missing' for categorical ones.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection techniques are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[col] = combined[col].fillna(combined[col].median())",
+   "reasoning": "The agent imputes missing numeric values using the median of the combined train and test dataset, causing data leakage from the test set into the training process.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=SEED)",
+   "reasoning": "Despite the presence of date columns and the temporal nature of funding decisions, the agent uses a randomized K-Fold split, which introduces look-ahead bias by allowing future events to predict past ones.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor and LGBMRegressor) for predicting a continuous target (Amount in USD).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation scheme to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final predictions, not for model evaluation or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models using 5-fold cross validation, which averages out the variance across different validation folds, rather than doing a single holdout split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_cat_rmse = np.sqrt(mean_squared_error(y_va, oof_cat[val_idx]))",
+   "reasoning": "The agent only calculates and optimizes for RMSE, without validating if it is appropriate for financial funding amounts, which typically contain extreme outliers where MAE or RMSLE might be more robust.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is formulated appropriately by the agent.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs date feature extraction, creates pairwise date difference features, and applies frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses scipy's minimize_scalar to intelligently optimize the blending weights for the models, avoiding a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Encoding before splitting",
+   "description": "Categorical frequency encoding is applied to the combined train and test dataset before splitting, which leaks the statistical distribution of categories in the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(normalize=True)\ncombined[f\"{col}_freq\"] = combined[col].map(freq).fillna(0).astype(float)"
+  }
+ ],
+ "summary": "The agent's solution builds a solid foundation with LightGBM and CatBoost models, incorporating useful feature engineering and an optimized ensembling approach. However, it suffers from critical data leakage by performing median imputation and frequency encoding on the combined train and test datasets prior to splitting. Furthermore, the random K-Fold cross-validation ignores the temporal nature of the dataset, risking look-ahead bias and overly optimistic evaluation scores.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

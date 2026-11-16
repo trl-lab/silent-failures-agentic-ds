@@ -1,0 +1,149 @@
+{
+ "task": "fts-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA peeking is evident in the code.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes efforts to handle missing values in text and categorical columns, and relies on tree models that natively support numerical NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD are fit on the combined train and test dataset, leaking test text statistics into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No sklearn-style imputers are fit on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains multiple date columns (indicating a temporal nature), but the agent uses randomized cross-validation instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for predicting a continuous numeric target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation to estimate performance on holdout sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, avoiding a single unverified run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "'metric': 'rmse'",
+   "reasoning": "The agent optimizes only for RMSE without verifying if it is robust to outliers, which is particularly relevant for heavily skewed monetary amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent successfully engineers date features, text features via TF-IDF/SVD, and numeric interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent combines two models using a hardcoded, unweighted average without attempting to tune the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via frequency encoding",
+   "description": "Frequency encoding is computed on the concatenated train and test dataset, leaking the distribution of categories from the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df[col].value_counts(dropna=False)\n        df[f'{col}_freq'] = df[col].map(freq)"
+  },
+  {
+   "name": "Missing target transformation for skewed target",
+   "description": "The model directly predicts a monetary amount using RMSE without applying a log or similar transformation, making the model highly sensitive to extreme outliers typical in financial data.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "y_train = train_df[target_col].values"
+  }
+ ],
+ "summary": "The solution implements a thorough pipeline with LightGBM and CatBoost models, incorporating text and date feature engineering. However, it suffers from critical data leakage by applying TF-IDF, SVD, and frequency encoding on the combined train and test sets prior to splitting. Furthermore, it ignores the temporal nature of the dataset during cross-validation and relies on a naive, unweighted ensemble.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

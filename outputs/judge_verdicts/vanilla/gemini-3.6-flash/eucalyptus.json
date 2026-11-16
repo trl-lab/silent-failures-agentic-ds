@@ -1,0 +1,155 @@
+{
+ "task": "eucalyptus",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or peeking at test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via fillna for categoricals and SimpleImputer for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fitted only on the training set (X_encoded), so test missing-value statistics are not leaked into training.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is not a time-series forecasting problem requiring a temporal split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 10-fold StratifiedKFold cross-validation strategy, meaning there is an internal validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 10 folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metric at all, so this does not strictly apply.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_cat_oe = oe.fit_transform(X[cat_cols])\n...\nimputer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent applies only basic encoding and imputation to the raw columns without creating any derived features or domain-informed transforms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_preds = (\n            0.25 * preds_cb +\n            0.25 * preds_lgb +\n            0.20 * preds_xgb +\n            0.15 * preds_et +\n            0.15 * preds_rf\n        )",
+   "reasoning": "The agent combines multiple models using an arbitrary, hardcoded weighted average without any tuning, stacking, or blend-ratio optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "cross_validation_leakage",
+   "description": "Data transformations such as imputation and encoding are fitted on the entire training set before performing the cross-validation split, leaking information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_imp = imputer.fit_transform(X_encoded)\n...\nskf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)"
+  },
+  {
+   "name": "no_validation_metrics_reported",
+   "description": "The script implements cross-validation but never calculates or logs any evaluation metrics on the validation folds, leaving the user with no estimate of model generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):"
+  },
+  {
+   "name": "hardcoded_test_ids",
+   "description": "The agent drops the original 'id' column from the test set and creates the submission file using a generated sequence of integers, which will result in misaligned predictions if the original test IDs do not strictly start from 0 and increment by 1.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "out_df = pd.DataFrame({\n        \"id\": np.arange(len(test)),\n        \"Utility\": final_preds\n    })"
+  }
+ ],
+ "summary": "The agent implements a robust 10-fold cross-validation scheme and trains a diverse set of tree-based models, but falls short in feature engineering and ensemble optimization by using raw features and hardcoded blending weights. Additionally, there are notable structural issues: the agent causes data leakage between CV folds by fitting transformations prior to splitting, fails to report any validation metrics to gauge performance, and risks misaligning submission IDs by generating them with `np.arange()` instead of preserving the test set's original identifiers.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

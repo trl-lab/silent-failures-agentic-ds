@@ -1,0 +1,141 @@
+{
+ "task": "vehicle",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent includes an imputation step in the preprocessing pipeline to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(...)\nmodel_pipeline = Pipeline(steps=[\n    ('preprocessor', preprocessor),\n    ('classifier', RandomForestClassifier(random_state=42, n_jobs=-1))\n])\nmodel_pipeline.fit(X_train, y_train)",
+   "reasoning": "Imputation is correctly placed within a sklearn Pipeline and fit exclusively on the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "RandomForestClassifier(random_state=42, n_jobs=-1)",
+   "reasoning": "A classifier is appropriately used for this multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_pipeline.fit(X_train, y_train)\n...\npredictions_sk = model_pipeline.predict(X_test)",
+   "reasoning": "The agent trains on the entire training set and generates test predictions without creating any validation split or computing a validation score.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any scores at all.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_transformer = Pipeline(steps=[\n    ('imputer', SimpleImputer(strategy='median'))\n])\n\ncategorical_transformer = Pipeline(steps=[\n    ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False))\n])",
+   "reasoning": "The agent only applies basic imputation and encoding, without attempting any derived features or transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target column extraction from test set",
+   "description": "The agent attempts to extract the target column from the test set, assuming it is present. Since test sets for prediction typically do not contain the target, this causes a KeyError that crashes the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = df_test['class']\nX_test = df_test.drop(columns=['class'])"
+  },
+  {
+   "name": "Hallucinated attribute on boolean",
+   "description": "The agent calls `.result(True)` on the output of a pandas `.all()` operation, which returns a boolean. This hallucinated method call will result in an AttributeError and halt execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "is_numeric_dtype = X_train.apply(lambda col: pd.api.types.is_numeric_dtype(col)).all().result(True)"
+  }
+ ],
+ "summary": "The agent's solution fails critically due to execution errors: it tries to extract a target column from the test set and calls a non-existent method on a boolean object. Algorithmically, it completely omits internal validation and feature engineering, relying instead on a basic out-of-the-box pipeline.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

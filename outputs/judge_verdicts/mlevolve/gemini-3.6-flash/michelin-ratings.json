@@ -1,0 +1,152 @@
+{
+ "task": "michelin-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis or inspection is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_df = X_train_df.fillna(med_fill).fillna(0)",
+   "reasoning": "Missing values are explicitly handled via median and constant imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train_df)\nX_test_scaled = scaler.transform(X_test_df)",
+   "reasoning": "The scaler is correctly fitted only on the training set after splitting, avoiding train-test leakage (though it leaks across CV folds).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_train = tfidf_text.fit_transform(combined_text.iloc[:n_train])",
+   "reasoning": "Feature selection and extraction (like TF-IDF and SVD) are fitted exclusively on the training data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med_fill = X_train_df.median()\nX_train_df = X_train_df.fillna(med_fill).fillna(0)\nX_test_df = X_test_df.fillna(med_fill).fillna(0)",
+   "reasoning": "Imputation statistics are computed only on the training data, avoiding test leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal structure requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMClassifier(**lgb_params, n_estimators=1000)",
+   "reasoning": "Appropriate multi-class classification models and objectives are used for the task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)",
+   "reasoning": "The neural network includes dropout layers and weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "A 5-fold stratified cross-validation strategy is implemented to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in skf.split(X_train, y):",
+   "reasoning": "The stochastic models are evaluated across 5 cross-validation folds, which accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "score = accuracy_score(y, oof_preds)\nprint(f\"Final Validation Score: {score}\")",
+   "reasoning": "The agent evaluates and reports only accuracy, which is inappropriate and misleading for typically imbalanced Michelin ratings.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_binary = (y == c_idx).astype(float)",
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features_df[f\"dist_{cap_name}\"] = ...",
+   "reasoning": "The agent performs extensive feature engineering, including Haversine distances, clustering, and text embeddings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_ensemble = 0.40 * oof_lgb + 0.40 * oof_xgb + 0.20 * oof_nn",
+   "reasoning": "The agent blends model predictions using hardcoded, arbitrary weights without any tuning, stacking, or blend-ratio optimization.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding CV Leakage",
+   "description": "The agent computes out-of-fold target encoding on the training set and then reuses the exact same cross-validation splits to train the models. This causes the target encoding features in the model's training folds to be computed using targets from the validation fold, resulting in severe target leakage and an overly optimistic CV score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\n... for train_idx, val_idx in skf.split(df.iloc[:n_train], y): ...\n... for train_idx, val_idx in skf.split(X_train, y):"
+  },
+  {
+   "name": "Cross-Validation Data Leakage",
+   "description": "Transformations such as StandardScaler, median imputation, TF-IDF, and SVD are fit on the entire training dataset before the cross-validation loop. This leaks the distribution of the validation folds into the training folds, violating the independence of the CV evaluation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train_df)\n...\nfor train_idx, val_idx in skf.split(X_train, y):"
+  }
+ ],
+ "summary": "The solution successfully isolates the test set during feature engineering, avoiding standard train-test leakage, and implements a robust set of derived features. However, it suffers from critical cross-validation leakage: global transformations are fit on the entire training set prior to CV, and reusing identical folds for target encoding and model training leaks validation targets into the training features. Furthermore, the ensemble relies on hardcoded weights, and the evaluation relies solely on accuracy, which is suboptimal for imbalanced data.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

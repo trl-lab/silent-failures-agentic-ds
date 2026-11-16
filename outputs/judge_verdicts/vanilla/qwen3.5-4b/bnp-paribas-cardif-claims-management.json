@@ -1,0 +1,148 @@
+{
+ "task": "bnp-paribas-cardif-claims-management",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly attempts to handle missing values by imputing with median or mean.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent imputes the training data and then uses the training data statistics to impute the test data, avoiding leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (CatBoostClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_full, y_train)\n    \n    # Predict on Test\n    print(\"Generating predictions...\")\n    proba = model.predict_proba(X_test_full)[:, 1]",
+   "reasoning": "The agent trains directly on the full training dataset and predicts on the test set without creating a validation set or using cross-validation to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(\n            iterations=1000,\n            depth=6,\n            learning_rate=0.1",
+   "reasoning": "The agent trains a single instance of a stochastic model (CatBoost) and uses it for predictions, rather than averaging over multiple runs or seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally, and sets the CatBoost eval metric to the task's required metric (Logloss).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in X_train_full.columns if col != target_col]",
+   "reasoning": "The agent uses raw features exclusively, with no derived features, interaction terms, or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure due to invalid pandas argument",
+   "description": "The agent uses an invalid keyword argument when dropping columns in pandas, which causes the script to crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_full = df_train.drop(columns=[target_col], error_ignore=False)"
+  },
+  {
+   "name": "Uninitialized variable in imputation loop",
+   "description": "The agent attempts to reference a variable before it is assigned in a conditional statement, resulting in a NameError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val = np.nanmedian(X_train_full[col].values) if np.isnan(val) else X_train_full[col].mean(skipna=True)"
+  },
+  {
+   "name": "Hardcoded and potentially incorrect ID column",
+   "description": "The agent ignores the original ID column from the test set and instead hardcodes a sequential range, which will cause submission errors if the test set IDs are non-contiguous or specific strings.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(df_test)),"
+  }
+ ],
+ "summary": "The agent implements a basic CatBoost classifier pipeline but fails completely due to basic execution errors (invalid pandas arguments, uninitialized variables). Methodologically, the solution lacks any validation split, meaning the agent flies blind regarding model performance, and it performs no feature engineering to help the model capture complex relationships.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

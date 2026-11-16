@@ -1,0 +1,137 @@
+{
+ "task": "bnp-paribas-cardif-claims-management",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by handling null values and dropping duplicate columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection algorithms are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string ('missing') without fitting an imputer that computes statistics over the full dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses CatBoostClassifier which is appropriate for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, which inherently accounts for variance in the data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_score = log_loss(y, oof_preds)\nprint(f\"5-Fold Stratified CV Log Loss: {cv_score:.5f}\")",
+   "reasoning": "The agent only calculates and reports log_loss, without verifying performance across other relevant classification metrics like AUC or Accuracy.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard binary classification problem and is framed correctly by the agent.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates several new features, including null counts, zero counts, and string decompositions for high-cardinality columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict_proba(test_df)[:, 1] / 5.0",
+   "reasoning": "The agent uses a naive, unweighted average to combine the predictions of the models trained on the 5 CV folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage through joint feature encoding",
+   "description": "The agent concatenates the training and test sets to compute frequency encodings for categorical variables. This leaks the distribution of categories from the test set into the training features, compromising the strict separation of train and test data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = (\n    pd.concat([train_df[col], test_df[col]]).value_counts(normalize=True).to_dict()\n)\ntrain_df[f\"{col}_freq\"] = train_df[col].map(freq).astype(float)"
+  }
+ ],
+ "summary": "The agent implements a generally solid solution using CatBoost with 5-fold stratified cross-validation and reasonable feature engineering. However, it introduces data leakage by computing categorical frequency encodings on the combined train and test sets. Additionally, the agent uses a simple unweighted average to ensemble fold predictions and only evaluates the model using a single metric (log loss).",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

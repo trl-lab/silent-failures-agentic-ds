@@ -1,0 +1,109 @@
+{
+ "task": "home-data-for-ml-course",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\n    X[col] = X[col].fillna(median_val)",
+   "reasoning": "The median for missing value imputation is calculated on the entire training dataset before the K-Fold split, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = [c for c in train_df.columns if c not in ['Id', 'SalePrice']]\nX = train_df[features].copy()",
+   "reasoning": "The agent uses the raw features as-is and implements no derived features, interaction terms, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_log_preds = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent combines the two models using a hardcoded, unweighted average without attempting to optimize the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarded test IDs in submission",
+   "description": "The agent drops the unique identifiers from the test set and generates a new sequence of IDs (starting from 0 instead of 1461, and using 'id' instead of 'Id') for the submission file. This will cause the submission to be misaligned or completely rejected by the evaluation platform.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "output_df = pd.DataFrame({'id': np.arange(len(final_preds)), 'SalePrice': final_preds})"
+  },
+  {
+   "name": "No validation score reported",
+   "description": "The agent implements cross-validation but never calculates or logs the performance metric on the validation folds, making it impossible to assess the model's out-of-sample performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "The code uses early stopping with eval_set but lacks any print statements or metric calculations (like mean_squared_error) to report the actual validation scores."
+  }
+ ],
+ "summary": "The agent implements a structurally sound pipeline with K-Fold cross-validation, target transformation, and model blending. However, it critically fails by discarding the original test IDs and hardcoding a new sequence, which invalidates the submission file. Additionally, it slightly leaks validation statistics by imputing missing values before splitting, completely lacks feature engineering, and uses a naive equal-weight ensemble.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

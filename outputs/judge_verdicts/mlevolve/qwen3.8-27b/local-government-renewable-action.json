@@ -1,0 +1,105 @@
+{
+ "task": "local-government-renewable-action",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = np.sqrt(mean_squared_error(y_cv, oof_predictions))",
+   "reasoning": "The agent only calculates and reports RMSE, without using alternative metrics like MAE to verify performance robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_predictions += model.predict(X_test_final, num_iteration=best_iter) / 5",
+   "reasoning": "The agent uses a simple unweighted average of the 5 cross-validation fold predictions without any tuning or optimization of the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-Validation Leakage",
+   "description": "Preprocessors are fit on an initial training split, but then the training and validation splits are concatenated for K-Fold cross-validation. This causes the CV validation folds to contain data that was used to fit the preprocessors, leading to data leakage within the CV loop and optimistic validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_cv = pd.concat([X_train_final, X_val_final], axis=0, ignore_index=True).reset_index(drop=True)\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)"
+  },
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates submission IDs using a numerical range instead of preserving the original identifiers from the test set, which will likely cause scoring to fail if specific IDs are expected by the grader.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "test_ids = np.arange(len(X_test_final))\nsubmission = pd.DataFrame(\n    {\"id\": test_ids.astype(int), \"Size of Purchase (MW)\": test_predictions}\n)"
+  }
+ ],
+ "summary": "The agent properly handles missing data, categoricals, and scales features without leaking test set statistics. However, it introduces data leakage within its cross-validation loop by concatenating its initial train/val split after fitting preprocessors. It also uses a naive ensembling strategy and hardcodes submission IDs instead of preserving them from the test data.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

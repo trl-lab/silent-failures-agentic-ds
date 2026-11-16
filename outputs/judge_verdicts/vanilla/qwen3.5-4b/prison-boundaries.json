@@ -1,0 +1,138 @@
+{
+ "task": "prison-boundaries",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only uses test columns to align schemas, which does not constitute peeking at test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly handles missing values using SimpleImputer in a preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('model', model)])",
+   "reasoning": "Scaling is correctly placed inside a scikit-learn Pipeline, preventing data leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection based on the target was performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "Pipeline(steps=[('imputer', SimpleImputer(strategy='median')), ('scaler', StandardScaler())])",
+   "reasoning": "Imputation is correctly placed inside a scikit-learn Pipeline, preventing data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The task is predicting prison capacity based on geospatial/facility attributes, not a time-series forecasting problem.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(objective='regression', boosting_type='gbdt', verbose=-1, learning_rate=0.1, num_leaves=31, n_estimators=500, random_state=42)",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_pipeline.fit(train_df, train_df[target_col])\n    \n    # Predict on test data",
+   "reasoning": "The agent trains on the full training set and immediately predicts on the test set without any internal validation split to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(objective='regression', boosting_type='gbdt', verbose=-1, learning_rate=0.1, num_leaves=31, n_estimators=500, random_state=42)",
+   "reasoning": "The agent trains a single stochastic LightGBM model without averaging predictions over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any evaluation at all, so this failure mode is overshadowed by the lack of a validation split.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard tabular regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_transformer = Pipeline(steps=[\n        ('imputer', SimpleImputer(strategy='median')),\n        ('scaler', StandardScaler())\n    ])",
+   "reasoning": "The agent passes raw features directly into standard imputers and encoders without creating any derived features, despite the presence of spatial and text columns.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Nested list indexing error in Pandas",
+   "description": "The agent uses double brackets around a concatenated list of column names, resulting in a list containing a list (e.g., `df[[['col1', 'col2']]]`). This raises a KeyError in Pandas, causing the script to crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_input = test_df[[numeric_cols + categorical_cols]].copy()"
+  }
+ ],
+ "summary": "The agent correctly uses a scikit-learn Pipeline to prevent data leakage during preprocessing but completely skips setting up an internal validation set to evaluate model performance (FM06). Furthermore, the script fatally crashes before saving predictions due to a simple Pandas syntax error caused by indexing a DataFrame with a nested list.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

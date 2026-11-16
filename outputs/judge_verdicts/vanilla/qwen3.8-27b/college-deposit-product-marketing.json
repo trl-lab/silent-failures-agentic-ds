@@ -1,0 +1,153 @@
+{
+ "task": "college-deposit-product-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_full[col], X_test[col]], axis=0).astype(str)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on a concatenation of the training and official test sets, explicitly using test data to fit a transformer.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_full[col] = X_train_full[col].fillna(median_val)",
+   "reasoning": "The agent actively handles missing values, replaces invalid characters ('.'), and converts data types.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train_full[col].median()\n    X_train_full[col] = X_train_full[col].fillna(median_val)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train_full, ...)",
+   "reasoning": "The missing value median is calculated on the full training dataset before creating the validation split, leaking validation statistics into the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no obvious temporal sequence to respect after date columns are dropped.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "LGBMRegressor(\n...\nXGBRegressor(\n...\nCatBoostRegressor(",
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n    X_train_full, y_train, test_size=0.2, random_state=42\n)",
+   "reasoning": "The agent creates a validation split to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for name, model in trained_models.items():\n    test_pred = model.predict(X_test)\n    test_predictions.append(test_pred)\n\nfinal_predictions = np.mean(test_predictions, axis=0)",
+   "reasoning": "The agent does not use the test set to select between models, but simply ensembles all trained models over it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(\n    X_train_full, y_train, test_size=0.2, random_state=42\n)",
+   "reasoning": "The agent evaluates the models on a single random train/validation split without multiple runs or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((y_val - val_pred) ** 2))\n    print(f\"{name} Validation RMSE: {rmse:.4f}\")",
+   "reasoning": "The agent evaluates the models using only RMSE, missing out on other metrics like MAE which could provide additional insight.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly framed as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in categorical_cols:\n    le = LabelEncoder()",
+   "reasoning": "The agent applies basic cleaning and label encoding but does not generate any derived features or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_predictions = np.mean(test_predictions, axis=0)",
+   "reasoning": "The agent uses a simple unweighted average of the models' predictions without attempting to tune weights or use stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Negative predictions for count target",
+   "description": "The target variable is a count (e.g., number of active accounts), which cannot be negative. Standard regression models without constraints or post-processing clipping can produce invalid negative predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "output_df = pd.DataFrame({\n    'id': range(len(final_predictions)),\n    'TOTAL_ACTIVE_ACCOUNTS_': final_predictions\n})\noutput_df.to_csv('predictions.csv', index=False)"
+  },
+  {
+   "name": "Ignoring native categorical handling",
+   "description": "The agent manually encodes categorical features as integers using LabelEncoder but fails to declare them as categorical when fitting LightGBM and CatBoost, missing out on these algorithms' highly optimized native handling for categorical splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr, y_tr)  # no cat_features or categorical_feature arguments provided"
+  }
+ ],
+ "summary": "The agent provides a functional baseline regression pipeline but introduces data leakage by fitting transformers (LabelEncoder) on the test set and imputing missing values before creating the validation split. Furthermore, it misses opportunities to improve model quality through feature engineering, native categorical handling, or weighted ensembling, and risks outputting invalid negative predictions for a count-based target.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

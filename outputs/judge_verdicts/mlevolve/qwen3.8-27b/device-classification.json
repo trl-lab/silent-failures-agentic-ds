@@ -1,0 +1,141 @@
+{
+ "task": "device-classification",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data distributions or labels during EDA; it only uses the test set to identify all potential feature columns.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are actively handled using median imputation for numeric features and a 'MISSING' string replacement for categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like numeric medians and categorical label encoders) are strictly fit on the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM classifier is appropriately used for this multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly performs a stratified train/validation split with a 15% holdout.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(... random_state=RANDOM_STATE ...)\nmodel.fit(...)",
+   "reasoning": "The agent uses a stochastic model (LightGBM with column/row subsampling) but evaluates it only once instead of averaging over multiple random seeds or cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_acc = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent calculates and reports only accuracy, without verifying if it is the most appropriate metric (e.g., checking for class imbalance using F1-score or a confusion matrix).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is modeled correctly as a standard classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements domain-informed feature engineering by decomposing datetime columns into year, month, day, dayofweek, and hour components.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ignored original IDs / Dummy ID generation",
+   "description": "The agent generates submission IDs using a simple sequence (e.g., np.arange) instead of retaining the original identifiers from the test set, which will likely cause submission scoring to fail if specific IDs are expected.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_pred), dtype=int),"
+  },
+  {
+   "name": "Potential Leakage / Misuse of ID Column",
+   "description": "The agent blindly uses all columns except the target as features. If the dataset contains an identifier column, it will be included as a predictive feature, potentially leading to overfitting.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != TARGET]"
+  }
+ ],
+ "summary": "The agent provides a solid baseline solution with proper data splitting, leakage-free imputation, and some datetime feature engineering. However, it fails to account for model variance by relying on a single stochastic evaluation and ignores potential original test set IDs when generating the submission, which is a critical failure for scoring systems. Blindly including all non-target columns as features also risks utilizing uninformative or leaking identifier columns.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,146 @@
+{
+ "task": "otto-group-product-classification-challenge",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(train_path)\n...\nX_raw = train_df[feature_cols].values.astype(np.float32)",
+   "reasoning": "The agent extracts features directly from the raw parquet files without any checks for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling and transformations are strictly fit on the training split only.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature transformations like PCA and SVD are applied after the train/validation split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classification models and objectives.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A stratified train/validation split is explicitly performed.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no held-out test set with labels to reuse; the agent only uses the validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "set_seed(42)\n...\nlgb_model = lgb.train(\n...\nxgb_model = xgb.train(",
+   "reasoning": "The stochastic models are trained and evaluated exactly once using a single random seed, without cross-validation or averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_val_loss = log_loss(y_val, val_preds_lgb)",
+   "reasoning": "The agent only computes and reports the log loss metric, without verifying performance with other metrics like accuracy or a confusion matrix.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including summary statistics, TF-IDF, and dimensionality reduction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the best blending weights for the ensemble, rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Biased Final Evaluation from Ensemble Resubstitution",
+   "description": "The agent optimizes the ensemble blending weights using the validation set's predictions, and then reports the final model score on that exact same validation set. This evaluates the ensemble on its own training data, leading to an overly optimistic performance estimate.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(\n    loss_func,\n...\nfinal_score = log_loss(y_val, val_preds_ensemble)"
+  }
+ ],
+ "summary": "The agent provides a strong solution with good feature engineering, strict isolation between train and validation splits for stateful transformations, and a well-implemented optimized ensemble. However, it fails to perform any initial data cleaning, relies on a single evaluation run of stochastic models, and biases its final reported score by evaluating the ensemble on the same validation set used to optimize its weights.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

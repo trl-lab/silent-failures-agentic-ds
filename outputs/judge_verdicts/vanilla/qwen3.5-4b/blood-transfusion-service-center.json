@@ -1,0 +1,148 @@
+{
+ "task": "blood-transfusion-service-center",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly uses SimpleImputer in a pipeline to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed; StandardScaler is imported but never used.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train.values, y_train.values)",
+   "reasoning": "Imputation is properly placed inside a pipeline that is only fit on the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.LGBMClassifier(objective='binary'",
+   "reasoning": "The task is binary classification, and the agent correctly sets up a binary classifier.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train.values, y_train.values)\n    \n    # Generate predictions on test set",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without any internal validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any scores, so single-evaluation of a stochastic model doesn't strictly apply.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed or reported by the agent.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_column])",
+   "reasoning": "The agent uses the raw features directly without attempting any domain-informed transformations or deriving new features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Error: Dropping target from test set",
+   "description": "The agent attempts to drop the target column from the test set, but test sets typically do not contain the target, leading to a KeyError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = test_df.drop(columns=[target_column])"
+  },
+  {
+   "name": "Execution Error: Passing numpy array to ColumnTransformer expecting column names",
+   "description": "The agent creates a ColumnTransformer using string column names but passes a numpy array to the fit method, which will raise a ValueError since strings are only supported for pandas DataFrames.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train.values, y_train.values)"
+  },
+  {
+   "name": "Suboptimal prediction format for ROC AUC",
+   "description": "The agent converts predicted probabilities into hard binary classes before saving the output. When the evaluation metric is ROC AUC, models should output continuous probabilities to be evaluated correctly.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test_pred = (y_test_proba >= 0.5).astype(int)"
+  }
+ ],
+ "summary": "The agent sets up a LightGBM classification pipeline but makes several critical errors that prevent execution and proper evaluation. The code throws execution errors because it attempts to drop a non-existent target column from the test set and passes a numpy array to a ColumnTransformer expecting string names. Furthermore, the agent outputs hard classes instead of continuous probabilities (which is inappropriate for the ROC AUC metric) and fails to implement any internal validation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

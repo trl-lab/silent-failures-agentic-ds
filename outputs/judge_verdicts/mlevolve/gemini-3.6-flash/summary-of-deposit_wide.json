@@ -1,0 +1,42 @@
+{
+ "task": "summary-of-deposit_wide",
+ "failure_modes": {},
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation Target Leakage",
+   "description": "The agent computes out-of-fold target encodings before the main cross-validation loop but reuses the exact same K-Fold split for model training. This causes the target encodings in the training folds to depend on the targets of the validation fold (e.g., Fold 2's encoding is computed using Fold 1's targets, and then Fold 2 is used to train a model validated on Fold 1), leading to target leakage and overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)\n... for tr_idx, va_idx in kf.split(X_train): ... te_map = tr_df_cat.groupby(\"cat\")[\"target\"].mean().to_dict()\n... cv_splits = list(kf.split(X_mat, y_mat))"
+  },
+  {
+   "name": "Cross-validation Feature Leakage",
+   "description": "The agent computes group statistics (mean, std, min, max, median) on the entire training set before splitting into cross-validation folds. This leaks feature distribution information from the validation folds into the training folds during cross-validation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "grp_stats = ( X_train.groupby(cat_c)[num_c] .agg([\"mean\", \"std\", \"min\", \"max\", \"median\"]) .reset_index() ) ... X_train = X_train.merge(grp_stats, on=cat_c, how=\"left\")"
+  },
+  {
+   "name": "Incorrect Column Indexing for PCA",
+   "description": "The agent calculates the number of numeric columns for PCA before dropping constant columns. Later, it uses this initial count to slice columns for PCA, which can result in slicing past the intended numeric features and unintentionally including encoded categorical or target-encoded columns in the PCA transformation.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "num_cols_pca = [c for c in X_train.columns if pd.api.types.is_numeric_dtype(X_train[c])]\nconst_cols = [c for c in X_train.columns if X_train[c].nunique() <= 1]\nif const_cols:\n    X_train.drop(columns=const_cols, inplace=True)\n... X_tr_pca_sc = pca_scaler.fit_transform(X_tr[:, :len(num_cols_pca)])"
+  }
+ ],
+ "summary": "The agent's solution is generally well-written, employing a solid blend of gradient boosting and deep learning models with appropriate target transformations and ensemble optimization. However, it introduces critical target leakage during cross-validation by reusing the same K-Fold splits for both out-of-fold target encoding and model training. Additionally, there is minor feature leakage from computing group aggregations on the full training set before CV, and a small bug in how columns are sliced for PCA.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "external-clinician-dashboard",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with the median, indicating an attempt at basic data cleaning.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is performed separately on the train and test sets, avoiding train-test leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is not clear from the task context if the dataset has a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM regressor) is appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code explicitly attempts to use 5-fold cross-validation, even though the implementation contains critical bugs.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is evaluated across 5 cross-validation folds and the mean RMSE is computed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_train_fold, y_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying if it is the most robust metric for this specific dataset.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()",
+   "reasoning": "No derived features, interactions, or domain-informed transformations are created.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing validation labels and shape mismatch",
+   "description": "During cross-validation, the agent fails to extract validation labels and creates a LightGBM validation Dataset without labels. It then incorrectly attempts to compute the MSE between the validation predictions and the training labels, which will result in a shape mismatch error and crash the execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_data = lgb.Dataset(X_val_fold, reference=train_data)\n...\nrmse = np.sqrt(mean_squared_error(y_train_fold, y_pred))"
+  },
+  {
+   "name": "Early stopping without validation set in final training",
+   "description": "The final LightGBM model is trained on the entire dataset with an early stopping callback but no validation dataset is provided, which will cause a crash since early stopping requires a metric to monitor.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=1000,\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)"
+  },
+  {
+   "name": "Imputing test data with test statistics",
+   "description": "The missing values in the test set are imputed using the median of the test set rather than the median of the training set. This is a bad practice (transductive imputation) that assumes access to the global test distribution and breaks when predicting on individual instances in production.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median())"
+  }
+ ],
+ "summary": "The solution implements a basic LightGBM regression model with 5-fold cross-validation. However, it is fatally flawed by critical execution bugs: it evaluates validation predictions against training labels (causing a shape mismatch), creates validation datasets without labels, and uses early stopping in the final training run without providing a validation set. Furthermore, it improperly imputes test data using test statistics and completely skips feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

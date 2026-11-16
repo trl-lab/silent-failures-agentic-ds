@@ -1,0 +1,149 @@
+{
+ "task": "broadband-availability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for EDA or to fit any transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col]).copy()",
+   "reasoning": "The agent makes no effort to handle missing values, outliers, or inconsistencies, relying entirely on LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Features are selected only by matching columns between train and test, not based on data statistics.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The data is cross-sectional for the year 2019, so temporal splitting is not necessary.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The target is a percentage, making a regression model appropriate.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, which accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent only uses RMSE to evaluate the model, without calculating supplementary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col]).copy()",
+   "reasoning": "The agent uses the raw columns as-is and creates no derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test) / n_splits",
+   "reasoning": "The agent uses a simple unweighted average to ensemble the predictions from the K-fold models without attempting to tune weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unaligned_categorical_encoding",
+   "description": "Categorical features are converted to pandas category types independently on the train and test sets. If the unique values differ between the sets, the underlying integer codes will be misaligned, corrupting the test predictions when passed to models like LightGBM.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype(\"category\")\n    X_test[col] = X_test[col].astype(\"category\")"
+  },
+  {
+   "name": "inconsistent_clipping",
+   "description": "The agent applies bounding constraints (clipping) to the final test predictions to ensure they are valid percentages, but fails to apply the same clipping to the out-of-fold validation predictions before scoring, leading to a pessimistic and inaccurate validation metric.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\n...\ntest_preds = np.clip(test_preds, 0.0, 100.0)"
+  }
+ ],
+ "summary": "The agent correctly implements 5-fold cross validation with LightGBM but introduces a critical data corruption bug by independently casting categorical columns on train and test sets, misaligning their integer encodings. Furthermore, the agent skips data cleaning and feature engineering, and fails to apply its logical prediction clipping to validation estimates.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

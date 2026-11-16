@@ -1,0 +1,109 @@
+{
+ "task": "playground-series-s6e2",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_data[feature_cols].values.astype(np.float32)",
+   "reasoning": "The agent makes no effort to clean the feature data or explicitly handle missing values, relying entirely on LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_data, val_data = train_test_split(train, test_size=0.2, random_state=42, stratify=train[target_col].astype(int))",
+   "reasoning": "The stochastic LightGBM model is evaluated on a single train/validation split rather than using cross-validation to provide a robust performance estimate and account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_val_auc = roc_auc_score(y_val, val_preds)",
+   "reasoning": "The agent evaluates the model using only the ROC AUC score without computing secondary metrics (like precision, recall, or calibration) to verify model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unsafe Type Casting / Execution Error",
+   "description": "The code blindly casts all feature columns to `float32` arrays without verifying if they are entirely numeric. If categorical string features are present in the dataset, this will raise a `ValueError` and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_data[feature_cols].values.astype(np.float32)"
+  },
+  {
+   "name": "Unsafe Target Encoding",
+   "description": "The lambda function used to encode the target variable calls `.lower()` on the values without handling potential nulls. Because missing values are represented as floats (e.g. `np.nan`), this will raise an `AttributeError` if any missing values exist in the target column.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lambda x: 1 if x.lower() in (\"presence\", \"1\", \"yes\", \"true\") else 0"
+  }
+ ],
+ "summary": "The agent correctly formulates the task and performs extensive, domain-informed feature engineering. However, the solution fails to implement any explicit data cleaning and relies entirely on the model to handle missing values. It also lacks cross-validation, using only a single split for evaluation. Crucially, the code includes unsafe type casting and string manipulations that are highly prone to throwing runtime execution errors if missing values or string categoricals exist.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

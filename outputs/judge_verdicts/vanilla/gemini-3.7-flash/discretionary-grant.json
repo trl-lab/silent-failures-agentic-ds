@@ -1,0 +1,109 @@
+{
+ "task": "discretionary-grant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains an 'AwardDate' column, indicating a temporal nature, but the agent uses a randomized K-Fold cross-validation, which introduces look-ahead bias by mixing past and future grants.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_params = {\n    'objective': 'regression',\n    'metric': 'rmse',",
+   "reasoning": "The agent only optimizes for RMSE, which is highly sensitive to outliers in heavily skewed monetary target variables like AwardTotal, without checking if MAE or RMSLE would be more robust.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent combines predictions using an unweighted/equal-weight average instead of tuning the blend weights or using a meta-model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "treating_text_as_categorical",
+   "description": "The agent leaves free-text columns (like 'Description' and 'ProjectTitle') in the dataset without dropping them, and passes them directly to the models as categorical features. This will cause the models to treat every unique text string as a distinct category, leading to excessive memory usage, slow training, and severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "text_cols = ['Institution', 'ProjectTitle', 'Description', 'OrgType', 'Program', 'ProjectType']\n... (not dropped) ...\ncat_cols.append(col)\n... cb_model = CatBoostRegressor(... cat_features=cat_indices)"
+  },
+  {
+   "name": "no_validation_metric_reported",
+   "description": "The agent performs cross-validation and fits models on training folds with early stopping on validation folds, but fails to calculate, print, or log any validation metric. This leaves the user unable to assess the model's expected generalization performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cb_model.fit(X_tr, y_tr, eval_set=(X_va, y_va)...) \n# No metric is printed or saved for the validation set within the fold loops"
+  }
+ ],
+ "summary": "The agent successfully builds machine learning models and extracts basic features from text and date columns. However, it makes a critical error by treating free-text columns as categorical features and ignores the temporal order of the data by using random K-Fold cross-validation. Furthermore, it naively ensembles the models and fails to report any validation scores to estimate out-of-sample performance.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

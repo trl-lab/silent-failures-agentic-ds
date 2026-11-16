@@ -1,0 +1,144 @@
+{
+ "task": "mercedes-benz-greener-manufacturing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or peek at the test data explicitly.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values, removes zero-variance features, and encodes categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_binary_scaled = scaler.fit_transform(df_all[valid_binary_cols].fillna(0))",
+   "reasoning": "The agent fits a StandardScaler on the combined train and test data, leaking test set statistics into the training features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "binary_stds = df_all[binary_cols].std()\nvalid_binary_cols = binary_stds[binary_stds > 0].index.tolist()\n...\npca = PCA(n_components=n_comp, random_state=42)\npca_feats = pca.fit_transform(X_binary_scaled)",
+   "reasoning": "Feature selection (variance thresholding) and feature extraction (PCA, ICA, etc.) are applied to the combined train and test datasets, leaking test information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0), which does not fit any statistics from the data and therefore does not cause leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The stochastic cross-validation and models are evaluated exactly once with a fixed random seed, without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "overall_r2 = r2_score(y_train, oof_meta)",
+   "reasoning": "The agent only computes the R-squared score and does not evaluate other metrics like MAE or RMSE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including categorical interactions, frequency encoding, and matrix decompositions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RidgeCV as a meta-model for stacking, which is a sophisticated ensembling technique.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test leakage via global frequency encoding",
+   "description": "Frequency encoding is calculated on the combined train and test sets, causing the distribution of categories in the test set to leak into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts(normalize=True)\ndf_all[f\"{col}_freq\"] = df_all[col].map(freq)"
+  },
+  {
+   "name": "Validation leakage during cross-validation",
+   "description": "A scaler is applied to the entire training set before splitting it into cross-validation folds, leaking validation fold statistics into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr_scaled = scaler_scaled.fit_transform(X_train_encoded.fillna(0))"
+  }
+ ],
+ "summary": "The agent provides a comprehensive pipeline with extensive feature engineering and stacking. However, it commits critical data leakage errors by applying scaling, variance thresholding, matrix decompositions, and frequency encoding on the combined train and test sets. Additionally, there is validation leakage during cross-validation for the linear and distance-based models.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

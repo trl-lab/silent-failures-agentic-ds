@@ -1,0 +1,142 @@
+{
+ "task": "ieee-fraud-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data interactively.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in categorical columns by filling with 'missing' and correctly relies on LightGBM's native handling for numerical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scaler is used before splitting (though grouped standardisation is done manually).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series (indicated by 'TransactionDT'), but the agent uses randomized cross-validation instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classifier (LightGBM with objective='binary') for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 different folds, which inherently averages over different data subsets and mitigates single-run variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_val, oof_preds[val_idx])",
+   "reasoning": "The agent evaluates solely on ROC AUC and does not calculate auxiliary metrics like PR-AUC, which is highly recommended for heavily imbalanced fraud datasets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correct (binary classification).",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements time features, transaction amount ratios, and email domain extraction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately averages fold predictions for the test set, which is standard practice rather than naive ensembling of disparate models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via grouped statistics and encoding on full dataset",
+   "description": "The agent computes grouped feature statistics (e.g., mean and std per group) and frequency encodings on a concatenated DataFrame containing both train and test sets before splitting them. This leaks test set distributions and values into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([...])\n... df.groupby(\"card1\")[\"TransactionAmt\"].transform(\"mean\")\n... freq = df_all[col].value_counts(dropna=False)"
+  }
+ ],
+ "summary": "The agent provides a structurally sound LightGBM pipeline with sensible hyperparameters and domain-specific feature engineering. However, the solution contains critical flaws: it introduces look-ahead bias by using randomised cross-validation on a temporal dataset, and it severely leaks test set information into the training data by computing grouped statistics and frequency encodings on the combined train and test sets before splitting.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

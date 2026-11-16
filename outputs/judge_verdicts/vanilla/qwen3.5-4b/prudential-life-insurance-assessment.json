@@ -1,0 +1,148 @@
+{
+ "task": "prudential-life-insurance-assessment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no peeking at test data occurred.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly imputes missing values using medians and modes.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not leak test missing-value statistics into the training set (though it incorrectly calculates statistics independently on the test set).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(objective='binary', random_state=42, silent=True)",
+   "reasoning": "The agent uses a binary classification objective for an 8-class multi-class/ordinal classification problem.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_final.values, y_train)\n\n# Predict\npredictions = model.predict(X_test_final.values)",
+   "reasoning": "The model is trained on the full training dataset and predictions are made on the test dataset without any internal validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Because there is no evaluation performed, it cannot be determined if the agent would have used single or multiple evaluations.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are calculated, making it impossible to determine if only one metric was used.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly re-frame the task to discard signal, but rather mistakenly uses the wrong objective parameter in the model.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_final = pd.concat([X_train_num, X_train_cat], axis=1)",
+   "reasoning": "The agent concatenates imputed numeric and categorical features without attempting any feature engineering or derivation.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "test_imputation_leakage",
+   "description": "The agent computes imputation statistics (like median or mode) directly on the test set instead of using the statistics learned from the training set. This causes leakage within the test batch and violates the assumption of independent test samples.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test_num = X_test_num.fillna(X_test_num.median())"
+  },
+  {
+   "name": "unencoded_categorical_crash",
+   "description": "The agent passes string categorical values directly to a model that requires numerical inputs or specific categorical wrappers, which will cause a crash during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_final.values, y_train)"
+  },
+  {
+   "name": "incorrect_submission_id",
+   "description": "The agent drops the original ID column from the test set and generates a synthetic sequential ID for the submission file, which will cause the submission to be rejected or scored incorrectly if the original IDs are required.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(predictions))"
+  }
+ ],
+ "summary": "The solution suffers from several critical errors, including using a binary classification objective for a multi-class task, lacking any train/validation split, and failing to properly encode string categorical variables before passing them to the model (which will cause a crash). Additionally, the agent incorrectly overwrites the test IDs in the submission file and calculates imputation statistics independently on the test set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

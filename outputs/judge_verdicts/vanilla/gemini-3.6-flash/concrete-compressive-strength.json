@@ -1,0 +1,137 @@
+{
+ "task": "concrete-compressive-strength",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used during EDA or feature engineering design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by converting it to numeric and filling missing values with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "medians = X_train.median()\nX_train = X_train.fillna(medians)\nX_test = X_test.fillna(medians)",
+   "reasoning": "The agent correctly fits the imputer on the training data only, avoiding leakage from the test set (though there is leakage across CV folds, see other_failure_modes).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train.iloc[val_idx], y_train[val_idx]\n\n    model_lgb = lgb.LGBMRegressor(",
+   "reasoning": "The agent creates a cross-validation split but never actually evaluates the models on the validation sets, completely failing to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates multiple stochastic models over 10 folds and 2 random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any metrics, so they don't rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def engineer_features(df):\n  df = df.copy()\n  df[\"binder\"] = df[\"cement\"] + df[\"blast_furnace_slag\"] + df[\"fly_ash\"]",
+   "reasoning": "The agent implements extensive domain-informed feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += model_lgb.predict(X_test)\n...\ntest_preds /= models_count",
+   "reasoning": "The agent uses a simple, unweighted average to combine predictions from 5 different model architectures across multiple folds, without attempting to tune the blend weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage during cross-validation",
+   "description": "Transformations or imputations are applied to the entire training set before performing cross-validation splitting. This leaks information from the validation folds into the training folds, making any potential CV score overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "medians = X_train.median()\nX_train = X_train.fillna(medians)\n...\nfor fold, (trn_idx, val_idx) in enumerate(kf.split(X_train, y_train)):"
+  }
+ ],
+ "summary": "The agent applies strong domain-specific feature engineering and sets up a robust ensembling loop with multiple architectures and random seeds. However, the solution fails to actually evaluate its performance: while it splits the data into CV folds, it never uses the validation sets to calculate any metrics. Furthermore, it uses a naive unweighted average for ensembling and suffers from data leakage across the CV folds by applying median imputation before the split.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

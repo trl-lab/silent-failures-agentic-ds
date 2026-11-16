@@ -1,0 +1,149 @@
+{
+ "task": "wine-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing medians and adding missing indicator columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fits scalers and calculates normalisation statistics only on the training set, correctly applying them to the test set without leaking test statistics.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (TruncatedSVD) is fit exclusively on the training set's TF-IDF matrix before transforming the test set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly fit on the training data (e.g., median) and then applied to the test data, avoiding test leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression, and the agent appropriately uses regression models (LGBMRegressor, XGBRegressor, MSELoss, etc.).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes dropout layers and weight decay for regularisation, as well as early stopping logic.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates stochastic models across 5 different cross-validation folds and averages their test predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE, which is the metric explicitly requested for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem to predict Price.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including regex-based domain extraction, TF-IDF, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal blending weights for the ensemble, rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Cross-Validation",
+   "description": "The agent computes out-of-fold (OOF) target encodings and Ridge model predictions to use as features, but then reuses the exact same K-Fold splits to train and evaluate the final models. Because of this, the OOF features for the training folds were generated using the targets of the validation fold. This leaks the validation targets into the training features, leading to severe overfitting and overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "oof_te[v_idx] = s_train.iloc[v_idx].map(smoothed) ... and later ... X_trn_f = X_train.iloc[trn_mask] (using the exact same train_folds assignments from kf.split)"
+  },
+  {
+   "name": "Feature Leakage during Cross-Validation",
+   "description": "The agent calculates group-wise aggregations (such as the mean and standard deviation of numerical columns grouped by categorical columns) over the entire training dataset before performing cross-validation. This leaks the feature distributions of the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "grouped = train_df.groupby(s_train)[num_c].agg([\"mean\", \"std\"]) ... train_cat_features[f\"{c}_{num_c}_mean\"] = s_train.map(mean_map)"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution with extensive feature engineering, deep learning, and optimized ensembling that correctly avoids leaking the holdout test set. However, a critical target leakage flaw occurs internally during cross-validation: the agent re-uses the identical K-Fold splits for generating out-of-fold features (target encoding and stacking) and for final model training, causing validation targets to leak into the training features.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,156 @@
+{
+ "task": "goodreads-books-reviews-290312",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data to fit any transformers or compute statistics; transformations on test data strictly use parameters learned from the training set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df['review_text'].fillna('').astype(str)",
+   "reasoning": "The agent explicitly handles missing values in both text and tabular features using fillna().",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied to the combined train/test dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied to the dataset before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer models are fit on the full dataset before splitting; missing values are filled with constants.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=3, shuffle=True, random_state=42)",
+   "reasoning": "Despite parsing date columns, the agent uses a random cross-validation split rather than a time-based split, ignoring the temporal nature of reviews and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (Ridge, LightGBM) for the continuous rating prediction task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=3, shuffle=True, random_state=42)\n...\nfor train_idx, val_idx in kf.split(train_df):",
+   "reasoning": "The agent implements a K-Fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any single evaluation score; it only generates predictions for the submission.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is the exact and appropriate metric specified by the task description.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly formulated as a regression problem, and predictions are correctly clipped to the valid [0, 5] range.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_tab = extract_tabular_features(train_df, train_text)",
+   "reasoning": "The agent performs extensive feature engineering, including TF-IDF, text length extraction, date parsing, frequency encoding, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_preds = 0.8 * test_preds_lgb + 0.2 * test_preds_ridge",
+   "reasoning": "The agent uses a weighted average (0.8 and 0.2) rather than a naive equal-weight ensemble, and also uses stacking (Ridge predictions as a feature in LightGBM).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-Validation Data Leakage (Feature Engineering)",
+   "description": "Feature engineering steps like TF-IDF vectorization and frequency encoding are applied to the entire training dataset before cross-validation. This leaks statistics (e.g., vocabulary, document frequencies, category counts) from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_tfidf = tfidf.fit_transform(train_text)\n...\ncounts = train_df[col].value_counts()\n...\nfor train_idx, val_idx in kf.split(train_df):"
+  },
+  {
+   "name": "Validation Leakage via Reused KFold",
+   "description": "The LightGBM validation set is identical to one of the cross-validation folds used for out-of-fold target encoding. As a result, the training features for LightGBM contain target statistics computed from its own validation set, violating strict train/validation isolation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "trn_idx, val_idx = next(kf.split(X_train_tab))"
+  },
+  {
+   "name": "Suboptimal Training Data Utilization",
+   "description": "The final LightGBM model is trained on only a single cross-validation split (leaving out 1/3 of the data) rather than being trained on the full dataset or ensembled across all folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "trn_idx, val_idx = next(kf.split(X_train_tab))\n...\nmodel = lgb.train(...)\ntest_preds_lgb = model.predict(X_test_tab, ...)"
+  }
+ ],
+ "summary": "The agent constructs a complex pipeline with Ridge and LightGBM models, utilizing stacking, target encoding, and TF-IDF. However, the solution contains several structural issues. It ignores the temporal and grouped nature of the data (users/books) by using a random K-Fold split. Additionally, it suffers from data leakages by fitting TF-IDF and count encoders on the full training set prior to cross-validation, and by reusing the same split for LightGBM validation, which leaks validation targets into the training features.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

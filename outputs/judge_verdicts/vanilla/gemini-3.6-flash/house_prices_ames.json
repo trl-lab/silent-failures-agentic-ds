@@ -1,0 +1,148 @@
+{
+ "task": "house_prices_ames",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "categories = sorted(list(set(X_train[col].unique()).union(set(X_test[col].unique()))))",
+   "reasoning": "The agent inspects the test set to determine the unique categorical levels for encoding, which is a minor form of data leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = pd.to_numeric(X_train[col], errors=\"coerce\")",
+   "reasoning": "The agent applies no explicit data cleaning or imputation strategy, relying entirely on the gradient boosting libraries to handle the resulting NaN values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The data is treated as cross-sectional, which is standard for this task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly implements a 5-fold cross-validation split using KFold.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated over 5 cross-validation folds, accounting for variance rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metric at all, which is a separate issue from optimizing/reporting on only one inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as predicting a continuous regression target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].astype(cat_type).cat.codes",
+   "reasoning": "The agent applies no domain-informed feature engineering or transformations, doing only basic string-to-numeric and category encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_pred = (p_lgb_log * 0.25 + p_lgb_raw * 0.25 + p_cb_log * 0.25 + p_cb_raw * 0.125 + p_xgb_log * 0.125)",
+   "reasoning": "The ensemble uses arbitrary, hardcoded weights to combine the model predictions without any tuning or validation-based weight optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric reported",
+   "description": "The script uses cross-validation to train models and predict on the test set, but it never calculates or reports any performance metric on the validation folds, making it impossible to evaluate the models' performance offline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X_train): ... # no print statements or metric calculations for out-of-fold predictions"
+  },
+  {
+   "name": "Categorical features treated as numeric",
+   "description": "The agent encodes categorical features as integers using `.cat.codes` but does not explicitly flag them as categorical features to the models (e.g. omitting `cat_features` in CatBoost or `categorical_feature` in LightGBM), causing the gradient boosting models to treat them as continuous numerical features with spurious ordinality.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].astype(cat_type).cat.codes"
+  }
+ ],
+ "summary": "The agent establishes a robust 5-fold cross-validation loop and ensembles multiple gradient boosting frameworks, but suffers from several execution and design flaws. Notably, it hardcodes arbitrary ensemble weights, fails to log any validation metrics to gauge performance, and poorly handles categorical features by coercing them to numeric types without notifying the models. Additionally, it applies no explicit data cleaning or feature engineering.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

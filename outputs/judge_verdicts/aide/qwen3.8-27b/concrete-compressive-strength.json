@@ -1,0 +1,134 @@
+{
+ "task": "concrete-compressive-strength",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for any EDA or fitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans infinite values and imputes missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "medians = train[feature_cols].median()\ntrain[feature_cols] = train[feature_cols].fillna(medians)\ntest[feature_cols] = test[feature_cols].fillna(medians)",
+   "reasoning": "The agent correctly fits the imputer (median) only on the training set and transforms the test set separately, avoiding test set leakage (though it leaks across CV folds).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an XGBoost regressor for a regression task, which is appropriate.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic XGBoost model using 5-fold cross-validation, which averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(mean_squared_error(y_va, preds))",
+   "reasoning": "The agent only uses RMSE for evaluation and does not verify its appropriateness with other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple domain-relevant features such as water-to-binder ratio and log age.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation Data Leakage",
+   "description": "Dataset statistics (like medians for imputation) are computed on the entire training set before cross-validation splits, leaking information from validation folds into training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "medians = train[feature_cols].median()\ntrain[feature_cols] = train[feature_cols].fillna(medians)\n...\nkf = KFold(n_splits=5, shuffle=True, random_state=42)"
+  }
+ ],
+ "summary": "The agent implements a solid solution using XGBoost with 5-fold cross-validation and domain-specific feature engineering. The main minor flaw is computing imputation medians on the full training set before splitting into CV folds, causing slight data leakage across folds, and relying solely on RMSE for evaluation without verifying against other robust metrics.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

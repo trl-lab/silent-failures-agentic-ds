@@ -1,0 +1,137 @@
+{
+ "task": "mercari",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in text and categorical columns before extracting features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_num = scaler.fit_transform(full_df[num_cols])",
+   "reasoning": "The StandardScaler is fit on the combined training and test set, leaking test set distribution statistics (mean and variance) into the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied before or after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses simple constant-value filling for missing data, which does not compute statistics over the dataset and thus does not leak test information.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (Ridge) for predicting a continuous price.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation, which evaluates performance across 5 different splits rather than relying on a single stochastic training run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y_train, oof_preds))\nprint(f\"5-Fold Cross-Validation RMSE (log scale): {cv_rmse:.5f}\")",
+   "reasoning": "The agent evaluates the model using only RMSE, without calculating other regression metrics like MAE or R-squared to provide a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task with log-transformed targets.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts several derived features such as text lengths, word counts, and boolean flags for presence of brand/description, alongside comprehensive TF-IDF vectorization.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent simply averages the predictions across cross-validation folds, which is a standard and robust practice, not a naive ensemble of disparate models.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via text vectorizers and encoders",
+   "description": "Fitting text vectorizers (e.g. TF-IDF, CountVectorizer) and categorical encoders (OneHotEncoder) on the combined train and test datasets leaks test vocabulary, document frequencies, and unique categories into the training process.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "vec_desc = TfidfVectorizer(\n    ngram_range=(1, 2),\n    max_features=50000,\n    stop_words=\"english\",\n    token_pattern=r\"\\w+\",\n)\nX_desc = vec_desc.fit_transform(full_df[\"item_description\"])"
+  }
+ ],
+ "summary": "The agent provides a solid end-to-end pipeline with good feature engineering and cross-validation, applying appropriate target transformations for the task. However, the solution suffers from critical data leakage by applying StandardScaler, OneHotEncoder, and various text Vectorizers on the combined train and test data prior to splitting. This guarantees that test set statistics and vocabulary influence the training features.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

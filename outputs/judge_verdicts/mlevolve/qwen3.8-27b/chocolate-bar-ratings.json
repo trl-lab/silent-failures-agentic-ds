@@ -1,0 +1,145 @@
+{
+ "task": "chocolate-bar-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for EDA or fitting preprocessors.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df.fillna(0, inplace=True)",
+   "reasoning": "The agent explicitly handles missing values by filling them with 0, although this is a simplistic approach.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (fillna) is applied independently to the already split data sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal component mentioned that strictly requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = RandomForestClassifier",
+   "reasoning": "A classification model is appropriately used for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_idx, val_idx = train_test_split",
+   "reasoning": "The agent creates a proper validation split before training.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=-1)\nmodel.fit(X_train_t, y_train)",
+   "reasoning": "The agent trains a stochastic model (Random Forest) and evaluates it only once without running multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_acc = accuracy_score(y_val, val_preds)",
+   "reasoning": "The agent evaluates the model solely on accuracy, without considering other metrics like F1-score which might be more appropriate depending on class balance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a classification task as required.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in X_train.select_dtypes(include=['object', 'category']).columns:\n    le = LabelEncoder()",
+   "reasoning": "The agent applies only basic label encoding and no feature engineering, missing out on parsing important string-formatted numeric features like 'Cocoa Percent'.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "destructive_double_encoding",
+   "description": "The agent modifies the training data in-place during label encoder fitting, and then passes it through a transformation function that maps strings back to integers based on the original classes. This causes the already-encoded training features to fail the mapping, resulting in all categorical training features being replaced with missing values (e.g., -1), while validation/test sets are encoded correctly, causing a critical train-test mismatch.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[col] = le.fit_transform(X_train[col].astype(str))\n...\nX_train_t = transform_features(X_train, encoders)"
+  },
+  {
+   "name": "blind_categorical_encoding_of_numerics",
+   "description": "The agent blindly applies categorical encoding to all object/string columns without checking if they represent continuous numeric values (like percentages containing '%' signs). This destroys the ordinal and continuous relationships in features that should be parsed into numeric types.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in X_train.select_dtypes(include=['object', 'category']).columns:\n    le = LabelEncoder()"
+  }
+ ],
+ "summary": "The agent's solution contains a critical implementation bug where it modifies the training categorical features in-place during encoder fitting, then applies a mapping function that expects the original unencoded strings. This results in the training set having all categorical features wiped out (replaced with -1), while the validation and test sets are encoded correctly, leading to severe train-test skew. Additionally, the agent performs no feature engineering and blindly label-encodes all string columns, which likely ruins continuous features formatted as strings (e.g., percentages).",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

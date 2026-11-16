@@ -1,0 +1,145 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "No EDA code is provided to determine if test data was inspected.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "nick_clean = nickname.fillna(\"\").astype(str)",
+   "reasoning": "The agent handles missing values, maps categories, and explicitly fills NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_feat[col] = train_feat[col].fillna(0.0)",
+   "reasoning": "The agent does not fit a standard sklearn scaler on the full dataset, though it does compute manual z-scores using combined aggregations (captured as a separate leakage issue).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_feat[col] = train_feat[col].fillna(0.0)",
+   "reasoning": "Imputation is done using a constant value (0.0), which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(folds):",
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_lgb += lgb_test / len(folds)",
+   "reasoning": "The agent averages predictions over 5 folds, fulfilling the requirement for multiple evaluations.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "metric=\"mae\"",
+   "reasoning": "The agent optimizes for and reports MAE, which is the correct target metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = train_feat[\"rating\"].values",
+   "reasoning": "The problem is correctly framed as predicting the rating.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_merged[\"score_ratio\"] = score / (total + 1e-5)",
+   "reasoning": "The agent performs extensive feature engineering including match features, graph-based skills, and historical aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(\n        mae_objective,",
+   "reasoning": "The agent uses SLSQP to optimize the ensemble weights based on the MAE objective rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Temporal Target Leakage",
+   "description": "The agent computes target encodings using all available training data for a subject, including observations that occur chronologically after the prediction point. This leaks future target information into past predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "p_grp = trn_data.groupby(\"nickname\")[\"rating\"]\n        p_mean = p_grp.mean()"
+  },
+  {
+   "name": "Feature Leakage via Test Set Aggregations",
+   "description": "The agent computes aggregate features (like player mean score, standard deviation, etc.) across the combined train and test sets, leaking the distribution of test set features into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_matches = pd.concat([train_feat, test_feat], axis=0).reset_index(drop=True)\n    p_stats, opp_stats = compute_player_aggregations(combined_matches)"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution with extensive feature engineering, target encoding, and ensemble optimization. However, it suffers from severe data leakage. First, it computes target encodings across the entire training fold for a player, leaking future ratings into past predictions. Second, it splits cross-validation folds by game rather than by player, causing subject overlap. Finally, it computes historical player aggregations on the combined train and test sets, leaking test set distributions.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

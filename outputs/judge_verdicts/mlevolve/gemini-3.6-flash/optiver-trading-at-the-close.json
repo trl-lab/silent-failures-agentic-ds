@@ -1,0 +1,150 @@
+{
+ "task": "optiver-trading-at-the-close",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data in the final code.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by dropping target NaNs and imputing feature NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is fit on X_train only and then used to transform X_val and X_test.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no feature selection step applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation medians are correctly calculated on the train split only and then applied across all splits.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a time-based split (date_id <= 420 vs > 420) avoiding look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses appropriate regression models (XGBRegressor, CatBoostRegressor, L1Loss) for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm, and uses weight_decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation split is created and used for model evaluation and ensemble tuning.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for the final prediction generation, not for tuning or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.train(...)\n...\nfinal_score = mean_absolute_error(y_val, val_preds_ensemble)",
+   "reasoning": "The agent trains and evaluates the stochastic models (GBDTs and PyTorch) exactly once with a single random seed, rather than averaging over multiple runs to reduce variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "mae_lgb = mean_absolute_error(y_val, val_preds_lgb)",
+   "reasoning": "The agent evaluates model performance using only MAE without verifying robustness using secondary metrics like RMSE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem using time-series and cross-sectional features.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers a wide variety of domain-specific features including order book imbalances, lags, and cross-sectional rankings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses scipy.optimize.minimize to find the optimal MAE-minimizing combination of predictions rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inefficient Pandas Transform",
+   "description": "Using `groupby().transform()` with a lambda function containing `rolling` operations is a severe anti-pattern in pandas. It forces the python engine to execute the lambda function sequentially for every single group, completely bypassing vectorization. On large datasets with tens of thousands of groups, this causes massive overhead and inevitable execution timeouts. The correct approach is to use `groupby().rolling()` directly.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[f\"{col}_roll_mean_{window}\"] = stock_day_group[col].transform(lambda x: x.rolling(window, min_periods=1).mean())"
+  }
+ ],
+ "summary": "The agent correctly handles the temporal nature of the dataset with appropriate time-based splits, robust feature engineering, and proper imputation/scaling pipelines. However, the solution suffers from a critical execution failure due to using unvectorized lambda functions in pandas transforms, which causes a timeout. Furthermore, the stochastic models are only evaluated once and rely exclusively on a single metric (MAE).",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "rasff_window",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or inspect the test data interactively.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "df[col] = df[col].astype(str).fillna(\"\")",
+   "reasoning": "The agent fills missing values for categorical/text columns, and relies on LightGBM's native handling for numerical missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No numerical scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(df[col])\n...\nsvd = TruncatedSVD(n_components=actual_comp, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF vectorization and TruncatedSVD (dimensionality reduction) are fit on the combined train and test dataset before splitting, which leaks test set information into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with empty strings (a constant), not an imputer that calculates statistics over the entire dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent extracts temporal features from datetime columns but uses a randomized StratifiedKFold for cross-validation instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(**params)",
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(train_feats, y)):",
+   "reasoning": "The agent uses 5-fold cross validation, so there is a proper train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent performs cross-validation across 5 folds, which provides an average over multiple runs and accounts for some variance, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y, oof_pred_labels)\nprint(f\"Validation Metric (Accuracy): {acc:.5f}\")",
+   "reasoning": "The agent only calculates and reports accuracy, without verifying if the classes are imbalanced or if accuracy is the most appropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[f\"{col}_year\"] = df[col].dt.year",
+   "reasoning": "The agent performs extensive feature engineering including datetime extraction, length metrics, TF-IDF, and SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict_proba(test_feats) / skf.n_splits",
+   "reasoning": "The agent combines predictions from the cross-validation folds using a naive, unweighted average instead of exploring a more sophisticated ensemble or weighting strategy.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Frequency encoding on full dataset",
+   "description": "Frequency encoding or target encoding is applied to the combined train and test dataset before splitting. This leaks the distribution of categorical variables from the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df[col].value_counts(normalize=True)\ndf[f\"{col}_freq\"] = df[col].map(freq)"
+  }
+ ],
+ "summary": "The agent's solution employs robust algorithms and a good feature engineering pipeline but introduces significant data leakage by applying TF-IDF, TruncatedSVD, and frequency encoding to the combined train/test dataset before splitting. Furthermore, it ignores the temporal nature of the data by using a randomized CV strategy, leading to look-ahead bias, and relies solely on accuracy as its evaluation metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "competitive-data-science-predict-future-sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used for EDA or to fit transformers before splitting, other than standard label encoding alignment which is acceptable.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by handling missing values, clipping outliers, and formatting dates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly uses the temporal component (date_block_num) to create the validation split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation split based on time is correctly created and evaluated.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    dtrain,\n    num_boost_round=3000,\n    valid_sets=[dval],",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated only once without multiple seeds or cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(val_part[TARGET], val_pred)))",
+   "reasoning": "The agent only uses RMSE to evaluate the model.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TARGET = \"item_cnt_day\"",
+   "reasoning": "The agent predicts daily sales ('item_cnt_day') and trains on unaggregated daily records, completely ignoring the core task requirement to predict aggregated monthly sales.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train.columns if c in test.columns and c not in exclude_cols]",
+   "reasoning": "Although the agent writes feature engineering code, all engineered features are discarded because they aren't in the raw test set, leaving the model to train exclusively on raw categorical IDs.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unintentionally Dropped Features",
+   "description": "The agent creates engineered features but accidentally filters them out before training because it strictly restricts the feature set to columns present in both the train and raw test datasets. As a result, the model trains entirely on a couple of raw identifiers.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train.columns if c in test.columns and c not in exclude_cols]"
+  }
+ ],
+ "summary": "The agent fundamentally misunderstands the task formulation by training on raw daily records to predict daily sales, rather than aggregating the data to predict monthly sales. Furthermore, a logical flaw in how feature columns are selected causes all engineered features to be silently discarded, resulting in a model trained exclusively on basic shop and item identifiers.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

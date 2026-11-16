@@ -1,0 +1,149 @@
+{
+ "task": "contract-awards-investment-project-financing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or inspect test data distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = []\nfor col in df.columns:\n    if df[col].dtype == 'object' or df[col].dtype.name == 'category':\n        cat_cols.append(col)\n        df[col] = df[col].astype('category')",
+   "reasoning": "The agent makes no explicit effort to handle missing values or outliers in the data, relying entirely on LightGBM's native handling of missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[f'{date_col}_year'] = dt.dt.year.fillna(-1).astype(np.int32)",
+   "reasoning": "Missing values in date features are filled with a constant (-1), which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features ('Contract Signing Date', 'As of Date'), but the agent uses randomized cross-validation (shuffle=True) instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(",
+   "reasoning": "The task is regression and the agent correctly uses a regression model.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent implements a 5-fold cross-validation strategy, separating training and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (trn_idx, val_idx) in enumerate(kf.split(X_train_proc)):",
+   "reasoning": "The agent evaluates the model across 5 different folds, reducing variance compared to a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "eval_set=[(X_va, y_va)],\n        callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)]",
+   "reasoning": "The agent implicitly relies on LightGBM's default evaluation metric for early stopping without verifying its appropriateness or calculating alternative metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "target_col = 'Supplier Contract Amount (USD)'\ny_train = train_df[target_col].values.astype(np.float32)",
+   "reasoning": "The agent correctly formulates the problem as a regression task on the specified target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[f'{date_col}_year'] = dt.dt.year.fillna(-1).astype(np.int32)\n...\ndf[f'{col}_len'] = df[col].astype(str).str.len()",
+   "reasoning": "The agent engineers several features, including extracting date components and measuring text lengths.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test_proc) / kf.n_splits",
+   "reasoning": "The agent combines predictions from the 5 folds using a naive, unweighted average without attempting more sophisticated ensembling methods.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation for skewed data",
+   "description": "Monetary amounts (like contract values) are typically highly right-skewed. Training a model with RMSE on raw monetary values often results in poor performance due to sensitivity to outliers. A log or power transform on the target variable is highly recommended.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train = train_df[target_col].values.astype(np.float32)"
+  },
+  {
+   "name": "No validation scores reported",
+   "description": "The agent trains models across cross-validation folds but fails to compute, print, or log the validation scores, making it impossible to evaluate model performance without submitting the test predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)]"
+  }
+ ],
+ "summary": "The agent successfully sets up a K-Fold cross-validation loop with LightGBM and implements basic feature engineering for dates and text. However, it fails to respect the temporal nature of the data, introducing look-ahead bias by shuffling the folds. Furthermore, it completely skips handling missing values, fails to apply a log-transform to the highly skewed monetary target, and neglects to report any validation scores during training.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

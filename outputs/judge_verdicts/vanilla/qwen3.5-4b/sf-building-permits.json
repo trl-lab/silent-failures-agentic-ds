@@ -1,0 +1,145 @@
+{
+ "task": "sf-building-permits",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or use test data during the pipeline construction.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using SimpleImputer for numerical features and OneHotEncoder for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied within a scikit-learn Pipeline, preventing data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any train/validation split, so there is no random split ignoring temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the continuous target time_to_approve.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline.fit(X_train, y_train)\n\n# Predict on test set\npredictions = pipeline.predict(X_test)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without establishing a validation set or performing cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model locally or report any validation scores, so it does not report a single evaluation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model, thus no evaluation metrics are reported or optimized against.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if pd.api.types.is_numeric_dtype(X_train[col]):\n        numeric_features.append(col)\n    else:\n        categorical_features.append(col)",
+   "reasoning": "The agent uses raw columns as-is without deriving features like extracting date parts from datetime columns, which are critical for predicting building permit approval times.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "OOM risk from dense one-hot encoding",
+   "description": "The agent applies one-hot encoding with sparse_output=False on all categorical columns. In datasets with high-cardinality categoricals (e.g. addresses, IDs, or string-formatted dates), this will create massive dense arrays that easily cause Out of Memory (OOM) errors.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "OneHotEncoder(handle_unknown='ignore', sparse_output=False)"
+  },
+  {
+   "name": "Suboptimal categorical handling for tree models",
+   "description": "The agent applies one-hot encoding to categorical features before passing them to a LightGBM model. This nullifies LightGBM's native and highly optimized categorical feature handling, resulting in slower training and potentially worse performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categorical_transformer = OneHotEncoder(handle_unknown='ignore', sparse_output=False)"
+  }
+ ],
+ "summary": "The agent successfully implements a scikit-learn pipeline with basic preprocessing and a LightGBM model without causing data leakage. However, it completely fails to evaluate the model using a validation split (FM06), performs zero feature engineering (ignoring important date/time features), and uses dense one-hot encoding on all categoricals which is highly likely to lead to an Out of Memory error.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

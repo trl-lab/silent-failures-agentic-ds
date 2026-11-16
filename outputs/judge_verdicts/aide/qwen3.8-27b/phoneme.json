@@ -1,0 +1,137 @@
+{
+ "task": "phoneme",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and infinities using a SimpleImputer in the pipeline and replacement in pandas.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly encapsulated within the scikit-learn Pipeline and fit during cross-validation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping all-NaN columns) is done on the training set only, without leaking test information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly placed inside the Pipeline, preventing data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SVC, which is appropriate for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scores.append(accuracy_score(y.iloc[val_idx], val_pred))",
+   "reasoning": "The agent evaluates solely using accuracy and does not verify if it's robust to potential class imbalance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def prepare_features(df, feature_cols):\n    return (\n        df.reindex(columns=feature_cols)\n        .apply(pd.to_numeric, errors=\"coerce\")\n        .replace([np.inf, -np.inf], np.nan)\n    )",
+   "reasoning": "The agent uses raw numerical columns as-is without introducing any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM14": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target decoding",
+   "description": "The agent encodes target labels into integers (0, 1, ...) for training but fails to decode the predictions back to their original label values before writing the submission. If the original labels are strings or non-sequential integers, the submission will have the wrong format.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pred = np.asarray(pred, dtype=int)\n    submission = pd.DataFrame(\n        {\n            \"id\": np.arange(test_len, dtype=int),\n            \"class\": pred,\n        }\n    )"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates submission IDs using a simple range (np.arange) instead of extracting the actual ID column from the test dataset. If the test IDs do not start at 0 or are not strictly sequential, the submission will be misaligned.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(test_len, dtype=int),"
+  }
+ ],
+ "summary": "The agent sets up a robust validation and evaluation pipeline using cross-validation and scikit-learn Pipelines, successfully avoiding data leakage. However, it entirely skips feature engineering and relies solely on accuracy without checking for class imbalance. Most critically, the code has severe flaws in generating the submission file: it hardcodes the ID column as a simple sequence and fails to inverse-transform the encoded target integers back to their original labels.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": false
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

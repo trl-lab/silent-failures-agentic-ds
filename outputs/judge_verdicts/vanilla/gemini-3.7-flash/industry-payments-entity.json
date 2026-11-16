@@ -1,0 +1,149 @@
+{
+ "task": "industry-payments-entity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via imputation and specific replacement strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the combined dataset; rather, it is applied separately to train and test (which causes a different issue).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a temporal component ('reportYear'), but the agent uses standard randomized K-Fold instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (CatBoostRegressor) is correctly used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation, maintaining internal validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Predictions are averaged over 5 folds, avoiding a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "loss_function='RMSE',\n        eval_metric='RMSE',",
+   "reasoning": "The agent optimizes exclusively for RMSE without checking robustness against outliers (e.g. using MAE), which is common in financial payment data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While minimal, the agent derives string length features and uses CatBoost's internal text/categorical feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The model predictions from multiple folds are combined using a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test set statistics used for imputation",
+   "description": "The agent computes imputation statistics (like median or mean) directly on the test set instead of using the statistics learned from the training set. This makes predictions dependent on the test batch and leaks test distribution information.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_feat[col] = df_feat[col].fillna(df_feat[col].median()).astype(float)\n...\ntest_processed = prepare_features(test_df)"
+  },
+  {
+   "name": "No hyperparameter tuning",
+   "description": "The agent uses hardcoded model hyperparameters without performing any search or tuning over a validation set, likely leading to suboptimal model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "iterations=1500,\n        learning_rate=0.05,\n        depth=6,"
+  }
+ ],
+ "summary": "The agent sets up a K-Fold cross-validation pipeline with CatBoost, utilizing its built-in text and categorical feature support. However, it inappropriately computes imputation statistics (median) on the test set separately, ignores temporal ordering despite having a 'reportYear' feature, and naively averages predictions across folds without tuning the ensemble weights. Additionally, no hyperparameter tuning is performed.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

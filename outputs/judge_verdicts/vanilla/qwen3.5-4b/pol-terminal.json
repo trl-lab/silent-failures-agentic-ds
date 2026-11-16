@@ -1,0 +1,138 @@
+{
+ "task": "pol-terminal",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or inspect the test data prior to defining the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "imputer = SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly uses a SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed, and preprocessing is properly scoped within a sklearn Pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = Pipeline([\n    ('preprocessor', ct),\n    ('model', lgb.LGBMRegressor(",
+   "reasoning": "Imputation is correctly placed within a Pipeline, ensuring it is only fit on the training data during model.fit().",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "No internal splitting is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor(objective='regression'",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# 4. Generate Predictions\npredictions = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without establishing any internal validation split to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor(\n        objective='regression',\n        learning_rate=0.05,\n        n_estimators=500,\n        subsample=0.8,",
+   "reasoning": "The agent trains a stochastic LightGBM model (using subsampling) exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or compute any metrics, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = 'CAPACITY'\n... lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly frames the problem as predicting the CAPACITY target using a standard regression model.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_features = X_train.select_dtypes(include=['number']).columns.tolist()\ncategorical_features = X_train.select_dtypes(exclude=['number']).columns.tolist()",
+   "reasoning": "The agent passes all raw numeric and categorical features directly into the model without creating any derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure: target column dropped from test set",
+   "description": "The code crashes because it attempts to drop the target column from the test dataset, but test datasets in such setups typically do not contain the target column.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = test_df.drop(columns=[target_col])"
+  }
+ ],
+ "summary": "The agent constructs a basic modeling pipeline but suffers from a critical execution failure because it attempts to drop the target column from the test set, which does not exist. Furthermore, it fails to evaluate the model with an internal validation split, lacks feature engineering, and only trains its stochastic model once.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

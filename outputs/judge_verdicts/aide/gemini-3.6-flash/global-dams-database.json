@@ -1,0 +1,141 @@
+{
+ "task": "global-dams-database",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = pd.concat([tr[col], te[col]]).value_counts().to_dict()",
+   "reasoning": "The agent computes frequency encoding using the combined training and test sets, leaking the test data distribution into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by dropping non-feature ID columns, coercing features to numeric, and filling missing values with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before the train/test split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0), which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is a database of dams (spatial/static data), not a time series.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which naturally averages the evaluation across multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_blend)\nprint(f\"5-Fold CV RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying model performance using any secondary metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements several domain-informed features, including spatial coordinates from lat/lon, area/height interactions, and log transforms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_blend = 0.5 * oof_lgb + 0.5 * oof_xgb\ntest_blend = 0.5 * test_lgb + 0.5 * test_xgb",
+   "reasoning": "The agent combines predictions using a naive, equally-weighted average without attempting to optimize the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent categorical encoding across splits",
+   "description": "The agent applies categorical encoding (e.g., using .cat.codes or a new LabelEncoder) independently on the train and test sets. If the sets have different unique categories or missing values, the same category will receive different integer codes in train and test, destroying the feature's meaning.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr[col] = tr[col].astype(str).astype(\"category\").cat.codes\nte[col] = te[col].astype(str).astype(\"category\").cat.codes"
+  }
+ ],
+ "summary": "The agent provides a robust cross-validated solution with good feature engineering. However, it introduces a critical flaw by independently encoding categorical variables in train and test using `.cat.codes`, which will scramble the category mappings if unique values differ. It also leaks the test distribution by frequency-encoding on the combined datasets and relies on naive ensembling.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

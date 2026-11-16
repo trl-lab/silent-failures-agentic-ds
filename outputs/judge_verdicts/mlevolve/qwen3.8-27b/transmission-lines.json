@@ -1,0 +1,149 @@
+{
+ "task": "transmission-lines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code explicitly handles missing values using SimpleImputer and replacing missing categoricals with a specific string.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fit only on the training fold (Xtr) and then applied to validation and test folds, preventing leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before or after splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly fit only on the training split (Xtr) and then applied to the other splits.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no indication that the dataset has a temporal order requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is an MLP classifier, which is appropriate for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network uses dropout, weight decay, and label smoothing for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation split is correctly created using train_test_split and used for model evaluation and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "_set_seed(42)\n...\nscore = main()",
+   "reasoning": "The stochastic neural network is trained exactly once with a fixed random seed, without any cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_acc = float(accuracy_score(y_val_enc, val_pred_enc))",
+   "reasoning": "The agent only calculates and reports accuracy, without checking if the dataset is imbalanced (which could make accuracy misleading), despite explicitly calculating class weights for the loss function.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def _prepare_features(X_train, X_val, X_test, feature_names):\n...",
+   "reasoning": "The pipeline only applies basic imputation, encoding, and scaling, without engineering any domain-informed features or interaction terms.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ordinal encoding for MLP without embeddings",
+   "description": "Categorical variables are encoded using OrdinalEncoder and fed directly into a linear layer (MLP) as continuous float values. This incorrectly imposes an arbitrary ordinal relationship on categorical data; one-hot encoding or entity embeddings should be used for neural networks.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "encoder = OrdinalEncoder(handle_unknown=\"use_encoded_value\", unknown_value=-1)\nXtr[cat_cols] = encoder.fit_transform(Xtr[cat_cols])\n...\nXtr = Xtr[feature_names].to_numpy(dtype=np.float32)"
+  },
+  {
+   "name": "DataLoader multiprocessing without __main__ guard",
+   "description": "Using PyTorch DataLoader with num_workers > 0 in a script that executes training at the top level (without an if __name__ == '__main__': block) can cause the script to hang indefinitely or crash on systems using 'spawn' for multiprocessing (like macOS and Windows).",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "train_loader = DataLoader(..., num_workers=2)\n...\nscore = main()"
+  }
+ ],
+ "summary": "The agent provides a structurally sound PyTorch MLP solution with correct data splitting and leakage-safe preprocessing. However, it critically fails by feeding ordinally encoded categorical variables directly into the MLP as continuous values, introducing spurious ordinal relationships. Additionally, it lacks feature engineering, evaluates the stochastic model only once, relies solely on accuracy as a metric, and risks execution hangs due to PyTorch multiprocessing without a main guard.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

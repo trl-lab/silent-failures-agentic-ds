@@ -1,0 +1,146 @@
+{
+ "task": "industry-payments-entity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using median imputation and filling categoricals with 'Missing'.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalization to the features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied prior to the train/test split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[col] = combined[col].fillna(combined[col].median())",
+   "reasoning": "The agent calculates the median on the combined train and test dataset, leaking test set statistics into the training features.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Although the code dynamically parses dates, it's not clear whether the task requires temporal splitting or if time-based components are the primary structure.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (CatBoostRegressor, LightGBM) are correctly used for the regression target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a proper 5-fold cross-validation setup.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates model performance using out-of-fold predictions, keeping the test set isolated for final predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The use of 5-fold cross validation means the stochastic models are evaluated across multiple data splits rather than just once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cb_rmse = root_mean_squared_error(y, cb_oof)",
+   "reasoning": "The agent solely relies on RMSE for evaluation without verifying if the target distribution contains outliers that would make MAE more robust.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as standard regression on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a rich set of features including frequency encoding, numerical aggregations, datetime extraction, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes blending weights using SciPy's minimize function over out-of-fold predictions rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage during feature engineering",
+   "description": "The agent computes feature distributions (such as frequency encoding and group-by aggregations) on the concatenated train and test datasets, which leaks test set distribution information into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "group_stats = combined.groupby(cat_c)[num_c].agg([\"mean\", \"std\"]).reset_index()"
+  }
+ ],
+ "summary": "The agent developed a robust modeling pipeline with strong components like out-of-fold target encoding, cross-validation, and optimized ensembling. However, a critical flaw exists in its preprocessing strategy: by calculating imputation medians, frequency encodings, and group aggregations on the combined train and test sets, the agent introduces substantial data leakage.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

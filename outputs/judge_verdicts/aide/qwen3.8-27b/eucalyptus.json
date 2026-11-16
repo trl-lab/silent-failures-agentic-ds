@@ -1,0 +1,116 @@
+{
+ "task": "eucalyptus",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr = np.hstack([X_cat_tr, train[num_cols].iloc[tr_idx].values.astype(np.float64)])",
+   "reasoning": "The agent makes no effort to handle missing values, which will cause sklearn's RandomForestClassifier to crash if any NaNs are present in the numeric columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = np.mean(y_pred == y_va)",
+   "reasoning": "The agent only computes accuracy for evaluation, which may be inappropriate and misleading if the target classes are imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr = np.hstack([X_cat_tr, train[num_cols].iloc[tr_idx].values.astype(np.float64)])",
+   "reasoning": "The agent passes raw features directly into the model without creating any derived features, interactions, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Arbitrary Grouping Feature",
+   "description": "The agent falls back to grouping by the first column in the dataset if the intended group column ('Abbrev') is missing. If this first column is continuous or not a meaningful group identifier, GroupKFold will split the data arbitrarily and potentially destroy the integrity of the cross-validation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "group_col = \"Abbrev\" if \"Abbrev\" in train.columns else all_cols[0]"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent creates submission IDs using a simple sequential range instead of extracting the actual ID column from the test set. This will cause submission scoring to fail if the test set IDs are non-sequential or don't start at 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": range(len(y_test_pred)), \"Utility\": y_test_pred})"
+  },
+  {
+   "name": "ID column used as feature",
+   "description": "The agent includes all columns except the target as features. If the dataset contains an ID or index column, it will be inappropriately used as a predictive feature by the model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "all_cols = [c for c in train.columns if c != target]"
+  }
+ ],
+ "summary": "The agent implements a basic Random Forest classification pipeline with 5-fold cross-validation, properly avoiding data leakage during categorical encoding. However, it fails to handle missing values, relies on an arbitrary fallback feature for grouped splitting, implicitly uses ID columns as features, and hardcodes the submission IDs instead of preserving them from the test set.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

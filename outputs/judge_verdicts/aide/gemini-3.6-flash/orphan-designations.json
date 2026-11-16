@@ -1,0 +1,161 @@
+{
+ "task": "orphan-designations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used to fit any transformers or inform EDA; the agent strictly separates train and test.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in text and categoricals, and uses a model that natively handles missing numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is used in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection/dimensionality reduction (SVD) is only fit on the training data, not the full dataset including test.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unknown if the dataset has a temporal structure that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classifier is appropriately used for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)",
+   "reasoning": "The agent only computes and reports the ROC AUC score without verifying other metrics to understand model behavior fully.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates extensive features including date parts, text embeddings, and target encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensembling consists of standard cross-validation averaging, which is appropriate.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "DataLeakageInCV",
+   "description": "Transformers such as TF-IDF and SVD are fitted on the entire training set before the cross-validation loop. This leaks information from the validation folds into the training folds, making the out-of-fold validation score overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tr_word_mat = tfidf_word.fit_transform(combined_tr_text)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(df_tr, y)):"
+  },
+  {
+   "name": "HardcodedSubmissionId",
+   "description": "The agent hardcodes the submission ID column with sequential integers instead of extracting the actual ID column from the test dataset. This will result in a failed submission if the test IDs are not 0-indexed sequential integers.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub = pd.DataFrame({\"id\": np.arange(len(test_preds)), \"Status\": test_preds})"
+  },
+  {
+   "name": "IDColumnAsFeature",
+   "description": "The agent does not identify or drop identifier columns (like 'id' or 'ID') from the training data. Using IDs as features can lead to overfitting, and it further confirms that the hardcoded submission IDs will mismatch the expected format.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col], errors=\"ignore\").copy()"
+  },
+  {
+   "name": "TargetEncodingWithoutSmoothing",
+   "description": "The out-of-fold target encoding computes simple category means without any smoothing or regularization. This can lead to overfitting for rare categories.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "means = pd.Series(y_fold_tr).groupby(cat_fold_tr.values).mean()"
+  }
+ ],
+ "summary": "The agent implements a generally solid baseline using HistGradientBoosting, cross-validation, and extensive feature engineering including out-of-fold target encoding and text SVD. However, there are a few critical flaws: it fails to drop the dataset's ID column (treating it as a feature) and hardcodes the submission IDs, which will likely cause a submission failure. Additionally, it fits TF-IDF and SVD on the entire training set before CV, causing data leakage that will inflate the validation score.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

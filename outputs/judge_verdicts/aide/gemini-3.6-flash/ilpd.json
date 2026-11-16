@@ -1,0 +1,151 @@
+{
+ "task": "ilpd",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning (imputation, type casting) is explicitly performed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is only performed inside a pipeline within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the combined train and test dataset; train and test are imputed separately (though this introduces other transductive issues).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Classification models are correctly used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold stratified cross-validation is used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "ROC AUC is used, which is the specified and appropriate metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Several domain-specific derived features and log transformations are engineered.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses a weighted average rather than a naive unweighted or majority vote.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "transductive_imputation",
+   "description": "Missing values in the test set are imputed using the test set's own medians, rather than statistics learned from the training set. This transductive approach is invalid for production where samples arrive individually.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "data = data.fillna(data.median())\n# ...\nX_test = create_features(X_test_raw)"
+  },
+  {
+   "name": "transductive_rank_ensembling",
+   "description": "The ensembling strategy uses a rank transformation on the test predictions, making the output for any single test instance dependent on the distribution of the entire test batch. This prevents valid out-of-sample prediction on new, single instances.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "def rank_transform(preds):\n    return rankdata(preds) / len(preds)\n# ...\nr_lgb_test = rank_transform(pred_lgb_test)"
+  },
+  {
+   "name": "data_leakage_in_cv_imputation",
+   "description": "Imputation is performed on the entire training set before cross-validation splits, leaking validation fold statistics into the training folds during evaluation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = create_features(X_train_raw)\n# ...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y)):"
+  }
+ ],
+ "summary": "The agent builds a well-structured cross-validated ensemble with thoughtful feature engineering, but critically relies on transductive transformations. By computing medians and prediction ranks directly on the test set, the solution violates out-of-sample prediction principles, rendering the model unsuitable for production use on individual new samples. Additionally, global imputation on the training set prior to CV splits introduces internal data leakage.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

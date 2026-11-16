@@ -1,0 +1,102 @@
+{
+ "task": "allstate-claims-severity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(...)\nmodel = lgb.LGBMRegressor(n_estimators=3000, **model_params)",
+   "reasoning": "The stochastic LightGBM model is evaluated on a single train/validation split rather than using cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "_ = mean_absolute_error(y_val, val_pred)",
+   "reasoning": "The model is evaluated only on mean_absolute_error, and while this is the target metric, no other metrics (like RMSE or R2) are computed to understand the error distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = []\ncont_cols = []\nfor col in feature_cols:\n    if is_categorical_dtype(train_df[col].dtype):",
+   "reasoning": "The agent processes raw categorical and continuous features directly into the model without creating any derived features or interaction terms, missing potential signal.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission IDs",
+   "description": "The agent drops the original test dataset's ID column during preprocessing and generates a simple sequential range (e.g., `np.arange()`) for the final submission file. This misaligns predictions with the expected identifiers, which will cause the submission to be scored incorrectly or fail entirely.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\n        \"id\": np.arange(len(X_test), dtype=int),\n        \"loss\": test_pred\n    })"
+  }
+ ],
+ "summary": "The model implements a standard LightGBM pipeline with proper internal validation and early stopping, avoiding any data leakage. However, it makes a critical execution error by discarding the actual test IDs and replacing them with a sequential range, which invalidates the final submission. Additionally, the solution lacks any feature engineering and relies on a single validation split to evaluate the stochastic model.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

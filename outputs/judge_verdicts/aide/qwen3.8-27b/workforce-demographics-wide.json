@@ -1,0 +1,145 @@
+{
+ "task": "workforce-demographics-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or use test data to design preprocessing, other than standard column alignment.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by handling missing target values, mapping categoricals, and imputing missing features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping columns with <=1 unique value) is based strictly on the training data, not the full dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like the median) are computed solely on the training data, avoiding test missing-value leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "It is unclear from the code whether the dataset has a time-series or temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model's performance is averaged over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmse(y_true, y_pred):\n... rmse_scores.append(rmse(y.iloc[va_idx], pred))",
+   "reasoning": "The agent exclusively calculates and reports RMSE without evaluating robustness using any other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately framed as predicting the numerical target column directly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def prepare_data(train: pd.DataFrame, test: pd.DataFrame, target: str):",
+   "reasoning": "The prepare_data function only performs basic cleaning and encoding, without deriving any new features, interactions, or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Data preprocessing steps such as median imputation and categorical encoding are fitted on the entire training set before K-Fold cross-validation, leaking statistics from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median = X_train[col].median() ... X_train[col] = X_train[col].fillna(median)"
+  },
+  {
+   "name": "Unbounded predictions for bounded target",
+   "description": "The target variable is a percentage, which is naturally bounded between 0 and 100, but the regression model's predictions are not clipped to this range.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_pred = final_model.predict(X_test)"
+  }
+ ],
+ "summary": "The agent successfully implements a LightGBM regression model with 5-fold cross-validation and appropriately isolates the holdout test set from imputation and encoding statistics. However, it lacks any feature engineering (FM07) and performs preprocessing on the entire training set before splitting into folds, causing internal cross-validation leakage. Additionally, it relies solely on a single metric (FM15) and does not clip predictions for the bounded percentage target.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

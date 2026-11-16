@@ -1,0 +1,142 @@
+{
+ "task": "ifc-advisory-services-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data in the final script.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes appropriate efforts to handle missing values by filling text NaNs, handling date NaTs, and explicitly filling missing categorical values for CatBoost.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_matrix = tfidf.fit_transform(text_col)\nsvd = TruncatedSVD(n_components=10, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_matrix)",
+   "reasoning": "The agent applies TF-IDF and TruncatedSVD on the combined train and test text data before splitting, leaking test set vocabulary and text statistics into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation (like mean/median) is applied before splitting; only constant fills (e.g., empty strings for text) are used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains dates (e.g., 'IFC Approval Date'), but the agent uses a random KFold split, which introduces look-ahead bias by allowing the model to train on future projects.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a continuous budget prediction task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with a validation set for early stopping in each fold.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which averages over multiple runs and accounts for variance, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly report metrics, but appropriately uses regression defaults (L2/RMSE) during early stopping which align with the task metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a standard regression problem to predict the continuous budget.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features, including date parts, date differences, text lengths, and TF-IDF/SVD components.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent uses a naive, unweighted 50-50 average to combine predictions from LightGBM and CatBoost, without optimizing the blend weights based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "Frequency encoding is calculated on the concatenated train and test sets before splitting. This leaks the distribution of categories from the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df[col].value_counts(normalize=True)\n    df[f'{col}_freq'] = df[col].map(freq).astype(float)"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with good feature engineering and cross-validation, but suffers from data leakage. By concatenating the train and test sets before applying TF-IDF, TruncatedSVD, and frequency encoding, test set statistics bleed into the training data. Additionally, the agent uses a random cross-validation split on temporal data and employs a naive equal-weight ensemble without tuning.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

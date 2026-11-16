@@ -1,0 +1,145 @@
+{
+ "task": "osic-pulmonary-fibrosis-progression",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_cats = sorted(set(cats_train.index) | set(cats_test.index))",
+   "reasoning": "The agent explicitly uses the test set to determine the set of unique categories for encoding, leaking test distribution information into the preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs missing value imputation and handles categorical encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the full combined dataset before splitting (it is done independently on train and test, which is a different error).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not split the data at all, so it does not perform an incorrect random split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regressor is appropriate for predicting the continuous FVC target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_clean, label=y_train_raw.values)\nmodel = lgb.train(params, train_data, num_boost_round=500)",
+   "reasoning": "The agent trains a model on the full training set without creating a validation set or using cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation score is reported at all, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No validation metric is calculated or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a regression problem predicting FVC.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features_raw = [col for col in train_raw.columns if col != target_name]",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features, temporal features, or interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "fatal_execution_error",
+   "description": "The submitted script contains a fatal error that prevents it from running to completion. In this case, attempting to assign a DataFrame of one-hot encoded columns back to the original subset of categorical columns causes a shape mismatch ValueError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "dummies = pd.get_dummies(df_copy[categorical_cols], dtype=float)\n        # Reset Index to align correctly later if needed, but keep column names\n        df_copy[categorical_cols] = dummies"
+  },
+  {
+   "name": "independent_test_transformations",
+   "description": "Applying data transformations (like imputation or categorical encoding) independently to the train and test sets without saving the fitted state. This can lead to different mappings for the same categories or different imputation values, destroying the alignment of features between train and test.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "unique_vals = result[col].unique()\n            mapping = dict(zip(unique_vals, list(range(len(unique_vals)))))\n            result[col] = result[col].map(mapping).fillna(-1)"
+  }
+ ],
+ "summary": "The agent builds a LightGBM model without performing any train/validation split (FM06) or feature engineering (FM07). However, the submitted script contains a fatal execution error (`ValueError` when assigning dummy variables back to the dataframe) and will crash before training. Furthermore, the agent incorrectly applies data transformations to the train and test sets independently (resulting in misaligned categorical encodings) and explicitly peeks at the test data to build a combined category dictionary (FM02).",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

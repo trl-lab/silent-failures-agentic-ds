@@ -1,0 +1,152 @@
+{
+ "task": "competitive-data-science-predict-future-sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively imputes missing values and replaces infinite values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit an imputer on the combined dataset before splitting (train and test are processed separately, though incorrectly).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not split the data at all, so it does not perform an incorrect random split on temporal data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses LightGBM Regressor, which is appropriate for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_raw, y_train)\n    \n    # Predict\n    y_pred = model.predict(X_test)",
+   "reasoning": "The agent trains directly on the full training set and predicts on the test set without establishing an internal validation set to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any internal evaluation, so it does not evaluate the stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report or optimize any evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent predicts the target column as specified in the task context.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dummies = pd.get_dummies(cat_X[col], drop_first=False)",
+   "reasoning": "The agent merely applies one-hot encoding to all non-numeric columns (including raw date strings) without extracting any derived features like date parts, time-series lags, or aggregations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "execution_failure_type_conversion",
+   "description": "The agent fails to drop original string categorical columns after one-hot encoding them, resulting in a ValueError when attempting to cast the entire DataFrame to float64.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X = X.astype(np.float64)"
+  },
+  {
+   "name": "imputation_statistics_leakage",
+   "description": "The agent instantiates and fits a new SimpleImputer on the test set independently, rather than transforming the test set using the imputer fitted on the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "imp = SimpleImputer(strategy='median')\n        X.loc[:, numeric_cols] = imp.fit_transform(X[numeric_cols].values)"
+  },
+  {
+   "name": "unaligned_categorical_encoding",
+   "description": "The agent applies pd.get_dummies to the train and test sets independently. If the sets contain different categorical values, the resulting feature matrices will have mismatched columns, causing model inference to fail.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "dummies = pd.get_dummies(cat_X[col], drop_first=False)"
+  }
+ ],
+ "summary": "The agent attempts a basic regression pipeline but introduces multiple critical flaws. An execution error occurs because original string columns are not dropped before casting the DataFrame to float64. Additionally, the agent fails to implement internal validation, performs no time-based feature engineering, and incorrectly applies imputation and one-hot encoding to the train and test sets independently, which risks data leakage and feature space mismatch.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

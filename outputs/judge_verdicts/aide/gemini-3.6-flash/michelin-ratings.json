@@ -1,0 +1,141 @@
+{
+ "task": "michelin-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data, handling missing values and parsing specific columns like price and coordinates.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scalers are explicitly fit on the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pca = PCA(n_components=2, random_state=42)\ncoords_pca = pca.fit_transform(coords)",
+   "reasoning": "PCA and TruncatedSVD are fit on the combined dataset (train + test) before splitting, leaking test information into the derived features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = np.nanmedian(val)\nval = np.nan_to_num(val, nan=median_val if not np.isnan(median_val) else 0.0)",
+   "reasoning": "The agent calculates the median for imputation over the combined dataset, leaking test set missing-value statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal order in the dataset that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classifiers (XGBClassifier, LGBMClassifier) for the multi-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models using 5-fold cross-validation, which inherently accounts for variance better than a single evaluation, even though it doesn't repeat the full CV process.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_acc = accuracy_score(y_train_encoded, oof_class_preds)\nprint(f\"Validation Accuracy: {oof_acc:.5f}\")",
+   "reasoning": "The agent only computes accuracy without checking if it's appropriate given the task's class distribution (e.g., ignoring potential class imbalance).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification task formulation is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including text TF-IDF, PCA on coordinates, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_preds[val_idx] = 0.5 * pred_xgb_va + 0.5 * pred_lgb_va",
+   "reasoning": "The agent uses a naive, hardcoded equal-weight average to ensemble the models without attempting to optimize the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via group aggregations before splitting",
+   "description": "The agent computes group-level aggregations (e.g., means) and frequency encodings on the combined training and test datasets before splitting. This leaks information about the test distribution into the training features, leading to overly optimistic validation scores and potential overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "g_mean = df_grp.groupby(s)[target_agg].transform(\"mean\").values\ndiff = df_grp[target_agg].values - g_mean"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline with extensive feature engineering and cross-validated ensembles of LightGBM and XGBoost. However, the solution suffers from critical data leakage because imputation, PCA/SVD dimensionality reduction, and group aggregations are all computed on the combined train and test datasets before splitting. Furthermore, the ensembling strategy is naive, relying on a hardcoded 50/50 split rather than optimized weights.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

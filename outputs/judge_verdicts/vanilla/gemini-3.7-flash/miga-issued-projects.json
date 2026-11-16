@@ -1,0 +1,113 @@
+{
+ "task": "miga-issued-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined['project_duration_days'] = (combined['Project Expiration Date'] - combined['Project Start Date']).dt.days",
+   "reasoning": "The agent extracts features that naturally contain missing values (such as duration) and relies entirely on the tree models to handle these NaNs natively without an explicit imputation or cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a clear temporal component ('Project Start Date'), yet the agent uses a randomized K-Fold cross-validation instead of a time-based split, which introduces look-ahead bias by leaking future project states into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "xgb_preds += xgb_model.predict(X_test_xgb) / 5.0",
+   "reasoning": "The agent optimizes the models during training via default metrics for early stopping but never actually computes, reports, or analyzes an out-of-fold metric to verify generalisation performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (lgb_preds + cb_preds + xgb_preds) / 3.0",
+   "reasoning": "The agent uses a naive, equal-weight average to combine the predictions of the three models without attempting to tune the blend weights or use a stacking model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation for highly skewed target",
+   "description": "Financial amounts (like 'Gross Issued Amount') are typically heavily right-skewed. Training a regression model to optimize RMSE on the raw target directly causes it to over-focus on extreme outliers; a log-transformation of the target is usually required for robustness.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train_df[target_col].values"
+  },
+  {
+   "name": "Missing early stopping for XGBoost",
+   "description": "The agent implements early stopping correctly for LightGBM and CatBoost, but omits it for XGBoost, meaning the XGBoost model will always train for the full 500 iterations regardless of validation performance, risking overfitting.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "xgb_model.fit(\n        X_tr_xgb, y_tr_xgb,\n        eval_set=[(X_va_xgb, y_va_xgb)],\n        verbose=False\n    )"
+  }
+ ],
+ "summary": "The agent implements a solid foundational pipeline with date-based feature engineering, 5-fold cross-validation, and an ensemble of three gradient boosting models. However, it fails to account for the temporal nature of the data during splitting, uses a naive unweighted average for the ensemble, and misses a crucial target transformation step for the highly skewed financial target.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

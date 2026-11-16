@@ -1,0 +1,141 @@
+{
+ "task": "aca-federal-upper-limits-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA to inform its preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements an explicit strategy for missing values by creating missing indicators and filling categorical NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler or normalizer is used before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a strict temporal order that requires a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses 5-fold cross-validation to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds, which accounts for variance, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y_train, oof_preds))",
+   "reasoning": "The agent evaluates the models using only RMSE and does not verify if it is the most appropriate metric given the potential presence of outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including aggregations, frequency encoding, and interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent mathematically optimizes the blending weights of the ensemble instead of using a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via feature engineering before splitting",
+   "description": "The agent concatenates the training and test sets to compute frequency encodings and group-by aggregations. This leaks test set distribution statistics into the training features, which can lead to overfitting and overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([X_tr, X_te], axis=0).reset_index(drop=True)\n...\n        freq = df_all[c].value_counts()\n        df_all[f\"{c}_freq\"] = df_all[c].map(freq)\n...\n                grp = df_all.groupby(cat, observed=False)[num]\n                df_all[f\"{num}_mean_by_{cat}\"] = grp.transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent constructs a solid modeling pipeline utilizing LightGBM, CatBoost, and an optimized blending ensemble. However, there is a critical data leakage issue because the feature engineering (specifically frequency encoding and group-by aggregations) is performed on the combined train and test datasets prior to cross-validation. Additionally, the agent only reports the standard RMSE metric without verifying its robustness.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

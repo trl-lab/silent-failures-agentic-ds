@@ -1,0 +1,145 @@
+{
+ "task": "bike-sharing-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0) independently in the train and test sets, which does not cause leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any internal train/validation split at all, so they do not incorrectly use a random split on temporal data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (CatBoostRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_final, y_train_final)\n\n# Make Predictions\npredictions = model.predict(X_test_final)",
+   "reasoning": "The agent trains on the entire training set and directly predicts on the test set without establishing any validation holdout or performing cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = CatBoostRegressor(\n    iterations=1000, \n...\nmodel.fit(X_train_final, y_train_final)",
+   "reasoning": "The agent uses a stochastic model (CatBoost) but only trains and evaluates a single instance instead of using multiple runs or ensembling to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Since the agent completely omits a validation set, they do not report any metrics at all.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly framed as a regression problem targeting 'cnt'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\n    'season', 'yr', 'mnth', 'hr', \n    'holiday', 'weekday', 'workingday', 'weathersit', \n    'temp', 'atemp', 'hum', 'windspeed'\n]",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features or interactions, ignoring opportunities in the date and meteorological features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Crash",
+   "description": "The code fails to execute because conflicting configuration arguments are passed to a library function or object constructor.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = CatBoostRegressor(\n    ...\n    silent=True,\n    verbose=0\n)"
+  },
+  {
+   "name": "Fabricated Prediction IDs",
+   "description": "The agent generates an artificial sequential index for the final submission output instead of extracting the actual ID column from the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_id_idx = range(len(df_clean_test))\n...\noutput_df = pd.DataFrame({\n    'id': test_id_idx,\n    'cnt': predictions\n})"
+  }
+ ],
+ "summary": "The agent correctly frames the task as a regression problem but produces code that crashes immediately due to conflicting arguments in the CatBoost constructor (`silent=True` alongside `verbose=0`). Beyond execution failures, the methodology is severely flawed as the agent completely bypasses validation (FM06), performs no feature engineering (FM07), and hallucinates submission IDs instead of retaining the original dataset identifiers.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

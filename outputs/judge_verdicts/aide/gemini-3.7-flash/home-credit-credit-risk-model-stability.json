@@ -1,0 +1,105 @@
+{
+ "task": "home-credit-credit-risk-model-stability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_preds)",
+   "reasoning": "The agent only calculates and reports ROC AUC, failing to consider supplementary metrics like Precision-Recall AUC which are useful for imbalanced credit risk classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "ignore_cols = [\"case_id\", \"date_decision\", \"target\", \"MONTH\", \"WEEK_NUM\"]\n...\nskf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The task explicitly targets model stability over time, but the agent discards time indicators (WEEK_NUM, MONTH) and uses randomized cross-validation, destroying the temporal structure and preventing true out-of-time stability evaluation.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent Categorical Encoding",
+   "description": "The agent converts object columns to 'category' type independently on the train and test sets. This causes the underlying integer codes to differ between train and test for the same category string if the unique values aren't perfectly identical, silently corrupting the categorical features for the model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_train[c] = df_train[c].astype(\"category\")\n            df_test[c] = df_test[c].astype(\"category\")"
+  },
+  {
+   "name": "Arbitrary Feature Truncation",
+   "description": "The agent applies feature engineering or aggregation to an arbitrary subset of columns based purely on their index or order, which blindly discards potentially valuable information while keeping irrelevant features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "agg_dict = {c: [\"max\", \"mean\"] for c in num_cols[:40]}"
+  }
+ ],
+ "summary": "The agent builds a LightGBM pipeline with cross-validation and basic aggregation features. However, it critically fails by ignoring the temporal nature of the stability task (discarding WEEK_NUM and using randomized CV) and by independently encoding categorical features in train and test sets, which misaligns their underlying integer codes. Additionally, it arbitrarily truncates feature aggregation to the first 40 numeric columns.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

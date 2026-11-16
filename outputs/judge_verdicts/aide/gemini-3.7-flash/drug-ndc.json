@@ -1,0 +1,156 @@
+{
+ "task": "drug-ndc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis or peek at the test set distributions directly.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to handle missing values for string columns and relies on LightGBM's native missing value handling for numeric features, which constitutes an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No numerical scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "mat_word = tfidf_word.fit_transform(combined_df[col])\n...\nsvd_word = TruncatedSVD(n_components=n_comp, random_state=42)\nfeats_word = svd_word.fit_transform(mat_word)",
+   "reasoning": "The agent fits TF-IDF and TruncatedSVD (a form of PCA) on the combined training and test dataset, leaking test set information into the feature extraction process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is performed before splitting (only a constant fill for strings is attempted).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no temporal component mentioned or evident in the task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification model (LightGBM with objective 'multiclass') for the multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-Fold Stratified Cross-Validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic LightGBM model over two different seeds and averages the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y, oof_class_preds)",
+   "reasoning": "The agent relies solely on accuracy to evaluate the model, without verifying if it is appropriate for the multiclass target which might be imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation correctly matches a multiclass classification setup.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including TF-IDF on words and characters, SVD, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent combines multiple seeds and folds using standard unweighted averaging, which is optimal for identically distributed models rather than naive.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage through frequency encoding",
+   "description": "Computing frequency or count encoding on the combined train and test dataset leaks the test set distribution into the training features, leading to overly optimistic validation scores and potential overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].value_counts()\ncombined_df[f\"{col}_freq\"] = combined_df[col].map(freq)"
+  },
+  {
+   "name": "Ineffective missing value imputation for strings",
+   "description": "Casting a column to string before filling missing values converts NaN into the literal string 'nan', rendering the subsequent `.fillna()` operation a no-op.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined_df[col] = combined_df[col].astype(str).fillna(\"missing\")"
+  },
+  {
+   "name": "TruncatedSVD n_components ValueError",
+   "description": "The formula used to determine `n_components` can result in a value equal to the number of features (e.g., when `mat_word.shape[1] == 2`), which will raise a ValueError since scikit-learn's TruncatedSVD requires `n_components < n_features`.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "n_comp = min(30 if col == \"all_text_combined\" else 20, max(2, mat_word.shape[1] - 1))"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline using LightGBM and Stratified K-Fold CV, but critically fails by applying TF-IDF, TruncatedSVD, and frequency encoding on the combined train and test datasets. This leads to severe data leakage from the test set. Additionally, there are minor bugs in string missing-value imputation and a risk of execution errors with TruncatedSVD if a text column yields exactly two features.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

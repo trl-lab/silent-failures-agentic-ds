@@ -1,0 +1,148 @@
+{
+ "task": "grant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent peeking at the test data during exploratory data analysis.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by dropping constant columns, removing rows with missing targets, and handling missing text and categorical values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(text_data)\n...\nsvd = TruncatedSVD(n_components=n_comp, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD are fit on the combined train and test datasets, leaking test set vocabulary and distribution into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no clear indication that this specific regression task requires strict temporal splitting, and standard KFold is generally acceptable here.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, satisfying the requirement for an internal validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models across 5 CV folds, meaning stochastic models are evaluated multiple times to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The models implicitly optimize for RMSE (the default metric for the chosen regressors), which matches the target task metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date extraction, TF-IDF + SVD, frequency encoding, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_preds = (test_lgb + test_xgb + test_cat) / 3.0",
+   "reasoning": "The agent naively averages the predictions from three different models with equal weights, without tuning the ensemble combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "fatal_execution_error",
+   "description": "The script crashes due to a TypeError when attempting to fill missing values in a categorical series with a float (the global mean) that is not an existing category.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_te.iloc[val_idx] = X_train_proc.iloc[val_idx][col].map(cat_means).fillna(global_mean)"
+  },
+  {
+   "name": "frequency_encoding_leakage",
+   "description": "Frequency encoding is applied to the combined training and test datasets, which leaks test set distribution statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts(dropna=False).to_dict()\ndf_all[f'{col}_freq'] = df_all[col].map(freq)"
+  }
+ ],
+ "summary": "The agent constructs a robust modeling pipeline utilizing cross-validation, feature engineering, and an ensemble of gradient boosting machines. However, the solution applies feature extraction (TF-IDF + SVD) and frequency encoding on the combined train and test sets, causing data leakage. Furthermore, the code contains a fatal execution error during target encoding due to improper handling of pandas Categorical types.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

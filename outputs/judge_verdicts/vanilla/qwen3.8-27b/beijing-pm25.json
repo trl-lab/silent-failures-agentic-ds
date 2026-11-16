@@ -1,0 +1,142 @@
+{
+ "task": "beijing-pm25",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not used during exploratory data analysis or preprocessing fitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by imputing missing values and dropping IDs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection methods are used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly fit on the training portion only via the TabularPreprocessor.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "return train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The dataset is a time series (Beijing PM2.5 hourly data), but the agent uses a random split, causing severe look-ahead bias by training on future records to predict past records.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression and the agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split using train_test_split internally.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Model selection is performed on the internal validation set, not the true held-out test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr_p, y_tr)\npred = sanitize_predictions(model.predict(X_val_p), y_tr)\nscores[name] = rmse(y_val, pred)",
+   "reasoning": "Stochastic models (e.g., LightGBM, XGBoost) are trained and evaluated exactly once without multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scores[name] = rmse(y_val, pred)",
+   "reasoning": "The agent evaluates models using only RMSE, without checking complementary metrics like MAE which might be relevant given extreme values in PM2.5 data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates time-based derived features like cyclical sine/cosine encodings for hour and month.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inappropriate replacement of valid negative values",
+   "description": "The agent aggressively replaces a specific numeric value (e.g., -1) with NaN across all numeric columns without verifying if that value is a valid measurement in the domain (e.g., negative temperatures).",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[col] = df[col].replace(-1, np.nan)"
+  }
+ ],
+ "summary": "The agent provides a structurally sound pipeline with proper model comparison and basic feature engineering, but critically fails to account for the temporal nature of the dataset by using a random train/test split. Additionally, a sweeping data cleaning rule destroys valid negative values (like sub-zero temperatures), and stochastic models are evaluated only once using a single metric.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

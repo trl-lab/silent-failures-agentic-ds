@@ -1,0 +1,147 @@
+{
+ "task": "hospitals",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during exploratory data analysis.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train = train[train[target_col].notna()].copy()\ntrain = train[train[target_col] >= 0].copy()",
+   "reasoning": "The agent cleans the target column and handles specific outliers (e.g. <= -900 values).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard imputation techniques (e.g., SimpleImputer) are fit on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Although date/time columns are present, it is unclear if the core prediction task requires a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No model is instantiated, so a mismatched model is not used.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_lgb = df_lgb.iloc[:n_train].copy()\nX_test_lgb = df_lgb.iloc[n_train:].copy()",
+   "reasoning": "The script ends after preparing the dataset without creating any validation split or training a model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation is performed, so no metrics are reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of an incorrect task formulation.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_all[col + '_year'] = dt.dt.year",
+   "reasoning": "The agent actively engineers features from dates, text (TF-IDF), and categoricals.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM14": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via text vectorisation before splitting",
+   "description": "A text vectoriser (e.g., TF-IDF) is fit on the combined training and test dataset prior to splitting. This leaks the test set's vocabulary and document frequencies into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "vec = TfidfVectorizer(\n        max_features=50, stop_words='english', ngram_range=(1, 2)\n    )\n    text_data = df_all[nc].fillna('').astype(str)\n    tfidf_mat = vec.fit_transform(text_data).toarray()"
+  },
+  {
+   "name": "Data leakage via frequency encoding before splitting",
+   "description": "Categorical frequency encoding is calculated on the combined training and test datasets before splitting, leaking test set distribution statistics into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_counts = df_all[col].value_counts(dropna=False)\n    df_all[col + '_freq'] = df_all[col].map(val_counts)"
+  },
+  {
+   "name": "Incomplete solution",
+   "description": "The provided code script ends prematurely without ever training a machine learning model, generating predictions, or evaluating performance.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_lgb = df_lgb.iloc[:n_train].copy()\nX_test_lgb = df_lgb.iloc[n_train:].copy()"
+  }
+ ],
+ "summary": "The agent performs extensive feature engineering but critically leaks test data into the training set by applying TF-IDF vectorisation and frequency encoding on the combined train and test datasets. Furthermore, the solution is completely unfinished as the script abruptly terminates after dataset preparation without training any models or generating predictions.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": false
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

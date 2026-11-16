@@ -1,0 +1,144 @@
+{
+ "task": "cohort-default-rate",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_encoded[col] = pd.to_numeric(X_train_encoded[col], errors='coerce')",
+   "reasoning": "The agent makes no explicit effort to handle missing values, duplicates, or outliers, relying entirely on the tree models to handle missing data natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection based on target statistics is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed, so no leakage occurs from imputation before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses StratifiedKFold for internal validation and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics, so it cannot be faulted for using only one inappropriate metric (captured as a separate failure mode).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_encoded = X_train.copy()",
+   "reasoning": "The agent uses raw columns as-is with only basic type casting and categorical encoding, lacking any derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (lgb_preds + xgb_preds + cat_preds) / 3.0",
+   "reasoning": "The agent naively combines the predictions using an unweighted average without any tuning of the blend weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric reported",
+   "description": "The agent trains models using cross-validation but fails to compute or log any performance metric (such as ROC AUC) on the validation sets, making it impossible to evaluate model quality offline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_encoded, y)):"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent hardcodes the submission ID column as a simple sequential range instead of extracting the actual ID column from the test dataset. This will cause submission failures if the test set IDs are non-sequential or specific strings.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_df))"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold cross-validated ensemble using LightGBM, XGBoost, and CatBoost. However, it fails to perform any substantive data cleaning or feature engineering, relies on a naive unweighted average for its ensemble, and critically hardcodes the submission IDs rather than extracting them from the test set. Furthermore, it fails to compute and report any validation metrics to estimate model performance.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

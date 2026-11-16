@@ -1,0 +1,141 @@
+{
+ "task": "cmc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or fit any preprocessors on the test data prior to train-test splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def sanitize_cols(df):\n        df.columns = [\n            c.strip()\n            .replace(\" \", \"_\")\n            .replace(\"'\", \"\")\n            .replace(\"?\", \"\")\n            .replace(\"-\", \"_\")\n            for c in df.columns\n        ]\n        return df",
+   "reasoning": "The agent only cleans column names and makes no effort to handle missing values, duplicate rows, or outliers in the dataset before model building.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is appropriately fit on the training data inside the cross-validation loop and then used to transform validation and test splits.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly sets up models suitable for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch neural network includes Dropout, BatchNorm layers, and weight decay in the optimizer for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly performs a 10-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models (e.g. Neural Network) are evaluated across 10 cross-validation folds, which robustly accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_acc = accuracy_score(y, oof_preds)\n...\nprint(f\"Final Validation Score: {val_acc:.5f}\")",
+   "reasoning": "The agent reports and optimizes exclusively for accuracy, without validating its appropriateness or checking auxiliary metrics like log loss or F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers a wide variety of domain-relevant interaction features and ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated logistic regression meta-learner stacking strategy combined with Nelder-Mead threshold optimization.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overfitted Meta-Model Evaluation",
+   "description": "The agent trains the logistic regression meta-model on the complete out-of-fold base feature dataset and then evaluates it on the exact same dataset to generate stacked predictions. This produces in-sample predictions for the meta-learner (unlike the base models, which use K-fold CV). These overfitted probabilities are then passed into the threshold optimizer, leading to a biased assessment of performance and potentially sub-optimal threshold selection.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "meta_model = LogisticRegression(C=1.0, max_iter=1000, random_state=42)\n    meta_model.fit(oof_base_features, y)\n    oof_stacked_probs = meta_model.predict_proba(oof_base_features)\n    ...\n    best_weights = optimize_thresholds(oof_stacked_probs, y)"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated pipeline that includes extensive feature engineering, K-fold cross-validation, and an advanced model stacking approach. However, it completely skips basic data cleaning (FM03) and relies exclusively on a single metric (FM15). Additionally, a flaw in the stacking procedure causes the meta-model to be evaluated on its own training set, leading to data leakage during the threshold optimization step.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,159 @@
+{
+ "task": "food-prices_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute statistics or fit transformers on the test data during EDA; it only extracts categorical levels to ensure consistency.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in numeric_cols:\n    X_train[col] = pd.to_numeric(X_train[col], errors='coerce')",
+   "reasoning": "The agent relies entirely on LightGBM's default handling for missing values and makes no explicit effort to clean the data, handle duplicates, or address outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is an appropriate model type for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly creates a 5-fold cross-validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, implicitly averaging over multiple runs of the stochastic LightGBM model for the test predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metric at all, which is a different issue than relying on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is framed correctly as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns directly without deriving any new features or applying domain-informed transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / n_splits",
+   "reasoning": "The agent uses a naive unweighted average of the fold models without tuning the combination.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Blind categorical conversion",
+   "description": "The agent hardcodes a specific list of numeric columns and blindly converts all other columns to categorical types. If the dataset contains other numeric features, their continuous nature and ordinal relationships will be destroyed.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "numeric_cols = ['latitude', 'longitude']\ncategorical_cols = [c for c in features if c not in numeric_cols]"
+  },
+  {
+   "name": "Unmeasured validation performance",
+   "description": "The agent creates validation splits but completely fails to calculate, log, or report any metric on them, making it impossible to evaluate the model's performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_va, y_va)],"
+  },
+  {
+   "name": "Useless eval_set / Missing early stopping",
+   "description": "The agent passes the validation data to the model's `eval_set` but does not configure early stopping and suppresses output (`verbose=-1`), rendering the validation set useless for training control.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_va, y_va)],"
+  },
+  {
+   "name": "Assumed submission IDs",
+   "description": "The agent generates submission IDs using a simple range instead of extracting the actual identifier column from the test set, which will cause evaluation failures if the test IDs are not a simple contiguous sequence starting from 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_preds))"
+  }
+ ],
+ "summary": "The agent successfully sets up a 5-fold cross-validation scheme with LightGBM and ensembles the predictions, but makes several critical errors. It hardcodes only two numeric columns and blindly converts all others to categoricals, likely destroying continuous signals, while completely failing to compute or log any validation metrics. Additionally, it generates synthetic submission IDs instead of using the test set's identifiers, which will likely cause the submission evaluation to fail.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

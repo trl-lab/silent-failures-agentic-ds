@@ -1,0 +1,138 @@
+{
+ "task": "us-school-bus-fleet",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "print(f\"Test missing values: {X_test.isnull().sum().sum()}\")\n\nX_test = X_test.fillna(X_test.median())",
+   "reasoning": "The agent inspects missing value counts on the test set and inappropriately uses test set statistics (its own median) to impute missing values in the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly checks for and handles missing values using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train)):",
+   "reasoning": "The agent imputes missing values using the median of the entire training dataset before performing cross-validation splits, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the bus fleet dataset has a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for predicting Bus age.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the model across multiple data splits rather than just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(mean_squared_error(y_val_fold, val_preds))",
+   "reasoning": "The agent evaluates the model using only RMSE, without reporting alternative regression metrics like MAE or R-squared that could provide more context.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"Bus age\", axis=1)\n...\nX_train = X_train.fillna(X_train.median())",
+   "reasoning": "The agent uses the raw features directly (only applying basic median imputation) without attempting any derived features or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test set imputation leakage",
+   "description": "The agent imputes missing values in the test set using statistics calculated from the test set itself, rather than consistently applying the statistics learned from the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median())"
+  }
+ ],
+ "summary": "The agent successfully sets up a LightGBM model with cross-validation but introduces critical data leakage during preprocessing. Specifically, the agent applies median imputation to the entire training set before splitting into cross-validation folds, and also incorrectly imputes the test set using test set medians rather than training set medians. Furthermore, the solution lacks any feature engineering and relies on a single evaluation metric.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

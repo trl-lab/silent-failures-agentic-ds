@@ -1,0 +1,142 @@
+{
+ "task": "cosmetic-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA, so no peeking at test data occurs during exploration.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by handling missing values, parsing dates, and normalizing age units.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "reactions_tfidf = tfidf_reactions.fit_transform(df_all['reactions'].fillna('').astype(str))",
+   "reasoning": "The TF-IDF vectorizer is fit on the combined train and test dataset (df_all), leaking test set document frequency statistics into the training features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_reactions = TfidfVectorizer(max_features=250, token_pattern=r'(?u)\\b\\w+\\b')",
+   "reasoning": "By setting max_features=250 and fitting on the combined dataset, the agent performs vocabulary feature selection using term frequencies from the test data, causing data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is done using constant values (e.g., fillna(-1)), which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Despite extracting temporal features like event dates and received dates, the agent uses a randomized split for cross-validation, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification model (LGBMClassifier with 'multiclass' objective) for this multi-class task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation strategy for internal validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 5 different folds, averaging predictions, rather than doing a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the standard 'multi_logloss' metric for the multiclass model, which is an appropriate surrogate for accuracy.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a standard multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features, including date parts, time deltas (days_to_recv), and normalized ages.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test) / skf.n_splits",
+   "reasoning": "The agent combines the predictions of the 5 cross-validation folds using a naive, unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates submission IDs using an arbitrary sequence `np.arange(len(test_df))` rather than extracting the actual ID column from the test dataset. If the test set IDs are not perfectly sequential starting from 0, this will cause misaligned predictions and evaluation failure.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_df))"
+  }
+ ],
+ "summary": "The agent presents a generally well-structured solution with solid feature engineering (TF-IDF, date parsing, unit normalization) and a robust cross-validation setup. However, it suffers from critical data leakage by fitting the TF-IDF vectorizer (and its max_features selection) on the combined train and test datasets. Additionally, the agent hardcodes the submission IDs with a generic sequence, which will likely fail the evaluation if the test dataset IDs are not sequential.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "store-sales-time-series-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data for EDA or distribution statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train[\"log_sales\"] = np.log1p(np.clip(train[\"sales\"].values, 0, None))",
+   "reasoning": "The agent makes no explicit effort to clean the data, handle missing values, or address anomalies, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_start_date = max_train_date - pd.Timedelta(days=15)",
+   "reasoning": "The agent correctly uses a time-based cutoff for the validation split, respecting temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "tr_data = train_df[~val_mask].reset_index(drop=True)\n    va_data = train_df[val_mask].reset_index(drop=True)",
+   "reasoning": "The agent creates and evaluates on a proper holdout validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n        params,\n        dtrain,\n        num_boost_round=1500,",
+   "reasoning": "The agent trains a stochastic LightGBM model exactly once without evaluating across multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmsle = np.sqrt(np.mean((np.log1p(val_preds) - np.log1p(val_true)) ** 2))\n    print(f\"Validation RMSLE: {rmsle:.5f}\")",
+   "reasoning": "The agent only computes and reports RMSLE, without evaluating other metrics to better understand model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a time-series regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[\"sales_lag_{lag}\"] = grouped.shift(lag).astype(\"float32\")",
+   "reasoning": "The agent engineers various calendar, lag, and rolling features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-series feature leakage in rolling windows",
+   "description": "When computing rolling features on a grouped time series, applying `.rolling()` directly to the flat Series output of `.shift()` ignores group boundaries. This causes values from the end of one time series to incorrectly leak into the rolling window at the start of the subsequent time series in the sorted dataframe, corrupting the features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped.shift(16).rolling(window, min_periods=1).mean().astype(\"float32\")"
+  },
+  {
+   "name": "Unsafe index resetting on grouped rolling features",
+   "description": "Calling `.reset_index(drop=True)` on the MultiIndex Series returned by a grouped rolling operation and assigning it directly back to the original dataframe relies on implicit row order alignment. This is extremely brittle and can easily scramble features if the group processing order differs from the dataframe's row order.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "grouped_promo.rolling(window, min_periods=1).mean().astype(\"float32\").reset_index(drop=True)"
+  }
+ ],
+ "summary": "The agent correctly frames the time-series forecasting task and implements a proper temporal validation split. However, the feature engineering contains a critical bug: rolling features on the target are computed on a flat Series rather than respecting group boundaries, leaking data across different stores and product families. Additionally, the agent relies entirely on the model to handle any potential data inconsistencies and evaluates the stochastic model only once on a single metric.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

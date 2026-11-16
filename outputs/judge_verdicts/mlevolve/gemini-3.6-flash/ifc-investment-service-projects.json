@@ -1,0 +1,145 @@
+{
+ "task": "ifc-investment-service-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "avg_len = combined[col].dropna().astype(str).str.len().mean()\n            if avg_len > 30 or combined[col].nunique() > 1000:\n                text_cols.append(col)",
+   "reasoning": "The agent computes average string lengths and unique value counts on the combined dataset (including test data) to decide which columns should be processed as unstructured text.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing data by imputing numerical medians, explicitly capturing null indicators, and filling categorical missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fitted on X_tr and applied to X_va and X_te within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "TF-IDF and SVD are fitted on the training subset (train_sub), meaning test information is not leaked into feature choice or the dimensionality reduction basis.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation medians are computed strictly using the training subset, avoiding any leakage of test missing-value statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)",
+   "reasoning": "The dataset contains temporal features (parsed dates, years), but the agent uses random stratified K-fold splitting rather than a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly utilizes multiple regressor models appropriate for a continuous target variable.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model implements multiple regularisation techniques including Dropout, LayerNorm, and weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent employs a rigorous 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates its model suite over two different random seeds for cross-validation and averages the predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is the required metric for this specific competition/task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including temporal extraction, SVD on character and word n-grams, and complex domain interaction aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP constrained optimization to find the optimal blending weights for its ensemble, rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Fold Leakage",
+   "description": "Transformers (like TF-IDF or PCA) or aggregations (like group-by means) are fit on the entire training set before cross-validation. This leaks information from the validation folds into the training folds, making out-of-fold validation scores overly optimistic and undermining ensemble weight optimization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_sub = combined.iloc[:n_train]\n...\n        mat_w_tr = tfidf_w.fit_transform(col_text_tr)\n...\n            svd_w.fit(mat_w_tr)\n...\n            grp_tr = train_sub.groupby(cat)[num]\n            mean_map = grp_tr.mean().to_dict()"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution featuring robust nested target encoding, a well-optimized ensemble of gradient boosting and deep learning models, and extensive feature engineering. However, it suffers from minor test data peeking during its preprocessing design and fails to account for temporal order when splitting the dataset. Additionally, it leaks validation fold data into its training folds by fitting text transformers and computing domain aggregations on the entire training set prior to cross-validation.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

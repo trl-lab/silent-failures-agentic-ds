@@ -1,0 +1,101 @@
+{
+ "task": "oil-natural-gas-platform",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent averages the predictions from the 5 cross-validation folds using simple equal weights, without any tuning or stacking of the fold models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metrics calculated",
+   "description": "The agent performs cross-validation but does not calculate, print, or log any evaluation metrics (like RMSE) for the validation folds. This makes it impossible to assess the model's expected generalisation performance or whether it is learning effectively before submission.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_va)],\n        callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)]\n    )\n    \n    test_preds += model.predict(X_test) / kf.n_splits"
+  },
+  {
+   "name": "Buggy categorical missing value handling",
+   "description": "Casting a pandas Series with NaN values to string converts the NaNs to the literal string 'nan', rendering the subsequent fillna operation a no-op. The missing values are thus encoded as 'nan' rather than the intended 'missing'.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[col] = df[col].astype(str).fillna('missing').astype('category')"
+  }
+ ],
+ "summary": "The agent successfully implements a 5-fold cross-validation pipeline with LightGBM and performs basic feature engineering on dates. However, it fails to calculate or report any validation metrics, making it impossible to evaluate model performance offline. It also uses a naive unweighted average for ensembling the fold predictions and has a minor bug in its categorical missing value handling.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

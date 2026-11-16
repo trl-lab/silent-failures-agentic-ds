@@ -1,0 +1,145 @@
+{
+ "task": "predict-energy-behavior-of-prosumers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via filling and imputation strategies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer object is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a time-based validation split using data_block_id.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent loops over multiple seeds for LightGBM and XGBoost, averaging their predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "stream_mae = mean_absolute_error(y_va, va_stream_preds)",
+   "reasoning": "The agent evaluates performance exclusively using MAE, without computing other relevant regression metrics like RMSE to analyze error distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly splits the modeling into consumption and production streams, respecting the task's structure.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive domain-specific feature engineering, including solar elevation and temporal lags.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "va_stream_preds /= model_count\nte_stream_preds /= model_count",
+   "reasoning": "The agent combines multiple models using a simple unweighted average rather than tuning the combination weights or using stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid cross-group time-series imputation",
+   "description": "Applying forward and backward fill on the entire dataset after sorting by group, without grouping the fill operation. This causes missing values at the boundaries of one group to be improperly filled with values from an entirely unrelated group.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_df[col] = full_df[col].ffill().bfill().fillna(0.0)"
+  },
+  {
+   "name": "Missing categorical features declaration in CatBoost",
+   "description": "Categorical columns are converted to integers for CatBoost but are not explicitly passed as `cat_features` during model fitting, causing the model to incorrectly treat them as continuous numerical features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_m.fit(\n            X_tr_cb,\n            y_tr,\n            eval_set=(X_va_cb, y_va),\n            early_stopping_rounds=50,\n            verbose=False,\n        )"
+  }
+ ],
+ "summary": "The agent implements a solid baseline pipeline with appropriate temporal cross-validation, domain-specific feature engineering, and separate models for consumption and production. However, it relies on a naive unweighted average for ensembling and fails to explicitly declare categorical features for CatBoost. Additionally, there is a minor data leakage/corruption issue where global forward and backward filling causes weather features to bleed across distinct prediction units.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

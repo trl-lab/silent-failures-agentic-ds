@@ -1,0 +1,148 @@
+{
+ "task": "covid-clinical-trials",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set manually.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent drops rows with missing targets, which is an appropriate cleaning step.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No traditional numerical scalers are applied to the combined dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent applies TruncatedSVD (PCA-like feature extraction) to the combined train and test dataset before splitting, leaking test information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is done using constant values (e.g., fillna('')), which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While there are date features, predicting days to complete is not strictly a time-series forecasting problem requiring temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses regression models, which matches the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with an internal train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models via 5-fold cross-validation, which averages over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is the correct metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as predicting a continuous days_to_complete target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including date decomposition, TF-IDF, SVD, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds = (test_lgb + test_cb + test_xgb) / 3.0",
+   "reasoning": "The agent uses a naive unweighted average to ensemble three tree-based models without optimizing their blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Global Transformations",
+   "description": "Applying text vectorization (TF-IDF) and frequency encoding on the combined train and test datasets leaks test set vocabulary, IDF statistics, and category distributions into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(str_series)\n...\nfreq = cat_series.map(cat_series.value_counts(normalize=True))"
+  },
+  {
+   "name": "SyntaxError in f-string",
+   "description": "Using a backslash inside an f-string expression part (e.g., for a regex pattern) is a SyntaxError in Python versions older than 3.12, causing the script to crash immediately.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "clean_cols = [f\"f_{i}_{re.sub(r'[^\\w]', '_', str(col))}\" for i, col in enumerate(X_all.columns)]"
+  }
+ ],
+ "summary": "The agent correctly frames the regression task and builds a reasonable cross-validated ensemble of gradient boosting models. However, it critically leaks test set information by computing TF-IDF, TruncatedSVD, and frequency encodings on the combined train and test datasets before splitting. Additionally, the code contains a fatal syntax error due to a backslash in an f-string expression, which prevents it from running in most Python environments.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

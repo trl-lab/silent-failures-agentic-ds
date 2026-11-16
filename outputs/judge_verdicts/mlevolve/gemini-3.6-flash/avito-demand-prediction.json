@@ -1,0 +1,104 @@
+{
+ "task": "avito-demand-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "vec_title = TfidfVectorizer(max_features=40000, stop_words=None, sublinear_tf=True, ngram_range=(1, 2))\nX_title = vec_title.fit_transform(title_text)",
+   "reasoning": "The TF-IDF vectorizer is fit on the combined train and test text data, leaking test vocabulary frequencies into the selected features and IDF weights.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a temporal component (activation_date), but random cross-validation ignores the time ordering, introducing look-ahead bias in the validation metrics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid Submission IDs",
+   "description": "The agent drops the true identifier column from the test set and replaces it with a synthetic integer sequence for the submission file. This will result in a scoring error as the IDs will not match the expected format or values.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub_df = pd.DataFrame({\"id\": np.arange(n_test, dtype=np.int64), \"deal_probability\": np.clip(test_preds, 0.0, 1.0)})"
+  },
+  {
+   "name": "Computational Timeout",
+   "description": "The training pipeline is excessively computationally expensive (e.g., fitting 15 Ridge models on large sparse matrices and 10 large LightGBM models), leading to an execution timeout before completion.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "TIMEOUT after 7200s"
+  }
+ ],
+ "summary": "The agent builds a well-structured LightGBM pipeline with extensive feature engineering, including target encoding and OOF TF-IDF features. However, it fails critically by generating fake submission IDs, which will cause the submission to fail scoring entirely. Additionally, it suffers from moderate data leakage by fitting TF-IDF on the combined train and test sets, and by failing to group by user or respect temporal order during cross-validation.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

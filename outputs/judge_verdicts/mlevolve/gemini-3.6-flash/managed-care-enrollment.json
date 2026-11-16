@@ -1,0 +1,61 @@
+{
+ "task": "managed-care-enrollment",
+ "failure_modes": {
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "train_df, val_df = train_test_split(train_raw, test_size=0.2, random_state=42)\n...\nif pd.api.types.is_datetime64_any_dtype(train_df[c]):",
+   "reasoning": "The agent splits the data randomly but includes explicit logic to extract datetime features; if the dataset does contain temporal data, this random split would introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_log = lgb.LGBMRegressor(\n    n_estimators=1500,\n    learning_rate=0.02,\n    num_leaves=31,\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n    n_jobs=-1,\n    verbose=-1,\n)\nlgb_log.fit(\n    X_train,\n    y_train_log,\n    eval_set=[(X_val, y_val_log)],\n    callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)],\n)",
+   "reasoning": "The agent trains stochastic models (LightGBM and XGBoost with subsampling) and evaluates them just once on a single validation split, without using multiple seeds or cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, val_preds_final))\n\n# 10. Generate Submission File\n...\nprint(f\"Final Validation Score: {val_rmse}\")",
+   "reasoning": "The agent only optimizes and reports RMSE without evaluating any other metrics to check if RMSE is the most robust or appropriate metric for this specific dataset.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing Train/Test Column Alignment",
+   "description": "The agent bases its feature list entirely on the training dataset's columns. If the training data contains extra columns (like metadata or auxiliary targets) that are not present in the test set, iterating over these columns will cause a KeyError when attempting to access or modify them in the test dataframe.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c not in ignore_cols]\n...\nfor c in cat_cols:\n    train_df[c] = train_df[c].astype(str).fillna(\"Missing\")\n    val_df[c] = val_df[c].astype(str).fillna(\"Missing\")\n    test_df[c] = test_df[c].astype(str).fillna(\"Missing\")"
+  }
+ ],
+ "summary": "The agent implements a generally robust machine learning pipeline with proper train/validation splitting, target transformations, and an advanced constrained optimization blending strategy. However, it assumes the test set has exactly the same columns as the training set (minus the target), which fails to align columns and likely leads to the observed KeyError. Furthermore, it relies on a single random validation split and a single metric for evaluation.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

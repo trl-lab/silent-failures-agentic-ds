@@ -1,0 +1,145 @@
+{
+ "task": "device-covid19serology",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing them with the median for numericals and the mode for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit an imputer on the full combined dataset before splitting; they process train and test separately (though incorrectly, see other failure modes).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is provided pre-split, so the agent does not perform any improper random splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses LightGBM with an objective of 'binary', which is appropriate for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train, label=y_train)\n    model = lgb.train(params, train_data, num_boost_round=1000)",
+   "reasoning": "The agent trains on the entire training set for a fixed 1000 rounds without creating a validation set or using cross-validation to evaluate model generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally or report a score, so this mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics, so they did not use only one inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw features exactly as provided without engineering any new features, interactions, or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unencoded_categorical_features",
+   "description": "The agent passes categorical features of type `object` or `string` directly to a model that requires them to be encoded as integers or explicitly cast to the `category` dtype, resulting in a fatal runtime error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train, label=y_train)\n    model = lgb.train(params, train_data, num_boost_round=1000)"
+  },
+  {
+   "name": "imputing_with_test_statistics",
+   "description": "The agent imputes missing values in the test set using statistics (like median or mode) calculated from the test set itself, rather than using the statistics learned from the training set, which is a bad practice and can lead to inconsistent predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_processed = preprocess(test_df, feature_cols, None)\n...\ndf[col] = df[col].fillna(df[col].median())\n...\nmode_val = df[col].mode()[0]"
+  }
+ ],
+ "summary": "The agent attempted to train a LightGBM model for binary classification but failed to encode or cast categorical object columns to the required `category` dtype, resulting in a fatal runtime error. Furthermore, the solution completely omitted a validation strategy (FM06), lacked any feature engineering (FM07), and incorrectly imputed the test set using its own internal statistics rather than mapping from the training set.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

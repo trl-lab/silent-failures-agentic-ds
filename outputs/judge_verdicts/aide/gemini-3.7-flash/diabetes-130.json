@@ -1,0 +1,105 @@
+{
+ "task": "diabetes-130",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y, oof_pred_labels)",
+   "reasoning": "The agent evaluates the models using only accuracy, which can be misleading for the imbalanced 'readmitted' classes, without checking metrics like F1-score or log-loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_blend = 0.5 * oof_lgb + 0.5 * oof_cb",
+   "reasoning": "The agent combines LightGBM and CatBoost predictions using a naive, hardcoded 50/50 split without attempting to optimize the blending weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature Engineering Leakage",
+   "description": "The agent computes statistical aggregations (such as value_counts for frequency encoding) on the concatenated train and test dataset before splitting. This leaks the distribution of the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "code_freq = df_all[diag].value_counts(normalize=True).to_dict()"
+  },
+  {
+   "name": "Time-Travel Leakage in Longitudinal Features",
+   "description": "The agent aggregates subject-level statistics across all available records (including future encounters) and applies them to historical rows. This exposes future information to models predicting past events.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "patient_time_mean = df_all.groupby(\"patient_nbr\")[\"time_in_hospital\"].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent develops a thorough solution with extensive feature engineering and an ensemble of gradient boosting models. However, the approach suffers from critical data leakage: applying random splits instead of patient-grouped splits, engineering aggregate features on the combined train/test set, and computing patient-level means that leak future encounter data into historical predictions.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

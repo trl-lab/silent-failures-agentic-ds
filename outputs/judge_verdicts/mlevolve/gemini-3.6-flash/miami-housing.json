@@ -1,0 +1,137 @@
+{
+ "task": "miami-housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis (EDA) in the provided code.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tab_tr = scaler.fit_transform(X_tr_fold[tab_cols].fillna(0).values)",
+   "reasoning": "The agent makes no explicit effort to handle missing values, outliers, or duplicates, relying entirely on tree-based models to handle them natively and using a naive fillna(0) for the PyTorch model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lat_min = min(train_df[\"LATITUDE\"].min(), test_df[\"LATITUDE\"].min())",
+   "reasoning": "The agent computes global spatial bounding boxes using both the training and test datasets, and uses these to normalize coordinates before splitting, which leaks test distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation via fillna(0) and standard scaling are correctly applied within the cross-validation folds, not before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a temporal component ('month_sold'), but the agent uses a random K-Fold split, which can introduce look-ahead bias if housing prices trend over time.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a continuous PyTorch head) for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model incorporates regularization via dropout layers and weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a robust 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds, which averages out variance from stochastic elements like initialization and subsampling.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "return root_mean_squared_error(y_train_full, blend_oof)",
+   "reasoning": "The agent solely optimizes and reports RMSE without evaluating secondary metrics like MAE or R-squared to verify robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem targeting SALE_PRC.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive domain-specific feature engineering, including spatial rotations, Fourier positional encodings, and leak-free KNN features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal blending weights for the ensemble, which is a sophisticated approach.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The solution demonstrates a high level of sophistication, featuring advanced spatial feature engineering, a custom PyTorch RBF network, and rigorous out-of-fold KNN feature generation. However, it suffers from a critical data leakage flaw by calculating global normalization bounds across both train and test sets (FM08). Additionally, it bypasses explicit data cleaning (FM03), neglects temporal splitting despite a 'month_sold' feature (FM05), and relies strictly on a single evaluation metric (FM15).",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

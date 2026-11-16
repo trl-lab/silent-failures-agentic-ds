@@ -1,0 +1,100 @@
+{
+ "task": "tmdb-box-office-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_feats = tfidf.fit_transform(text_data)\nsvd = TruncatedSVD(n_components=16, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_feats)",
+   "reasoning": "TF-IDF and TruncatedSVD are fitted on the combined dataset containing both train and test text, leaking the vocabulary and distribution of the test set into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Despite the presence of temporal data (movie release dates) and the temporal nature of box office trends, the cross-validation uses random splitting instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmsle = root_mean_squared_error(y_train_log, oof_preds_clipped)\n\nprint(f\"5-Fold Cross-Validation RMSLE: {cv_rmsle:.5f}\")",
+   "reasoning": "The agent evaluates the model solely using RMSLE, without reporting secondary metrics like MAE or R-squared to provide a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature mismatch in fallback logic",
+   "description": "In the fallback modelling path, the test DataFrame is repeatedly overwritten inside a loop that applies categorical frequency encoding. This causes all but the very last encoded column to be missing from the test set, which would lead to a feature mismatch crash during prediction.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test_mod = X_test.copy()\n            X_test_mod[col + \"_freq\"] = X_test_mod[col].map(freq).fillna(0)"
+  }
+ ],
+ "summary": "The solution implements strong feature engineering and handles complex JSON fields effectively. However, it suffers from critical data leakage by fitting unsupervised text extraction models (TF-IDF and SVD) on the concatenated train and test datasets. Additionally, it ignores the temporal nature of movie releases by using random K-Fold splits, and contains a severe bug in its fallback modelling logic that would cause a crash if CatBoost is unavailable.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

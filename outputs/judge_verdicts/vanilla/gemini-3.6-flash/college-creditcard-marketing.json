@@ -1,0 +1,141 @@
+{
+ "task": "college-creditcard-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or use test data statistics to design preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[c] = pd.to_numeric(X_train[c], errors=\"coerce\").astype(np.float64)",
+   "reasoning": "The agent converts numeric columns to float and relies entirely on the tree models to handle the resulting missing values, without any explicit imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling or normalisation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit an imputer on the combined dataset; missing values are either filled with a constant string or left as NaN.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the credit card marketing task strictly requires temporal splitting, though the agent uses a random KFold.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor, XGBRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train.iloc[val_idx], y[val_idx]\n    \n    model_lgb = LGBMRegressor(",
+   "reasoning": "The agent sets up a KFold cross-validation split and extracts a validation set (X_va, y_va), but never uses it to calculate or report a validation metric.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any single evaluation score since validation metrics are completely omitted.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are computed at all.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts derived features (year, month, day, dayofweek) from datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (lgb_preds + cat_preds + xgb_preds) / 3.0",
+   "reasoning": "The agent uses a naive unweighted average to combine predictions from three different models without tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding original test IDs",
+   "description": "The agent drops the identifier column from the test set without saving it, and generates a dummy sequence (e.g. `np.arange`) for the submission file. This will cause the submission to be invalid or mapped incorrectly if the true test IDs are not a simple consecutive range starting from 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\n    \"id\": np.arange(len(final_preds)),\n    \"PAYMENTS_BY_ISSUER\": final_preds\n})"
+  }
+ ],
+ "summary": "The solution implements a cross-validated ensemble of LightGBM, CatBoost, and XGBoost, but critically fails to compute any validation metrics on its holdout sets. It also incorrectly replaces the original test IDs with a dummy sequence, which would likely invalidate the submission. Finally, the agent relies entirely on the tree models to handle numerical missing values without explicit imputation and uses a naive unweighted average for ensembling.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

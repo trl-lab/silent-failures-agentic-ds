@@ -1,0 +1,141 @@
+{
+ "task": "fts-requirement-and-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = str_col.map(str_col.value_counts())\n...\ntfidf_mat = tfidf.fit_transform(str_col)",
+   "reasoning": "The agent computes frequency encoding and fits a TF-IDF vectorizer on the concatenated train and test data, leaking test distribution information and vocabulary into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train = train.dropna(subset=[target_col]).reset_index(drop=True)",
+   "reasoning": "The agent drops missing targets and relies on gradient boosting models' native handling of missing values, which is an acceptable strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD is applied to the full combined dataset before splitting, which leaks information about the test set's variance and structure into the features used for training.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are either filled with a constant string ('Missing') or left as NaN for the models to handle natively; no imputer statistics are computed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Datetime features are extracted, but it is unclear if the task strictly requires a time-based split to avoid look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_lgb = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (trn_idx, val_idx) in enumerate(kf.split(X_train, y)):",
+   "reasoning": "The agent evaluates the stochastic models across 5 cross-validation folds rather than relying on a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "metric='rmse',",
+   "reasoning": "The agent only optimizes and evaluates using RMSE, without considering other metrics like MAE that could verify robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "features_df[f'{col}_log1p'] = np.log1p(val.clip(lower=0))",
+   "reasoning": "The agent performs extensive feature engineering including datetime extraction, frequency encoding, TF-IDF, and groupby statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The structural facts claim ensembling is used, but the code truncates before any ensembling logic is visible.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Truncated code causing SyntaxError",
+   "description": "The final provided code is incomplete and cuts off mid-statement, resulting in a syntax error that prevents the script from executing.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model_cb = CatBoostRegressor(\n        loss_function='RMSE',\n        eval_metric='RMSE',\n        iterations=1500,\n        learning_rate=0.03,\n        depth=6,\n        random_seed=42 + fold,\n        verbose=0,\n        early_stopping_rounds=5"
+  }
+ ],
+ "summary": "The agent applies several sophisticated feature engineering techniques but critically leaks test data into the training set by applying frequency encoding, TF-IDF, and TruncatedSVD on the combined train and test datasets. Furthermore, the provided code is incomplete and ends abruptly, causing a syntax error that renders the solution unexecutable.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

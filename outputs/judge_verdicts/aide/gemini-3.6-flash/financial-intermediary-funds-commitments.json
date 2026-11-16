@@ -1,0 +1,104 @@
+{
+ "task": "financial-intermediary-funds-commitments",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal components (extracted as datetime features by the agent), but it evaluates the model using a randomized K-Fold split instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_rmse = root_mean_squared_error(y_train, oof_blend)",
+   "reasoning": "The agent evaluates and optimizes the ensemble using solely RMSE, which is highly sensitive to outliers, without considering more robust metrics (like MAE) for financial amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage in Frequency Encoding",
+   "description": "Applying frequency/count encoding on a concatenated dataset of both train and test sets leaks the test set's distribution into the training features. Frequency encoding should be fit strictly on the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts().to_dict()\ndf_all[f\"{col}_freq\"] = df_all[col].map(freq).fillna(0)"
+  },
+  {
+   "name": "Missing Target Transformation",
+   "description": "Financial amount targets are typically heavily right-skewed and span multiple orders of magnitude. Training a model to optimize raw RMSE on such targets without a log transformation (e.g., log1p) causes the model to heavily overfit to extreme outliers.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "y_train = train_df[target_col].values"
+  }
+ ],
+ "summary": "The agent implements a solid modeling pipeline with out-of-fold target encoding, multiple gradient boosting models, and an optimized ensemble. However, it fails to account for the temporal nature of the data by using random cross-validation, leaks test set statistics during frequency encoding, and models raw financial amounts with RMSE without applying an appropriate log transformation.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

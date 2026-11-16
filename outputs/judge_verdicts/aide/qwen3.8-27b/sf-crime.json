@@ -1,0 +1,145 @@
+{
+ "task": "sf-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "out = out.replace({\"nan\": UNKNOWN, \"None\": UNKNOWN, \"\": UNKNOWN})",
+   "reasoning": "The agent explicitly handles missing values by replacing them with an 'UNKNOWN' token.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No stateful imputers are fitted on the data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train = train.sort_values(\"_date\", kind=\"mergesort\").reset_index(drop=True)\n...\nfolds = np.array_split(np.arange(len(train)), 6)",
+   "reasoning": "The agent correctly sorts the data by date and uses a chronological expanding-window approach to prevent look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "SGDClassifier(\n        loss=\"log_loss\",",
+   "reasoning": "The agent uses a valid classification model for the multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for i in range(1, 6):\n    train_idx = np.concatenate(folds[:i])\n    val_idx = folds[i]",
+   "reasoning": "The agent performs validation using a 5-fold expanding-window cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "validation_metric = float(np.mean(fold_losses))",
+   "reasoning": "The agent evaluates the stochastic SGD classifier across 5 different folds and averages the results, accounting for data variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "loss = log_loss(y_val, proba_val, labels=all_classes)\nfold_losses.append(loss)",
+   "reasoning": "The agent computes only log_loss and does not track auxiliary metrics like accuracy, which could provide better intuition about model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "loss = log_loss(y_val, proba_val, labels=all_classes)",
+   "reasoning": "The agent frames the problem correctly as multi-class classification and internally evaluates using probabilities.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "out[\"hour\"] = dates.dt.hour.fillna(-1).astype(int).astype(str)",
+   "reasoning": "The agent extracts several temporal features (hour, month, day, year) from the datetime column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The model incorporates features during training that are direct outcomes of the target event and are unavailable at inference time. In this case, 'Descript' and 'Resolution' are highly correlated with the target 'Category' and are completely absent in the test set, leading to artificially perfect training/validation scores but useless test predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "FEATURE_COLS = [\n    \"Descript\",\n    \"PdDistrict\",\n    \"Resolution\",\n..."
+  },
+  {
+   "name": "Invalid Submission Format",
+   "description": "The agent predicts hard class labels instead of class probabilities and formats the submission file incorrectly. For a multi-class log-loss evaluation, the submission typically requires a column for each class containing predicted probabilities.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_pred = final_model.predict(X_test_enc)\n\nsubmission = pd.DataFrame(\n    {\n        \"id\": np.arange(len(test), dtype=int),\n        \"Category\": test_pred,\n    }\n)"
+  }
+ ],
+ "summary": "The agent correctly implements chronological expanding-window validation and handles missing values appropriately. However, the solution suffers from severe target leakage by including outcome features ('Descript' and 'Resolution') that perfectly predict the target but are unavailable at inference time. Furthermore, the final submission incorrectly predicts hard class labels instead of outputting probabilities for each class, which will fail the task's log-loss evaluation format.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

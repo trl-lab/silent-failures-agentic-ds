@@ -1,0 +1,102 @@
+{
+ "task": "yelp_business",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.train(...); xgb_model = xgb.train(...)",
+   "reasoning": "The agent trains stochastic models (LightGBM, XGBoost, PyTorch) exactly once without multiple random seed runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "accuracy_score(y_val, np.argmax(lgb_val_probs, axis=1))",
+   "reasoning": "The agent uses only accuracy for evaluation and does not assess the ordinal nature of the predictions or class imbalances using metrics like MAE or macro-F1.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "w_lgb, w_xgb, w_nn = 0.45, 0.40, 0.15\nensemble_val_probs = (\n    w_lgb * lgb_val_probs + w_xgb * xgb_val_probs + w_nn * torch_val_probs\n)",
+   "reasoning": "The agent uses hardcoded, arbitrary weights for ensembling and does not optimize them (despite importing scipy.optimize.minimize), which is naive given that probabilities are available for tuning.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test set statistics leakage during preprocessing",
+   "description": "The agent calculates statistics (like median or mean) on the test or validation splits independently to impute missing values, rather than using the statistics learned solely from the training split. This leaks test distribution information into the preprocessing pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"latitude\"].fillna(df[\"latitude\"].median()).values"
+  }
+ ],
+ "summary": "The agent presents a very thorough solution with excellent feature engineering, rigorous out-of-fold target encoding, and robust deep learning configuration. However, it relies on hardcoded ensemble weights without optimization, evaluates stochastic models only once, and inadvertently leaks test statistics by computing medians independently per data split during early tabular extraction.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

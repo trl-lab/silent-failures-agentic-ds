@@ -1,0 +1,170 @@
+{
+ "task": "drug-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "all_v = pd.concat([tr_v, te_v], axis=0)\n    le.fit(all_v)",
+   "reasoning": "A LabelEncoder is fit on the concatenation of training and test sets, exposing test categories to the preprocessing step (though this code is bypassed by another bug).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with medians for numeric columns and 'Missing' for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fit only on X_tr_df after the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is performed on the training set only, not the full dataset including test, so test statistics do not leak (though validation statistics do).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not explicitly identified as a time series.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, BatchNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into train and validation sets and validates all models on the validation set.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble weights on the validation set, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "np.random.seed(42)",
+   "reasoning": "Models with random elements (like LightGBM, XGBoost, CatBoost, and PyTorch) are trained exactly once using a single random seed without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "accuracy_score(y_val, np.argmax(lgb_val_probs, axis=1))",
+   "reasoning": "The agent only uses accuracy for evaluation and weight optimization, without checking if it's appropriate for the class distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers numerous features including text statistics, TF-IDF, SVD components, date parts, and meta-features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the blend weight using a grid search over validation probabilities rather than using a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Misclassified Categorical Features",
+   "description": "The agent's column type detection logic erroneously classifies all object and categorical columns as text columns, leaving the categorical column list empty and bypassing all categorical feature engineering.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "text_cols = [col for col in features_train_df.columns if features_train_df[col].dtype == \"object\"...] followed by non_text_cols = [c for c in features_train_df.columns if c not in text_cols] and then checking non_text_cols for object types to populate cat_cols."
+  },
+  {
+   "name": "Unused Trained Models",
+   "description": "The agent spends compute resources training and validating multiple models (XGBoost and CatBoost) but completely excludes them from the final ensemble and test predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_test_probs = best_weight * lgb_test_probs + (1.0 - best_weight) * nn_test_probs"
+  },
+  {
+   "name": "In-fold Target Encoding Leakage",
+   "description": "The agent computes out-of-fold target encoding but later overwrites it with an in-fold mapping (using global training means), which would cause severe target leakage (though currently bypassed due to the empty categorical columns list).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "te_feats_train[f\"{col}_te_class_{c_idx}\"] = (features_train_df[col].fillna(\"Missing\").map(global_means_tr).fillna(target_binary[train_indices].mean()))"
+  },
+  {
+   "name": "Validation Leakage via Imputation",
+   "description": "Numerical imputation statistics (median) are computed on the entire training dataframe before it is split into train and validation sets, leaking validation distribution information into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med = features_train_df[col].median() followed later by train_indices, val_indices = train_test_split(...)"
+  }
+ ],
+ "summary": "The solution employs a solid set of models and feature engineering techniques, including TF-IDF and PyTorch Tabular ResNet, but suffers from severe logical flaws. A bug in column type detection causes all categorical features to be treated as text, neutralizing intended categorical encoding. Furthermore, the agent incorrectly implements target encoding (causing in-fold leakage), leaks validation statistics during imputation, and wastes compute by omitting two fully trained models from the final ensemble.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

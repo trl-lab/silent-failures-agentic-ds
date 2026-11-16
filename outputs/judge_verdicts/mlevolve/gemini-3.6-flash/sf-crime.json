@@ -1,0 +1,152 @@
+{
+ "task": "sf-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans spatial outliers and missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_idx, val_idx = train_test_split(\n    np.arange(len(train_df)), test_size=0.20, random_state=42, stratify=y_all\n)",
+   "reasoning": "The dataset contains temporal data (crime dates), but a random train/validation split is used instead of a time-based split, causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses multiclass classification models appropriate for the task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Deep learning is not actually trained, and the defined model includes dropout.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly performed.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent iterates over multiple seeds and averages the predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = log_loss(y_val, val_preds, labels=np.arange(num_classes))",
+   "reasoning": "The agent only computes and reports log_loss, without checking other metrics like accuracy or macro F1.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including temporal, spatial, and interaction features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_preds = np.mean(val_preds_list, axis=0)",
+   "reasoning": "The models are combined using a simple unweighted mean without any tuning or stacking.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inefficient loops causing execution timeout",
+   "description": "The agent writes heavily nested loops over classes and folds for operations like target encoding, constructing new DataFrames and running groupby operations in the innermost loop. This is extremely slow and results in execution timeouts on large datasets.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for k in range(num_classes):\n            is_class_k = (fold_tr_y == k).astype(int)\n            stats = pd.DataFrame(\n                {\"cat_val\": fold_tr_df[col], \"target\": is_class_k}\n            ).groupby(\"cat_val\")[\"target\"].agg([\"count\", \"sum\"])"
+  },
+  {
+   "name": "Dead code",
+   "description": "The agent defines complex code structures (such as an entire PyTorch neural network architecture) but never instantiates, trains, or uses them in the final pipeline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "class TabularEmbeddingNet(nn.Module):"
+  }
+ ],
+ "summary": "The agent performs extensive feature engineering and builds an ensemble of LightGBM and XGBoost models. However, it fails to respect the temporal nature of the dataset during splitting (FM05) and uses a naive unweighted ensemble (FM12). Critically, the target encoding implementation loops over all 39 classes for each fold and feature, instantiating DataFrames repeatedly, which is highly inefficient and directly causes the script to timeout.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "wine-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or fit statistical transformers on test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, such as handling missing values and dropping mismatched columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].fillna(X[col].median())\n...\nX_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The median for missing value imputation is calculated on the full training set before splitting, leaking validation set statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM with objective='regression') is correctly used for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)\n...\nmodel = lgb.train(",
+   "reasoning": "The stochastic LightGBM model is evaluated on a single random train/validation split without multiple seeds or cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))",
+   "reasoning": "Only RMSE is calculated and reported, without secondary metrics to check robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the 'Price' target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols_final = [c for c in cat_cols if c in common_cols]\nnum_cols_final = [c for c in num_cols if c in common_cols]",
+   "reasoning": "The agent relies entirely on raw features and does not attempt any domain-informed feature engineering or interactions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage in categorical encoding",
+   "description": "Categorical levels are extracted by combining the training and test sets before model training. This leaks the distinct categories present in the test set into the training pipeline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X[col], X_test[col] if col in X_test.columns else pd.Series(dtype=object)], axis=0)"
+  },
+  {
+   "name": "Missing target transformation",
+   "description": "The target variable is typically heavily right-skewed (e.g., Price), but no log or power transformation is applied to normalize its distribution before regression.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "y = train[target_col].values"
+  }
+ ],
+ "summary": "The agent implements a functional LightGBM regression pipeline but fails to completely isolate the validation set, performing median imputation on the entire dataset before creating the train/validation split. Additionally, it lacks any feature engineering, evaluates the model on a single split, and relies exclusively on a single metric (RMSE).",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

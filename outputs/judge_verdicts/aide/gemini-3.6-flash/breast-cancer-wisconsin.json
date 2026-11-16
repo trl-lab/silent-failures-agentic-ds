@@ -1,0 +1,144 @@
+{
+ "task": "breast-cancer-wisconsin",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so there is no peeking at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(\"./input/train.parquet\")\ntest = pd.read_parquet(\"./input/test.parquet\")\n\n# Target encoding (Malignant vs Benign)",
+   "reasoning": "The agent makes no effort to handle missing values, duplicate rows, or obvious outliers in the training data before proceeding to feature engineering and modelling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_val_scaled = scaler.transform(X_val)",
+   "reasoning": "Scaling is correctly applied strictly within the cross-validation loop, preventing leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.LGBMClassifier(...)",
+   "reasoning": "The chosen models (LGBM, Logistic Regression, SVC, ExtraTrees) are appropriate for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The models are evaluated across 5 folds, which accounts for variance in the data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof_final_preds)",
+   "reasoning": "The agent evaluates the models using only ROC AUC, which is insufficient for a medical diagnosis task where evaluating precision, recall, and the balance of false positives vs false negatives is critical.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"Diagnosis\"",
+   "reasoning": "The task is appropriately formulated as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_feat[\"radius_ratio\"] = df_feat[\"radius3\"] / (df_feat[\"radius1\"] + eps)",
+   "reasoning": "The agent implements a dedicated function to engineer meaningful morphological ratios and shape factors.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, best_weights, method=\"Nelder-Mead\")",
+   "reasoning": "The agent uses grid search and Nelder-Mead optimization to find optimal ensemble weights, which is a sophisticated blending technique.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Biased CV score evaluation",
+   "description": "Optimizing ensemble weights on the out-of-fold (OOF) predictions and then reporting the performance on those exact same OOF predictions leads to an optimistically biased cross-validation score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, best_weights, method=\"Nelder-Mead\")\n...\ncv_auc = roc_auc_score(y, oof_final_preds)"
+  },
+  {
+   "name": "Fragile column alignment",
+   "description": "Extracting features from train and test sets independently without explicitly aligning the columns can lead to mismatched feature matrices if the column order differs between the datasets.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in df_feat.columns if col not in ignore_cols]\nreturn df_feat[feature_cols]"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold CV pipeline with appropriate feature engineering, proper scaling within folds, and a well-optimized ensemble of diverse models. However, it skips any initial data cleaning steps and relies solely on ROC AUC for evaluation, missing the necessary nuance for a medical diagnosis task. Furthermore, evaluating the final CV score on the same OOF predictions used to tune the ensemble weights introduces a slight optimistic bias.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

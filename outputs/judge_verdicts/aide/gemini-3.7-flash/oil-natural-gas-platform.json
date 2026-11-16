@@ -1,0 +1,149 @@
+{
+ "task": "oil-natural-gas-platform",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or fit standard transformers on the test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in list(combined.columns):\n    if combined[col].dtype == \"object\"...",
+   "reasoning": "The agent makes no explicit effort to handle missing values or outliers, relying entirely on the gradient boosting models' native handling of NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task predicts water depth based on spatial/structural features and does not have a strict temporal sequence to preserve.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for the continuous target WATERDEPTH.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, effectively averaging predictions over multiple models to reduce variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_final)\nprint(f\"5-Fold CV RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent evaluates and optimizes solely on RMSE without checking secondary metrics like MAE to ensure robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements derived features including datetime components, spatial coordinates, rotated axes, and frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses constrained linear blending (L-BFGS-B optimization) rather than a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Global Feature Engineering",
+   "description": "The agent computes frequency encoding on the combined train and test dataset, leaking the test set's distribution statistics into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(dropna=False)\ncombined[f\"{col}_freq\"] = combined[col].map(freq).astype(float)"
+  },
+  {
+   "name": "Categorical Features Treated as Numerical",
+   "description": "The agent encodes categorical variables as integers but fails to specify them as categorical features when fitting certain models (e.g. CatBoost/XGBoost), causing the models to incorrectly treat arbitrary integer labels as continuous numerical features with ordinal meaning.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_num[c] = X_num[c].astype(int)\n...\ncb_model.fit(X_num.iloc[train_idx], y_tr, eval_set=(X_num.iloc[val_idx], y_val), early_stopping_rounds=60, verbose=False)"
+  }
+ ],
+ "summary": "The agent provides a robust modelling pipeline with cross-validation, feature engineering, and a weighted ensemble. However, it inadvertently introduces data leakage by computing frequency encodings across the combined train and test sets. Additionally, while LightGBM is configured to handle categorical features natively, the encoded categoricals are passed to CatBoost and XGBoost as plain integers without marking them as categorical, leading to improper treatment of these features.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

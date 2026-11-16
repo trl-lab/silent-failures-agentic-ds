@@ -1,0 +1,152 @@
+{
+ "task": "aca-federal-upper-limits-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs no data cleaning and relies entirely on LightGBM's native handling for any missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal indicator in the prompt, so it cannot be determined if a random split ignores temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\"objective\": \"regression\", ...}",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 CV folds, meaning multiple evaluations are performed (though it selects the best fold rather than averaging).",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = mean_squared_error(y_val_fold, y_pred)",
+   "reasoning": "The agent evaluates using only mean squared error and does not verify its appropriateness with other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as predicting the ACA FUL target column using regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses raw features directly and does not perform any feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Independent categorical encoding of train and test sets",
+   "description": "The agent applies categorical encoding independently on the train and test sets, which causes a mismatch in category-to-integer mappings if the unique values or their frequencies differ between the sets, severely corrupting test features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df[col] = category_dict\ntest_df[col] = test_df[col].astype(\"category\").cat.codes"
+  },
+  {
+   "name": "Selecting best CV fold model instead of ensembling",
+   "description": "Instead of averaging predictions across all cross-validation folds or retraining a single model on the full dataset, the agent selects the single model from the fold with the best validation score, which overfits to that specific validation split.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_rmse < best_score:\n    best_score = fold_rmse\n    best_model = model\n...\ntest_predictions = best_model.predict(test_df[feature_cols])"
+  },
+  {
+   "name": "Incorrect metric calculation (MSE instead of RMSE)",
+   "description": "The agent calculates Mean Squared Error (MSE) but reports it and treats it as Root Mean Squared Error (RMSE) without taking the square root.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = mean_squared_error(y_val_fold, y_pred)\n...\nprint(f\"Best RMSE on validation: {best_score:.4f}\")"
+  }
+ ],
+ "summary": "The agent provides a basic LightGBM solution with 5-fold cross-validation but suffers from a critical data corruption issue by independently applying ordinal encoding to the train and test sets. Additionally, it fails to clean the data, lacks feature engineering, incorrectly calculates RMSE as MSE, and suboptimally selects the single best CV fold for final predictions instead of ensembling.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

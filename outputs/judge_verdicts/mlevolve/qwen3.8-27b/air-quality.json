@@ -1,0 +1,156 @@
+{
+ "task": "air-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or inspect the test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes an explicit effort to handle missing values using SimpleImputer, even though it misses domain-specific missing value indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler.fit(train_imp)",
+   "reasoning": "The scaler is correctly fitted only on the training split (train_imp) before transforming validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "imputer.fit(train_data)",
+   "reasoning": "The imputer is correctly fitted only on the training subset (train_data).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_indices = train_indices[-val_size:]\ntrain_only_indices = train_indices[:-val_size]",
+   "reasoning": "The agent correctly uses a temporal split by sorting by datetime and holding out the last 10% of the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a regression model (ResMLP with MSELoss) which is appropriate for the regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "self.dropout = nn.Dropout(dropout_rate)",
+   "reasoning": "The deep learning model includes dropout layers and the optimizer uses weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_indices = train_indices[-val_size:]",
+   "reasoning": "The agent creates a validation split and uses it for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = ResMLP(\n    input_dim=len(feature_cols), hidden_dim=128, n_blocks=4, dropout_rate=0.1\n).to(device)",
+   "reasoning": "The agent trains a deep learning model (which relies on random weight initialization and dropout) exactly once without averaging over multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, val_preds))",
+   "reasoning": "The agent evaluates the model solely on RMSE, without checking other regression metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[\"hour_sin\"] = np.sin(2 * np.pi * combined[\"hour\"] / 24)",
+   "reasoning": "The agent performs extensive feature engineering including cyclical, lag, rolling, and interaction features.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Feature Engineering",
+   "description": "The agent fails to exclude the target variable from feature engineering, creating direct leaks (e.g., target logarithms, squares, and sensor-to-target ratios) as well as lagged/rolling target features. During training, the model can trivially predict the target using these features, but during testing (where the target is missing), these features become NaNs imputed with a constant, leading to a complete train-test mismatch and model failure.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[\"CO_log\"] = np.log1p(combined[\"CO(GT)\"].clip(lower=0))\n...\ncombined[f\"{sensor}_ratio_{gt}\"] = combined[sensor] / (combined[gt] + 1e-8)"
+  },
+  {
+   "name": "Improper handling of domain-specific missing target values",
+   "description": "In the Air Quality dataset, missing values are encoded as `-200`. The agent fails to filter out these invalid rows from the training set and instead applies a `clip(lower=0)` operation, effectively training the model to predict 0 for all missing targets. This severely corrupts the training signal.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train_log = np.log1p(np.clip(y_train, 0, None)).astype(np.float32)"
+  },
+  {
+   "name": "Incorrect submission IDs and row ordering",
+   "description": "The agent generates the submission file using a simple range for the `id` column instead of preserving the actual `id` values from the test set. Because the test data was previously concatenated and sorted by datetime, the predictions are output in chronological order rather than the original test set order, which breaks the evaluation pipeline.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": range(len(test_preds)), \"CO(GT)\": test_preds})"
+  }
+ ],
+ "summary": "The agent implements a deep learning solution with generally correct temporal splitting and preprocessing order (fitting standard scalers and imputers on train data only). However, the solution contains critical data science flaws: massive target leakage through careless feature engineering, failing to handle domain-specific missing values (-200) in the target, and generating a submission file with fabricated IDs and scrambled row ordering.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

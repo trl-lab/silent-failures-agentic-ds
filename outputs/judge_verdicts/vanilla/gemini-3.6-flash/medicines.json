@@ -1,0 +1,137 @@
+{
+ "task": "medicines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_proc[c] = pd.to_numeric(X_train_proc[c], errors='coerce').astype(np.float32)",
+   "reasoning": "The agent makes no explicit effort to handle missing values or outliers, relying entirely on the tree-based models to handle NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models (LGBMClassifier, CatBoostClassifier, XGBClassifier).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold for cross-validation and early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated over 5-fold cross-validation, averaging over multiple splits to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explicitly report metrics, but the optimization metrics used are appropriate for classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers datetime and frequency features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (lgb_preds + cb_preds + xgb_preds) / 3.0",
+   "reasoning": "The agent uses a naive unweighted average to combine predictions from the three models, without tuning the ensemble weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage through frequency encoding",
+   "description": "Frequency encoding is applied to categorical features on the combined train and test dataset before splitting. This leaks the distribution of categories in the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all = pd.concat([X_train, X_test], axis=0, ignore_index=True)\n...\nstr_series = df_all[col].astype(str)\nfreq = str_series.value_counts(dropna=False).to_dict()\ndf_all[f'{col}_freq'] = str_series.map(freq)"
+  }
+ ],
+ "summary": "The agent sets up a reasonably structured modelling pipeline utilizing 5-fold cross-validation and three gradient boosting models. However, it relies entirely on the algorithms to handle missing data without explicit cleaning (FM03) and combines the ensemble models using a naive, unweighted average (FM12). Crucially, the agent introduces data leakage by computing frequency encoding on the concatenated train and test sets, contaminating the training distribution with test set statistics.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

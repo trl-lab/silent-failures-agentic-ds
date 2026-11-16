@@ -1,0 +1,149 @@
+{
+ "task": "michelin-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is peeked at during EDA; in fact, there is no EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with constants ('missing', '', -1) suitable for LightGBM.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No normalisation or scaling is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "desc_mat = tfidf_desc.fit_transform(desc_text)\n\nsvd_desc = TruncatedSVD(n_components=64, random_state=42)\ndesc_svd_feats = svd_desc.fit_transform(desc_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD (PCA) are fit on the combined dataset (train + test) before splitting, leaking test set vocabulary and variance into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants, not with statistical imputers fit on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dates = pd.to_datetime(combined_df['datePublished'], errors='coerce')\n...\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a 'datePublished' column, but the agent uses a shuffled StratifiedKFold instead of a time-based split, potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multi-class LightGBM classifier for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a proper 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which evaluates the stochastic LightGBM model across multiple data folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any metrics to the user, so it isn't explicitly optimising or reporting only one metric inappropriately.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard multi-class classification problem, which is properly formulated here.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates extensive derived features, including text frequency, TF-IDF + SVD, and date parts.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes a standard average of out-of-fold predictions, which is common and appropriate for K-fold bagging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "silent_validation",
+   "description": "The agent performs cross-validation but does not compute, log, or print any evaluation metrics on the validation folds, making it impossible to assess the model's performance prior to testing.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "clf.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], callbacks=[lgb.early_stopping(stopping_rounds=40, verbose=False)])"
+  },
+  {
+   "name": "hardcoded_submission_id",
+   "description": "The agent generates submission IDs using an arbitrary sequence (e.g., `np.arange`) rather than preserving the actual identifier column from the test dataset, which often leads to submission format failures.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "'id': np.arange(len(test_df))"
+  }
+ ],
+ "summary": "The agent built a strong LightGBM model with extensive feature engineering, but critically failed by fitting TF-IDF and TruncatedSVD on the combined train and test datasets, causing severe data leakage (FM09). Additionally, it ignored the temporal nature of the data during cross-validation (FM05) and hardcoded the output IDs instead of mapping them from the test set, likely breaking the submission.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

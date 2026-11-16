@@ -1,0 +1,102 @@
+{
+ "task": "chocolate-bar-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(\n        max_features=50, ngram_range=(1, 2), token_pattern=r\"(?u)\\b\\w+\\b\"\n    )\n    tfidf_mat = tfidf.fit_transform(text_series).toarray()",
+   "reasoning": "TF-IDF is fit on the combined train and test data with max_features=50, which performs feature selection based on the entire corpus and leaks test data information into the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y, oof_pred_labels)\nprint(f\"5-Fold CV Accuracy: {cv_accuracy:.5f}\")",
+   "reasoning": "The agent only reports accuracy, which may be misleading if the chocolate bar ratings are imbalanced, without checking class distributions or validating with metrics like F1-macro.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict_proba(X_test_proc) / skf.n_splits",
+   "reasoning": "The agent uses a simple unweighted average of the cross-validation fold models to generate test predictions, rather than exploring any more sophisticated ensembling techniques.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Categorical and Frequency Encoding",
+   "description": "Encoding categorical variables based on the entire dataset (train + test) before splitting leaks the test set distribution into the training features. This includes frequency encoding and category codes mapping.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "processed[f\"{col}_cat\"] = df[col].astype(\"category\").cat.codes\nfreq = df[col].value_counts(normalize=True)\nprocessed[f\"{col}_freq\"] = df[col].map(freq).fillna(0)"
+  }
+ ],
+ "summary": "The agent sets up a reasonable cross-validation framework and feature engineering pipeline for LightGBM, but introduces severe data leakage by applying TF-IDF (with max_features selection), frequency encoding, and categorical encoding on the combined train and test datasets. It also relies solely on accuracy for evaluation without verifying class balance.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

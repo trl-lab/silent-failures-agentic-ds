@@ -1,0 +1,133 @@
+{
+ "task": "local-government-renewable-action",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(\n        max_features=10000, ngram_range=(1, 2), stop_words=\"english\"\n    )\n    tfidf_mat = tfidf.fit_transform(combined_text)",
+   "reasoning": "The agent fits the TF-IDF vectorizer (and computes frequency encodings) on the combined text of both the training and test sets, leaking test set vocabulary and frequencies into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values in categorical columns and relies on LightGBM/CatBoost's native missing value handling for numerical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_components, random_state=SEED)\n        svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD is fit on the combined TF-IDF matrix before the train/test split, leaking test set distribution information into the extracted components.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is performed before splitting (categoricals are just filled with a 'missing' string constant).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=SEED)",
+   "reasoning": "Despite extracting temporal features from date columns, the agent uses a random K-Fold split instead of a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for the continuous target 'Size of Purchase (MW)'.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold cross-validation scheme to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently evaluates the models over multiple data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"OOF RMSE: {cv_rmse:.5f}\")",
+   "reasoning": "The agent reports and evaluates the models solely using RMSE, without computing other metrics like MAE that might provide insights into performance on outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates numerous derived features, including date parts, text lengths, word counts, and TF-IDF/SVD components.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_preds = np.clip(0.5 * oof_preds_lgb + 0.5 * oof_preds_cat, 0.0, None)",
+   "reasoning": "The agent combines the LightGBM and CatBoost predictions using a naive, unweighted 50-50 average rather than tuning the combination weights or using a meta-model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements several advanced modeling techniques such as out-of-fold target encoding and inner-fold Ridge regression for text features. However, it introduces critical data leakage by fitting TF-IDF and SVD transformers on the combined train and test sets. Furthermore, the agent ignores the temporal nature of the data during cross-validation and relies on a naive equal-weight ensemble without tuning.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

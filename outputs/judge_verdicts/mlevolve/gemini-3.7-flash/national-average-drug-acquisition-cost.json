@@ -1,0 +1,150 @@
+{
+ "task": "national-average-drug-acquisition-cost",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le.fit(\n                list(train_vals.unique()) + list(test_vals.unique()) + [\"__UNSEEN__\"]\n            )",
+   "reasoning": "The agent fits a LabelEncoder on the unique values of both the training and test sets, leaking test set categories into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values and infinities are handled via median imputation and fillna.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fit only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_components, random_state=seed)\n    train_svd_arr = svd.fit_transform(train_tfidf)",
+   "reasoning": "The agent fits the TF-IDF vectorizer and TruncatedSVD on the entire training text before cross-validation, leaking validation set information into the training folds.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "col_median = combined_train[c].replace([np.inf, -np.inf], np.nan).median()\n        if pd.isna(col_median):\n            col_median = 0.0\n        combined_train[c] = (\n            combined_train[c]\n            .replace([np.inf, -np.inf], np.nan)\n            .fillna(col_median)",
+   "reasoning": "The agent calculates the median for imputation on the full training set before splitting, leaking validation statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=SEED)",
+   "reasoning": "The NADAC dataset is a time series of drug prices, but the agent uses a randomized K-Fold split, introducing severe look-ahead bias by predicting past prices using future data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for this continuous target task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network includes Dropout and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation setup is implemented and used.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not used for model selection; blending weights are optimized on out-of-fold validation predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds, avoiding a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "def compute_rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:",
+   "reasoning": "The agent relies entirely on RMSE without calculating other metrics like MAE, which would provide insight into the model's robustness to outliers in drug prices.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including text feature extraction, temporal extraction, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the best blending weights, which is not naive.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "inconsistent_feature_scaling_train_test",
+   "description": "A feature that relies on an aggregate statistic (like min or max) is computed independently on the train and test sets. This causes the feature to have completely different scales or zero-points in the train and test sets, severely degrading model generalization.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "min_date = parsed_dates.min()\n            features[f\"{prefix}_days_elapsed\"] = (\n                (parsed_dates - min_date).dt.days.fillna(-1).astype(int)\n            )"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated pipeline with neural networks, gradient boosting, text processing, and optimal ensembling. However, there are significant data leakage issues where imputation, TF-IDF/SVD, and LabelEncoding are applied across the entire training or test sets before cross-validation. Furthermore, random K-Fold splitting on temporal data introduces look-ahead bias, and independent computation of minimum dates on train and test sets breaks the temporal features.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

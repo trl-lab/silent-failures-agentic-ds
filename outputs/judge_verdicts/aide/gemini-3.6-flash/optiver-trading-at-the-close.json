@@ -1,0 +1,102 @@
+{
+ "task": "optiver-trading-at-the-close",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna(subset=[\"target\"]).reset_index(drop=True)",
+   "reasoning": "The agent drops rows with missing targets but makes no explicit effort to impute missing feature values, relying entirely on LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "gkf = GroupKFold(n_splits=5)\n\n...\n\nfor fold, (train_idx, val_idx) in enumerate(gkf.split(X, y, groups)):",
+   "reasoning": "The agent uses GroupKFold to randomly split by date, which ignores the strict temporal order of financial data and introduces severe look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_mae = mean_absolute_error(y, oof_preds)\nprint(f\"Validation Metric (MAE): {cv_mae:.5f}\")",
+   "reasoning": "The agent only computes and reports MAE (the primary metric) without verifying model behaviour using secondary metrics like RMSE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation feature leakage",
+   "description": "Aggregating feature statistics (e.g. means) over the entire training set before performing cross-validation splits causes information from the validation folds to leak into the training features, leading to overly optimistic validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "stock_stats = (\n    df[df[\"is_test\"] == 0]\n    .groupby(\"stock_id\")\n    .agg(\n        stock_mean_matched=(\"matched_size\", \"mean\"),\n..."
+  }
+ ],
+ "summary": "The agent successfully implements a wide range of domain-specific cross-sectional and temporal features and trains a suitable LightGBM model. However, it critically fails to respect the temporal nature of the dataset by using a random GroupKFold split, introducing look-ahead bias. Additionally, it leaks validation data into training folds by computing global stock-level aggregates over the entire training set before cross-validation.",
+ "agent": "aide",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

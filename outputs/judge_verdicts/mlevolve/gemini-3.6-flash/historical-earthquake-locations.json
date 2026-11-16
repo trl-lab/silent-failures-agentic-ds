@@ -1,0 +1,148 @@
+{
+ "task": "historical-earthquake-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or manually inspect test set statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data is cleaned; missing target values are dropped and missing feature values are appropriately imputed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is fit on the training data only, and the test data is transformed separately, avoiding test-to-train leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (variance thresholding) is applied to the training dataset only.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Median imputation values are derived solely from the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a temporal component ('year'), but the agent uses a randomized cross-validation split rather than a time-based split, which can introduce look-ahead bias by predicting past events using future data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models for this m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 5 cross-validation folds, which inherently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for accuracy, which strictly aligns with the provided task metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class prediction problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive domain-specific feature engineering (e.g., geospatial coordinates, seismic energy proxies).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Nelder-Mead optimization to find optimal model weights and class multipliers, rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Transformations like scaling or clustering are applied to the entire training dataset before it is split into cross-validation folds. This leaks distribution statistics from the validation folds into the training folds, leading to overly optimistic validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scaler_geo = StandardScaler()\ntrain_geo_scaled = scaler_geo.fit_transform(X_train_phys[spatial_cols].fillna(0))\n...\nkmeans = KMeans(n_clusters=16, random_state=42, n_init=10)\nX_train_phys[\"spatial_cluster\"] = kmeans.fit_predict(train_geo_scaled)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):"
+  },
+  {
+   "name": "Test data leakage via LabelEncoding",
+   "description": "The agent fits a categorical encoder on a concatenation of the training and test datasets. While this avoids errors with unseen categories, it technically leaks knowledge of the test set's categorical distribution into the training pipeline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_raw[c].astype(str), test_raw[c].astype(str)], axis=0)\nle_cat.fit(combined)"
+  }
+ ],
+ "summary": "The agent provides a strong solution with sophisticated feature engineering, appropriate model selection, and an optimized ensemble. However, it suffers from cross-validation leakage by applying StandardScaler and KMeans clustering to the entire training set prior to the StratifiedKFold splits. Additionally, the use of a randomized split on temporal data may introduce look-ahead bias.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

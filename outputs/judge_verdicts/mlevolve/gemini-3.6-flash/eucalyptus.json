@@ -1,0 +1,152 @@
+{
+ "task": "eucalyptus",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data; all aggregations and imputations before splitting are explicitly restricted to the training portion (e.g., using `iloc[:train_len]`).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fitted only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Global imputation correctly computes the median using only the training portion (iloc[:train_len]), avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so random stratified splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the multi-class classification task and uses appropriate classifier models.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes dropout layers, layer normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a proper 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models across 5 folds and averages their predictions, properly accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Accuracy is the exact metric requested by the task, so using it for evaluation and ensemble optimization is correct.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification target 'Utility' is correctly handled and encoded.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive domain-specific feature engineering, including physical indices and group-level statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses a sophisticated Nelder-Mead optimization to tune combination weights and temperature, rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in manual target encoding",
+   "description": "When manually implementing target encoding, the agent calculates the mean target over the entire training fold and maps it directly back to the same training fold. Because a sample's own target is included in the mean, this causes target leakage and overfitting. Proper encoding requires leave-one-out calculation or an inner K-fold loop.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_df[col_name] = X_tr_df[col].map(smooth_val).fillna(global_prior).astype(float)"
+  },
+  {
+   "name": "Categorical features passed as continuous to Neural Network",
+   "description": "The agent uses LabelEncoder to convert nominal categorical features into integers, scales them with StandardScaler, and feeds them directly as continuous inputs to a Neural Network. This incorrectly imposes an arbitrary ordinal relationship on the categories. Embedding layers or one-hot encoding should be used for categorical inputs in neural networks.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_df[c] = LabelEncoder().fit_transform(combined_df[c])\n...\nscaler = StandardScaler()\nX_tr_s = scaler.fit_transform(X_tr_imp)\n...\ntr_dataset = TensorDataset(torch.tensor(X_tr_s, dtype=torch.float32), ...)"
+  }
+ ],
+ "summary": "The agent demonstrates strong practices by carefully avoiding data leakage during global imputation, scaling, and feature engineering, while implementing a robust cross-validation and ensembling strategy. However, its manual target encoding suffers from critical target leakage because it maps the training fold's mean target directly back onto itself without leave-one-out logic. Additionally, it suboptimally passes label-encoded categorical variables as scaled continuous inputs to the neural network.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,159 @@
+{
+ "task": "walmart-recruiting-store-sales-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed via median and mode imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is fitted separately on train and test data, so test statistics do not leak into the training dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not split the training data at all, so they do not ignore temporal order during splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBMRegressor is appropriate for this continuous regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(train_df, train_df[TARGET_COL])",
+   "reasoning": "The agent trains the model on the entire training set and makes test predictions without any internal train/validation split to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally at all, so they do not report a single score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are calculated or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != TARGET_COL]",
+   "reasoning": "The agent uses raw columns as-is, notably failing to extract critical temporal features (e.g., year, month, week) from the date column.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "invalid_submission_id_format",
+   "description": "The agent creates a dummy sequential ID for the submission rather than adhering to the specific ID format required by the Kaggle task (e.g., concatenating Store, Dept, and Date), which will result in an invalid submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(test_df))"
+  },
+  {
+   "name": "test_set_imputation_with_test_statistics",
+   "description": "The agent imputes missing values in the test set using statistics (median/mode) calculated from the test set itself, rather than applying the statistics learned from the training set. This violates the principle that the test set should be treated as unseen data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_df[col] = test_df[col].fillna(test_df[col].median())"
+  },
+  {
+   "name": "one_hot_encoding_of_dates",
+   "description": "The agent treats the raw Date string column as a standard categorical variable and applies one-hot encoding. Since test set dates are in the future and strictly disjoint from train set dates, all test dates will be encoded as zeros (ignoring unknown categories), effectively destroying all temporal information.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False))"
+  },
+  {
+   "name": "ignoring_sample_weights_for_metric",
+   "description": "The task evaluation metric is Weighted Mean Absolute Error (WMAE), where holiday weeks carry a weight of 5. The agent optimizes for standard MAE and does not apply any sample weights during training, ignoring a critical domain requirement.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "metric='mae'"
+  }
+ ],
+ "summary": "The agent's solution has severe fundamental flaws, most notably lacking any validation split and entirely missing feature engineering. By failing to parse the date column and instead one-hot encoding it, the model will discard all temporal information on the test set. Additionally, the agent incorrectly imputes the test set using test statistics, ignores sample weighting requirements for the WMAE metric, and formats the submission ID incorrectly, guaranteeing a rejected or zero-scoring submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

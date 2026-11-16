@@ -1,0 +1,112 @@
+{
+ "task": "gainful-employment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\n    X[col] = X[col].fillna(median_val)",
+   "reasoning": "The agent only applies basic imputation and ordinal encoding, without attempting to derive any new features from the raw data.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_preds + 0.5 * cb_preds",
+   "reasoning": "The agent combines LightGBM and CatBoost predictions using a naive, equal-weight average instead of tuning the blend ratio or using a stacking model.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage in cross-validation",
+   "description": "The agent computes imputation statistics (e.g., median) and fits the categorical encoder on the entire training dataset before performing cross-validation. This leaks information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\n    X[col] = X[col].fillna(median_val)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):"
+  },
+  {
+   "name": "No evaluation metric reported",
+   "description": "The agent uses cross-validation to train models and early stop, but it never calculates or prints an evaluation metric (like RMSE) on the hold-out validation sets. This makes it impossible to assess the model's offline generalisation performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):\n    ..."
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates the submission ID column using a simple sequence `np.arange()` instead of preserving the actual ID column from the test dataset. If the real test IDs are not sequentially numbered from 0, the submission will be misaligned or rejected.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "'id': np.arange(len(final_predictions))"
+  }
+ ],
+ "summary": "The agent sets up a reasonable pipeline with a 5-fold cross-validated ensemble of LightGBM and CatBoost. However, it fails to perform any feature engineering and uses a naive equal-weight average for ensembling. Furthermore, it leaks validation information during cross-validation by fitting preprocessing steps on the full training set prior to splitting, fails to report any evaluation metric scores, and hardcodes the submission IDs.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

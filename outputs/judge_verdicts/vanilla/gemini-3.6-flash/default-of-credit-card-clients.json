@@ -1,0 +1,141 @@
+{
+ "task": "default-of-credit-card-clients",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data distribution.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(train_path)\n...\ntrain_df = engineer_features(train_df)",
+   "reasoning": "The agent loads the data and immediately proceeds to feature engineering without checking for missing values, duplicates, or handling known inconsistent categories in the dataset.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is cross-sectional credit data, so temporal splitting is not strictly required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which evaluates models across multiple data subsets, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "eval_metric='auc'",
+   "reasoning": "The agent optimizes strictly for AUC (with early stopping) and does not evaluate or log any secondary metrics like Precision/Recall or Brier Score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation as a binary classification problem is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_features(df):",
+   "reasoning": "The agent creates a substantial number of derived interaction features, such as ratios and row-wise aggregates.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_pred = (p_lgb + p_cb + p_xgb) / 3.0",
+   "reasoning": "The agent uses a naive, unweighted average to combine the three models rather than optimizing the combination (e.g. through stacking or weighted averaging).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "CatBoost Categorical Feature Execution Error",
+   "description": "The agent converts columns to pandas `category` dtype but fails to pass them to CatBoost's `cat_features` parameter. This causes CatBoost to throw an execution error when fitting the model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[c] = X[c].astype('category')\n...\ncb_model.fit(X_train, y_train, eval_set=(X_val, y_val), verbose=False)"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold cross-validated approach with appropriate row-wise feature engineering and model selection. However, the solution suffers from a critical execution failure because it fails to declare categorical features properly for CatBoost. Furthermore, the agent completely skips data cleaning and utilizes a naive unweighted average for ensembling.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

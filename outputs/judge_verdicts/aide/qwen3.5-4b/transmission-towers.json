@@ -1,0 +1,141 @@
+{
+ "task": "transmission-towers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for any exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly attempts to handle missing values by filling NaNs with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0), which does not leak test set distribution statistics into the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using cross-validation over 5 folds, reporting the average score, which mitigates the variance of a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_scores.append(mean_squared_error(val_y, val_pred))",
+   "reasoning": "The agent only uses MSE/RMSE for evaluation and does not calculate secondary metrics like MAE or R-squared to better understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns as features and does not perform any feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Destructive categorical encoding",
+   "description": "The agent attempts to convert object columns to numeric using `pd.to_numeric(errors='coerce')` and fills the resulting NaNs with 0. This completely destroys any non-numeric string features by converting all their valid categorical values to 0.0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df[col] = pd.to_numeric(train_df[col], errors=\"coerce\")\n...\ntrain_df[col] = train_df[col].fillna(0)"
+  },
+  {
+   "name": "Using only last fold model for inference",
+   "description": "The agent trains models in a cross-validation loop but uses only the model from the final fold to generate test predictions, discarding the other models and failing to train on the full training set or ensemble the folds.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_pred = model.predict(test_X)"
+  }
+ ],
+ "summary": "The agent correctly sets up a cross-validation loop for a LightGBM regression model, but introduces two critical flaws. First, it destructively forces all object columns to numeric, replacing unparseable strings with NaN and then 0, obliterating any categorical signal. Second, it accidentally uses only the model trained on the final fold for test set inference, meaning 20% of the training data is never seen by the deployed model and the ensembling benefits of CV are lost.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

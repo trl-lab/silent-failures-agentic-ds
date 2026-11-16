@@ -1,0 +1,104 @@
+{
+ "task": "airbnb-recruiting-new-user-bookings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "top_actions = action_counts.sum().nlargest(25).index",
+   "reasoning": "The agent selects the top 25 most frequent actions across the entire sessions dataset (which includes test users), leaking test set statistics into the feature selection process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=SEED)",
+   "reasoning": "The data is split randomly using StratifiedKFold, ignoring the temporal nature of user bookings (where the test set is strictly in the future), which introduces look-ahead bias in cross-validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid submission format",
+   "description": "The agent discards the original test IDs and replaces them with a sequential integer range in the submission file, which will result in an invalid submission that fails to parse or scores 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub_df = pd.DataFrame(\n    {\"id\": np.arange(len(sub_country)), \"country_destination\": sub_country}\n)"
+  },
+  {
+   "name": "Frequency encoding before splitting",
+   "description": "The agent calculates categorical frequencies on the combined train and test dataset before splitting, leaking the distribution of test set categories into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts()\n    df_all[f\"{col}_freq\"] = df_all[col].map(freq)"
+  }
+ ],
+ "summary": "The agent successfully engineers relevant features (including date extractions and session aggregations) and sets up a robust cross-validation loop with XGBoost. However, it introduces data leakage by performing frequency encoding and feature selection on the combined train/test dataset, and ignores temporal structure by using a randomized split. Critically, it fails to map predictions back to the original test user IDs, resulting in a completely invalid submission file.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

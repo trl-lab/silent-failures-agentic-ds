@@ -1,0 +1,142 @@
+{
+ "task": "miami-housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\nprint(f\"Train shape: {train_df.shape}, Test shape: {test_df.shape}\")\n\ntrain_df[\"PARCELNO\"] = train_df[\"PARCELNO\"].astype(str)",
+   "reasoning": "The agent loads the data and immediately proceeds to feature engineering without any explicit checks or handling for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_tr_num_scaled = scaler.fit_transform(X_tr_df[num_cols].values).astype(np.float32)\nX_va_num_scaled = scaler.transform(X_va_df[num_cols].values).astype(np.float32)",
+   "reasoning": "Scaling is correctly fitted only on the training subset within each cross-validation fold.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "df_feat[\"month_sold_sin\"] = np.sin(2 * np.pi * df_feat[\"month_sold\"] / 12.0)\n...\ngkf = GroupKFold(n_splits=n_splits)\n...\nfor fold_idx, (train_idx, val_idx) in enumerate(\n    gkf.split(train_feat, train_log_target, groups=groups)\n):",
+   "reasoning": "The dataset contains a temporal component ('month_sold'), but the agent uses GroupKFold to randomly split the groups, ignoring the temporal order and potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses regression models for a continuous target variable.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)\n...\noptimizer = optim.AdamW(nn_model.parameters(), lr=2e-3, weight_decay=1e-4, eps=1e-8)",
+   "reasoning": "The deep learning model utilizes dropout and AdamW with weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "gkf = GroupKFold(n_splits=n_splits)",
+   "reasoning": "The agent employs a proper 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_preds_lgb += np.maximum(0.0, smear_lgb * np.exp(pred_test_log_lgb) - 1.0) / n_splits",
+   "reasoning": "The test set is appropriately used solely for final inference, and its predictions are averaged across folds.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold in range(n_splits):\n...\ntest_preds_nn += best_nn_test_preds / n_splits",
+   "reasoning": "The stochastic PyTorch model is evaluated and averaged over 5 separate folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_lgb_rmse = root_mean_squared_error(y_va_raw, oof_lgb[val_idx])",
+   "reasoning": "The agent evaluates and optimizes the models exclusively using RMSE without analyzing secondary metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"SALE_PRC\"\ntrain_target = train_df[target_col].values.astype(np.float64)",
+   "reasoning": "The regression task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def create_base_features(df: pd.DataFrame) -> pd.DataFrame:",
+   "reasoning": "The agent engineers a massive amount of highly domain-specific and leak-free spatial features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(\n    ensemble_objective,\n    init_weights,\n    method=\"SLSQP\",",
+   "reasoning": "The agent utilizes SLSQP optimization to dynamically find the best ensemble weights based on out-of-fold predictions.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements an exceptionally robust solution featuring leak-free spatial target encoding, Duan's smearing estimator for log-transformed targets, and an advanced deep learning architecture. However, it bypasses basic data cleaning, ignores the dataset's temporal order during cross-validation, and relies entirely on a single evaluation metric.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

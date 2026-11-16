@@ -1,0 +1,150 @@
+{
+ "task": "mlr-summary-reports",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "corpus = pd.concat([train_feat_eng[t_col], test_feat_eng[t_col]]).fillna(\"\")\n...\ntfidf_mat = tfidf.fit_transform(corpus)\nsvd = TruncatedSVD(n_components=n_components, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent concatenates the train and test sets to fit the TfidfVectorizer and TruncatedSVD, leaking information from the test set into the features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to clean data using clean_numeric_str and median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied inside the CV fold loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_components, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "Dimensionality reduction (TruncatedSVD) is applied before the cross-validation splits, causing data leakage from validation folds into training folds.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is based only on the train set (X_train_final.median()), so it doesn't leak test statistics, though doing it before CV leaks validation stats.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No temporal order is apparent in this task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The MLP uses Dropout and weight_decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 10-fold cross validation strategy is used.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not used for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated over 10 folds, which inherently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "fold_lgb_rmse = np.sqrt(np.mean((y_va - val_pred_lgb) ** 2))",
+   "reasoning": "The agent only computes and reports RMSE, without verifying if it is robust or exploring other metrics like MAE for this financial data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including domain-specific ratios and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find optimal ensemble weights.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputation before CV splitting",
+   "description": "Imputing missing values on the entire training set before performing cross-validation splits leaks information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med_val = X_train_final[col].median()\n...\nX_train_final[col] = X_train_final[col].fillna(med_val)\n...\nfor fold, (trn_idx, val_idx) in enumerate(cv_splits):"
+  }
+ ],
+ "summary": "The agent correctly formulates the task, implements extensive feature engineering, and performs a 10-fold cross-validation with an optimized ensemble. However, the solution suffers from critical data leakage by concatenating the train and test sets to fit TfidfVectorizer and TruncatedSVD, as well as applying these transformations before the cross-validation splits. Furthermore, global median imputation on the training set prior to splitting leaks validation statistics into the training folds.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

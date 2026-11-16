@@ -1,0 +1,117 @@
+{
+ "task": "home-credit-credit-risk-model-stability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_features[feature_cols]",
+   "reasoning": "The agent makes no explicit effort to clean the data, handle missing values, or deal with outliers, instead relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_features[feature_cols]\n...\nX_val = train_features[feature_cols].iloc[-(len(y_train) * 0.2) :]",
+   "reasoning": "The agent attempts to create a validation split but forgets to remove the validation rows from the training set, resulting in the model being evaluated on a subset of its own training data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    {\"objective\": \"binary\", \"metric\": \"auc\", \"verbose\": -1, \"seed\": 42},",
+   "reasoning": "The LightGBM model is trained and evaluated exactly once, without using cross-validation or multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val, y_val_pred)",
+   "reasoning": "The agent only computes and reports the target metric (ROC AUC) without verifying performance using other metrics like precision-recall AUC or log loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\n    col\n    for col in train_features.columns\n    if col not in [\"case_id\", \"date_decision\", \"MONTH\", \"WEEK_NUM\", \"target\"]\n]",
+   "reasoning": "The agent uses raw columns directly without deriving any features or performing necessary aggregations on the relational child tables.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Blind horizontal concatenation of relational tables",
+   "description": "The agent attempts to join multiple relational tables using a blind horizontal concatenation (e.g., `pd.concat(..., axis=1)`) instead of merging on a common key like ID. This incorrectly aligns rows across tables of different sizes or sorts, severely corrupting the data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_features = pd.concat(\n    [train_base, train_applprev_1_0, train_applprev_1_1, train_applprev_2], axis=1\n)"
+  },
+  {
+   "name": "TypeError in pandas iloc slicing",
+   "description": "Using a float for indexing in pandas `iloc` raises a TypeError. Calculations like `len(df) * 0.2` return a float, which must be cast to an integer before being used in slice indexing.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_val = train_features[feature_cols].iloc[-(len(y_train) * 0.2) :]"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM binary classifier but introduces critical bugs that invalidate the entire solution. Most notably, the agent horizontally concatenates relational tables instead of merging them on keys, irreparably misaligning the data. Furthermore, the agent fails to slice the training set, meaning the validation set is leaked entirely into training, and introduces a TypeError by passing a float to pandas `iloc`.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

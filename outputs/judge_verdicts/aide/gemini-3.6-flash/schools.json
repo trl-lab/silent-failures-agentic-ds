@@ -1,0 +1,148 @@
+{
+ "task": "schools",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[features]",
+   "reasoning": "The agent makes no effort to clean the data, relying entirely on LightGBM's internal handling of missing values and ignoring potential duplicates or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal order that would require a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBMRegressor is appropriate for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, which accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y, oof_preds))",
+   "reasoning": "The agent only computes and reports RMSE, without considering other metrics like MAE or R^2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correctly treated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features = [c for c in train_df.columns if c not in drop_cols]",
+   "reasoning": "The agent uses the raw columns directly and does not attempt any feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent uses a simple unweighted average of fold predictions without exploring weighted combinations based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "Generating submission IDs using a simple numerical range instead of extracting the actual ID column from the test dataset can lead to mismatched or invalid submissions if the true test IDs are not a contiguous 0-indexed sequence.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub = pd.DataFrame({\"id\": np.arange(len(test_df)), target_col: test_preds})"
+  },
+  {
+   "name": "Inconsistent categorical encoding",
+   "description": "Applying `.astype('category')` separately on train and test sets can lead to mismatched category codes. If the unique values differ between the sets, LightGBM will misinterpret the categorical features during inference because it relies on the underlying integer codes.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df[c] = train_df[c].astype(\"category\")\n    test_df[c] = test_df[c].astype(\"category\")"
+  }
+ ],
+ "summary": "The agent provides a basic LightGBM solution with 5-fold cross-validation but suffers from critical logical flaws. Most notably, it applies categorical typing separately to train and test sets (causing mismatched encodings) and hardcodes the submission IDs instead of using the test set's actual IDs. Furthermore, the pipeline lacks any explicit data cleaning or feature engineering.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "financial-management",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr[num_cols] = X_tr[num_cols].fillna(medians)",
+   "reasoning": "The agent correctly handles missing values by imputing with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any scaling before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "medians = X_tr[num_cols].median() if num_cols else None\n        X_tr_p, X_va_p = build_features(X_tr, X_va, medians=medians)",
+   "reasoning": "Imputation statistics are computed strictly on the training folds and then applied to the validation/test folds.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression_l2\",",
+   "reasoning": "The agent correctly uses a regression objective for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=SEED)",
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=SEED)",
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently averages evaluation over multiple runs (folds).",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = root_mean_squared_error(y.to_numpy(dtype=float), oof)\n    print(f\"{n_splits}-Fold CV RMSE: {rmse:.6f}\")",
+   "reasoning": "The agent only computes and reports RMSE without verifying with any other metric like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_tr = ohe.fit_transform(X_tr[cat_cols].astype(str))",
+   "reasoning": "The agent only uses raw features with basic median imputation and one-hot encoding, without creating any domain-informed derived features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "OOM Risk with Dense One-Hot Encoding",
+   "description": "Using OneHotEncoder with `sparse_output=False` on all categorical columns can create massive dense arrays if there are high-cardinality features, easily leading to Out-Of-Memory errors.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ohe = OneHotEncoder(sparse_output=False, handle_unknown=\"ignore\")"
+  },
+  {
+   "name": "Suboptimal Categorical Handling for Tree Models",
+   "description": "The agent manually one-hot encodes categorical features instead of leveraging LightGBM's native, highly-optimized categorical feature handling, which typically yields better performance and uses significantly less memory.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ohe = OneHotEncoder(sparse_output=False, handle_unknown=\"ignore\")"
+  }
+ ],
+ "summary": "The agent implements a robust and leak-free modeling pipeline with proper K-fold cross-validation, strictly computing imputation and encoding statistics on training folds. However, it lacks any substantial feature engineering. Additionally, its use of dense one-hot encoding instead of LightGBM's native categorical handling poses a memory risk and may reduce predictive performance.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

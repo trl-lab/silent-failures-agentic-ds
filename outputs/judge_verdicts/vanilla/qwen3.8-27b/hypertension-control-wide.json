@@ -1,0 +1,142 @@
+{
+ "task": "hypertension-control-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by handling missing values (imputation) and dropping constant columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The FeatureTransformer (which includes imputation) is correctly fit only on the training set during model selection, and then on the full training set before predicting on the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "The dataset contains dates, but it is unclear if the task requires a strict time-based split to avoid look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set for model evaluation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only transformed and predicted on at the very end, not reused across model variants.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(..., random_state=RANDOM_STATE)\n...\nmodel, best_iter = train_candidate(name, X_train_enc, y_train, X_val_enc, y_val)",
+   "reasoning": "The agent evaluates its stochastic models (e.g., LightGBM, XGBoost, CatBoost) on a single train/validation split with a fixed random seed, without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "auc = safe_auc(y_val, val_pred)\nif np.isfinite(auc) and auc > best_auc:",
+   "reasoning": "The agent evaluates model performance solely using ROC AUC, ignoring other metrics that might provide a more comprehensive view of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is explicitly defined as binary classification, and the agent's target binarization aligns with standard fallback approaches if the target is continuous.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers several features from dates, including year, month, day, quarter, and grant duration.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "LightGBM special JSON characters crash",
+   "description": "LightGBM crashes when feature names contain special JSON characters (like braces, brackets, or commas). If categorical values contain these characters, OneHotEncoder will include them in feature names, causing a fatal error during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "best_name = \"lightgbm\"\n...\nfinal_model = refit_candidate(best_name, X_train_final, y, best_n_estimators)"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with proper data splitting, imputation, and feature engineering. However, it relies on a single metric (AUC) and a single data split for evaluating its stochastic models. Additionally, there is a critical execution flaw where OneHot-encoded categorical features containing special characters cause LightGBM to crash during final model refitting, which prevents the script from generating predictions.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

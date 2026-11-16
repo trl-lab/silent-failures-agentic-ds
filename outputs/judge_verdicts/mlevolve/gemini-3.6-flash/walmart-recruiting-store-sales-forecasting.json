@@ -1,0 +1,145 @@
+{
+ "task": "walmart-recruiting-store-sales-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no evidence of the agent using test data during exploratory data analysis or peeking at test statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent proactively handles missing values by filling markdown columns with zeros and imputing missing lags with safely computed historical means.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any global scaling or normalization to the dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied before the train/test split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies on constants (0.0 for markdowns) or target statistics (like global_mean_sales) that are strictly computed on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_cutoff_date = pd.to_datetime(\"2012-01-27\")\n\n    tr_data = train_engineered[train_engineered[\"Date\"] < val_cutoff_date].copy()\n    val_data = train_engineered[train_engineered[\"Date\"] >= val_cutoff_date].copy()",
+   "reasoning": "The agent correctly uses a temporal cutoff date to split the training and validation sets, respecting the time-series nature of the data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a regression task and uses appropriate models (LGBMRegressor, XGBRegressor, CatBoostRegressor).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_data = train_engineered[train_engineered[\"Date\"] >= val_cutoff_date].copy()",
+   "reasoning": "A validation set is properly established using a temporal split and is used for model evaluation and ensemble tuning.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent relies on the validation set for early stopping and ensemble optimization, and only generates predictions for the test set without reusing it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(..., random_state=42)\n...\nxgb_model = xgb.XGBRegressor(..., random_state=42)\n...\ncb_model = CatBoostRegressor(..., random_seed=42)",
+   "reasoning": "The stochastic models are trained exactly once with fixed random seeds, without averaging over multiple runs to account for initialization variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Weighted Mean Absolute Error (WMAE) for evaluation and ensemble tuning, which is the exact and appropriate target metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem targeting Weekly_Sales, leveraging store, department, and temporal information.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including datetime components, cyclical calendar features, holiday indicators, rolling statistics, and well-chosen multi-week lags.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "res = minimize(\n        objective_func, init_weights, method=\"SLSQP\", bounds=bounds, tol=1e-6\n    )",
+   "reasoning": "The agent uses an SLSQP optimizer to find the optimal weighted combination of the base models based on the validation WMAE, rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in target encoding",
+   "description": "The agent computes target aggregations (e.g., mean of the target variable grouped by categorical features) on the training set and merges them directly back into the training set without using out-of-fold encoding or excluding the current row. This causes the target value of a training instance to be included in its own features, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "store_dept_week_stats = (\n        tr_data.groupby([\"Store\", \"Dept\", \"WeekOfYear\"])[\"Weekly_Sales\"]\n        .agg([\"mean\", \"std\", \"median\"])\n...\ndf = df.merge(\n            store_dept_week_stats, on=[\"Store\", \"Dept\", \"WeekOfYear\"], how=\"left\"\n        )"
+  }
+ ],
+ "summary": "The agent provides a structurally robust solution with strong feature engineering, including well-chosen multi-week lags (>= 51 weeks) that correctly avoid test-set missingness, and a proper temporal validation split. However, a critical flaw exists in the target encoding implementation: historical sales statistics are computed on the training set and merged directly back into it without out-of-fold splitting, causing severe target leakage. Additionally, stochastic models are evaluated only once rather than being averaged over multiple seeds.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

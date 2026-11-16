@@ -1,0 +1,112 @@
+{
+ "task": "osic-pulmonary-fibrosis-progression",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(**lgb_params)\nlgb_model.fit(...)\nval_pred_lgb = lgb_model.predict(X_val)",
+   "reasoning": "The agent trains stochastic models (LightGBM, XGBoost, and a PyTorch Neural Network) exactly once on a single train/validation split without using cross-validation or averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mae_lgb = np.abs(y_val - val_pred_lgb).mean()",
+   "reasoning": "The agent evaluates the models using only MAE and does not report any other metrics to provide a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Direct Target Leakage",
+   "description": "A feature is explicitly calculated using the target value of the current row, meaning the feature perfectly contains the target label and causes critical data leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "residuals.iloc[i] = x.iloc[i] - predicted\n...\ncombined[\"FVC_residual\"] = combined.groupby(id_col)[target_col].transform(calc_residual)"
+  },
+  {
+   "name": "Autoregressive Feature Mismatch",
+   "description": "The agent engineers lag and rolling features from the target variable that are fully populated with true past values during training, but will be unobserved (or populated with constant forward-filled baseline values) during inference, causing a massive train-test distribution mismatch.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[lag_col] = combined.groupby(id_col)[target_col].shift(lag)\n...\ntest_processed[col] = test_processed.groupby(id_col)[col].transform(lambda x: x.ffill().bfill())"
+  },
+  {
+   "name": "Invalid Submission Format",
+   "description": "The agent creates a submission file with arbitrary sequential IDs instead of the required test identifiers (e.g., Patient_Week), which will result in an execution/evaluation failure.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": range(len(test_processed)), \"FVC\": final_test_pred})"
+  }
+ ],
+ "summary": "The agent performs extensive feature engineering and trains multiple models, blending them to improve performance. However, the solution contains critical target leakages: a residual feature directly includes the current row's target, and autoregressive lag features are engineered from the target that will be missing at inference time. Furthermore, the submission format uses arbitrary sequential IDs instead of the required test identifiers.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 8,
+ "stage_count_max": 8,
+ "no_code": false
+}

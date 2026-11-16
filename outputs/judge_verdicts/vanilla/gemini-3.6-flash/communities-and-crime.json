@@ -1,0 +1,104 @@
+{
+ "task": "communities-and-crime",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def loss_func(weights):\n    pred = OOF_matrix @ weights\n    return np.sqrt(np.mean((y_train - pred) ** 2))",
+   "reasoning": "The agent solely evaluates and optimizes the ensemble using RMSE, without checking other metrics (like MAE) to verify model robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=drop_cols)\n...\nfor col in X_train.columns:\n    X_train[col] = pd.to_numeric(X_train[col], errors='coerce')",
+   "reasoning": "The agent relies entirely on raw columns after basic numeric coercion and imputation, missing opportunities for domain-informed derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "cv_data_leakage",
+   "description": "The agent applies data transformations (such as imputation and scaling) on the entire training dataset before splitting it into cross-validation folds. This leaks information from the validation folds into the training folds, biasing the out-of-fold predictions and leading to overly optimistic evaluations.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_imp = scaler.fit_transform(imputer.fit_transform(X_train))\n...\nfor train_idx, val_idx in kf.split(X_tr_data):"
+  },
+  {
+   "name": "execution_error",
+   "description": "The code fails to execute because it tries to drop the target column from the test dataset without checking if it exists, leading to a KeyError when the test set does not contain the target.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "drop_cols = [c for c in drop_cols if c in train_df.columns]\n\nX_train = train_df.drop(columns=drop_cols)\nX_test = test_df.drop(columns=drop_cols)"
+  }
+ ],
+ "summary": "The agent implements a robust modeling pipeline with cross-validation and a sophisticated stacking strategy using SLSQP weight optimization. However, the script crashes due to a KeyError when attempting to drop the target column from the test set. Furthermore, the agent leaks validation data into training folds by scaling and imputing prior to cross-validation, and entirely misses feature engineering.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

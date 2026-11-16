@@ -1,0 +1,101 @@
+{
+ "task": "home-data-for-ml-course",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "data[col] = data[col].fillna(data[col].median())",
+   "reasoning": "The agent computes the median for numerical imputation over the combined train and test datasets, which leaks test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage through group aggregations",
+   "description": "Group-level statistics (e.g., mean of a feature grouped by a categorical variable) are calculated over the combined train and test datasets before splitting. This leaks target-related or distributional information from the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "neigh_liv_mean = data.groupby(\"Neighborhood\")[\"GrLivArea\"].transform(\"mean\")"
+  },
+  {
+   "name": "Target transformation mismatch with evaluation metric",
+   "description": "The target variable is log-transformed for model training, which inherently optimizes for RMSLE. However, the task evaluation metric is RMSE on the raw target. This causes the models to heavily under-penalize large errors on high-value predictions, leading to suboptimal performance on the actual metric.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_log = np.log1p(y_raw)\n...\nmodel_lgb.fit(X_tr, y_tr, ...)"
+  }
+ ],
+ "summary": "The agent correctly implements a robust 5-fold cross-validated ensemble of LightGBM, XGBoost, CatBoost, and Ridge models with optimized blending weights. However, the solution suffers from critical data leakage by calculating imputation medians and neighborhood-level feature aggregations on the combined train and test datasets before splitting. Additionally, the agent incorrectly trains the models on a log-transformed target (optimizing for RMSLE) despite the task explicitly requiring RMSE on the raw target.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

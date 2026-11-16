@@ -1,0 +1,150 @@
+{
+ "task": "fts-requirement-and-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not print or inspect test data distributions to manually inform modeling choices.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_feat[col] = train_feat[col].fillna(col_median)",
+   "reasoning": "The agent implements systematic missing value imputation and data cleaning for both numerical and categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_num_scaled = pca_scaler.fit_transform(train_feat[base_num_cols].fillna(0))\n        test_num_scaled = pca_scaler.transform(test_feat[base_num_cols].fillna(0))",
+   "reasoning": "The agent fits scalers exclusively on the training dataset and strictly transforms the held-out test set, avoiding train/test leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pca = PCA(n_components=n_pca_comps, random_state=42)\n        train_pca = pca.fit_transform(train_num_scaled)\n        test_pca = pca.transform(test_num_scaled)",
+   "reasoning": "Feature transformations like PCA and TF-IDF are fitted solely on the training data without seeing the test set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "col_median = train_feat[col].median()\n        train_feat[col] = train_feat[col].fillna(col_median)\n        test_feat[col] = test_feat[col].fillna(col_median)",
+   "reasoning": "Imputation statistics (like the median) are calculated strictly on the training set and applied to the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset may contain dates, but without knowing if the hidden task fundamentally requires time-series forecasting, we cannot definitively penalize the use of shuffled Stratified K-Fold.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(objective=\"regression\", ...)",
+   "reasoning": "The agent correctly utilizes regression algorithms for this continuous target prediction task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout),\noptimizer = torch.optim.AdamW(nn_model.parameters(), lr=1e-3, weight_decay=1e-4)",
+   "reasoning": "The deep learning model incorporates proper regularization techniques including Dropout, LayerNorm, and AdamW weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent implements a robust 5-fold cross-validation strategy, stratifying on the continuous target.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_preds_lgb += lgb_model.predict(X_test_all) / n_splits",
+   "reasoning": "The test set is used strictly for generating final predictions and is never evaluated or peeked at for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold in range(n_splits):",
+   "reasoning": "Stochastic models are trained 5 times across different cross-validation folds and their predictions are ensemble-averaged to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_rmse_lgb = np.sqrt(mean_squared_error(y_va, oof_lgb[va_idx]))",
+   "reasoning": "RMSE is the standard and correct metric to optimize and report for this regression problem.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"funding\"",
+   "reasoning": "The task is appropriately modeled as a direct regression problem on the 'funding' column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def run_feature_engineering(train_df: pd.DataFrame, test_df: pd.DataFrame):",
+   "reasoning": "The agent executes an extensive and sophisticated feature engineering pipeline including cyclical date encoding, numerical interactions, TF-IDF SVD, and OOF target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(ensemble_objective, initial_weights, method=\"SLSQP\", bounds=bounds, constraints=constraints)",
+   "reasoning": "The agent uses SLSQP optimization to find the optimal weighted average blend for its out-of-fold predictions rather than a naive mean.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-Validation Data Leakage",
+   "description": "Unsupervised feature engineering steps (like PCA, TF-IDF, median imputation, and categorical frequencies) are fitted on the entire training dataset before it is split into cross-validation folds. While this successfully avoids leaking the provided test set, it leaks feature distribution statistics from the validation folds into the training folds, making out-of-fold evaluations slightly overly optimistic.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "pca_scaler.fit_transform(train_feat[base_num_cols].fillna(0))"
+  }
+ ],
+ "summary": "The agent's solution is highly robust and demonstrates excellent data science practices across data cleaning, feature engineering, cross-validation, and optimized ensembling. It strictly respects the train/test split boundary and correctly applies out-of-fold target encoding to avoid target leakage. The only minor flaw is calculating unsupervised feature transformations (like PCA and TF-IDF) on the full training set prior to CV splitting, leading to a mild feature-distribution leakage across folds.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "otto-group-product-classification-challenge",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent aligns columns between train and test, but does not use test statistics or distributions to inform EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by coercing to numeric and filling with a constant (0.0).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical feature selection is performed; the agent only filters columns by name.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0.0), which does not calculate dataset-level statistics and therefore avoids data leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass objective with a multi_logloss metric for a multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 folds, properly accounting for variance through cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent reports log_loss, which is the exact evaluation metric defined by the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[feature_cols].to_numpy(dtype=np.float32)",
+   "reasoning": "The agent uses the raw features as-is and performs absolutely no feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid submission format (hard labels instead of probabilities)",
+   "description": "For tasks evaluated on metrics like log loss or ROC AUC, the submission format typically requires predicted probabilities for each class across multiple columns. The agent outputs a single target column with hard class labels (argmax), which discards the probability distribution and will result in an evaluation error or a severe score penalty.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pred_labels = np.array(class_labels)[test_pred.argmax(axis=1)]\n\n    submission = pd.DataFrame(\n        {\n            \"id\": np.arange(len(test), dtype=int),\n            \"target\": pred_labels,\n        }\n    )"
+  },
+  {
+   "name": "Ignoring test set IDs",
+   "description": "The agent generates an artificial sequence of IDs for the submission file instead of using the provided ID column from the test set. This will cause ID mismatches during evaluation if the actual IDs do not start at 0 or are non-sequential.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test), dtype=int)"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold cross-validation pipeline with LightGBM, avoiding most common data leakage pitfalls. However, it fails critically during the submission generation phase: it outputs hard class labels instead of the required class probabilities for the log loss metric, and it generates artificial sequential IDs instead of using the actual test set IDs. Additionally, it lacks any feature engineering, relying entirely on the raw features.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "meta-critic_whisky",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data during preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing the median for numerical columns and 'missing' for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent applies StandardScaler inside the build_features function, fitting it only on the training set (fit = X_fit.copy()).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping zero-variance columns) is performed only after the split, using the training set variance.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like the median) are derived exclusively from the training set and applied to the validation and test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a regression model (HybridTabularRegressor) which is appropriate for predicting the continuous Meta Critic target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent's deep learning model includes LayerNorm, Dropout(0.15), and uses weight decay (1e-3) in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a 20% validation set for early stopping and performance estimation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "torch.manual_seed(42)\n    np.random.seed(42)\n\n    input_dim = int(X_train.shape[1])\n    best_epoch = 0\n\n    try:\n        model = build_model(input_dim=input_dim).to(device)",
+   "reasoning": "The agent trains a stochastic deep learning model exactly once and reports its score, rather than averaging predictions across multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = rmse(y_val, val_pred)",
+   "reasoning": "The agent evaluates and reports only RMSE without computing additional metrics (like MAE or R-squared) to better understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task on the provided target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements comprehensive feature engineering, including TF-IDF for text, target encoding, datetime extraction, and numerical interactions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Test IDs",
+   "description": "The agent fails to extract the actual ID column from the test dataset and instead hardcodes the submission IDs as a sequence from 0 to N-1, which will cause evaluation failures if true IDs are non-sequential or strings.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_id_col = find_id_column(train)\n    test_ids = np.arange(len(test), dtype=int)"
+  }
+ ],
+ "summary": "The agent implements a robust pipeline with proper train/validation splitting, target encoding, and a hybrid deep learning model without any data leakage. However, it hardcodes test IDs instead of extracting them from the test set, which is a critical bug. Additionally, it evaluates the stochastic model only once and tracks only a single metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

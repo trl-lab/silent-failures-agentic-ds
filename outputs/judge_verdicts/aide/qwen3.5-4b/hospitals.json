@@ -1,0 +1,152 @@
+{
+ "task": "hospitals",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].fillna(X_train[col].median())",
+   "reasoning": "Missing values in the training set are explicitly handled using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is applied, and target scaling only uses training data statistics, avoiding train/test leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is only applied to the training set, so test missing-value statistics do not leak into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear from the task description if the dataset has a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(",
+   "reasoning": "A regressor is correctly used for a continuous target regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "A 5-fold cross-validation strategy is used to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(np.mean(cv_scores))",
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds and averages the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(mean_squared_error(y_val, oof_preds[val_idx]))",
+   "reasoning": "The agent only calculates and reports RMSE, without evaluating other potentially useful regression metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"BEDS\", axis=1)",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "lgbm_api_misuse",
+   "description": "The agent mixes LightGBM's native API with the scikit-learn API by passing an `lgb.Dataset` object and a `valid_sets` keyword argument to `LGBMRegressor.fit()`. This will cause a TypeError because the scikit-learn API expects array-like `X` and `y` arguments and uses `eval_set` for validation data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(train_data, valid_sets=[val_data], callbacks=callbacks, verbose=0)"
+  },
+  {
+   "name": "early_stopping_without_eval_set",
+   "description": "During the final model fit on the entire training data, the agent uses an early stopping callback without providing an evaluation set. LightGBM requires an evaluation set to monitor metrics for early stopping, which will cause the code to crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(\n    final_train_data,\n    callbacks=[lgb.early_stopping(100), lgb.log_evaluation(-1)],\n    verbose=0,\n)"
+  },
+  {
+   "name": "train_test_preprocessing_mismatch",
+   "description": "The agent applies median imputation to fill missing values in the training set but fails to apply the same imputation step to the test set. This creates a critical mismatch in how missing data is represented between train and test.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in X_train.columns:\n    if X_train[col].isna().any():\n        X_train[col] = X_train[col].fillna(X_train[col].median())"
+  }
+ ],
+ "summary": "The agent sets up a 5-fold cross-validation pipeline with LightGBM, but makes fatal execution errors by incorrectly mixing LightGBM's native and scikit-learn APIs, which will cause the code to crash. Additionally, there is a severe preprocessing mismatch, as missing values are imputed in the training set but ignored entirely in the test set.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

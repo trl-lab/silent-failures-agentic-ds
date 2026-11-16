@@ -1,0 +1,163 @@
+{
+ "task": "disbursements-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(text_data)",
+   "reasoning": "The TfidfVectorizer is fit on the combined train and test text data before splitting, leaking test vocabulary and document frequencies into the training pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning and missing value handling are explicitly performed.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied after splitting, fitting only on the training set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD is applied to the combined dataset before splitting, leaking test information into the selection of principal components.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test set missing value statistics are not leaked, as imputation relies on the training set median.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date/period columns tracking disbursements over time, but the agent uses a random split instead of a time-based split, causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network includes Dropout, LayerNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Cross-validation is properly implemented to evaluate models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 cross-validation folds, properly accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly optimizes for RMSE and effectively accounts for the long tail by training on a log-transformed target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the disbursement amounts.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date features, aggregations, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated SLSQP optimization to find the best ensemble blend weights.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Categorical features treated as continuous in Neural Network",
+   "description": "The agent integer-encodes categorical variables and feeds them directly into a linear layer of a neural network without using embeddings or one-hot encoding, improperly treating arbitrary category indices as continuous ordinal values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df[col] = cat_series_tr.map(cat_map).fillna(-1).astype(int) ... self.input_layer = nn.Sequential( nn.Linear(input_dim, hidden_dim) )"
+  },
+  {
+   "name": "Data leakage via combined frequency encoding",
+   "description": "The agent computes frequency encoding on the combined train and test dataset before splitting, leaking the test set's category distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].astype(str).value_counts(normalize=True).to_dict()"
+  },
+  {
+   "name": "Cross-validation leakage via global training imputation",
+   "description": "The agent imputes missing values using the median of the entire training set before performing K-Fold cross-validation, leaking information from the validation folds into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_medians = np.nanmedian(X_all, axis=0) ... X_all[inds] = np.take(train_medians, inds[1])"
+  }
+ ],
+ "summary": "The agent demonstrates strong efforts in feature engineering, model diversity, and ensembling. However, it introduces data leakage by fitting transformers (TF-IDF, SVD) and frequency encodings on the combined train and test sets (FM02, FM09). Additionally, it ignores the temporal nature of the dataset by using a random K-Fold split (FM05) and incorrectly feeds integer-encoded categoricals as continuous variables into the PyTorch model.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

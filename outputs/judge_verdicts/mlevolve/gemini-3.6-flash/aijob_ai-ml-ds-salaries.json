@@ -1,0 +1,152 @@
+{
+ "task": "aijob_ai-ml-ds-salaries",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements explicit data cleaning and imputation strategies (e.g., fillna for missing categorical values).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fit only on the training data and then used to transform the validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputers are fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While there is a work_year column, this is generally treated as a cross-sectional dataset rather than a strict time series forecasting task, making a random split acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this continuous target prediction task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a validation split and evaluates model performance on it.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates on a validation set and makes blind predictions on the test set, avoiding test set reuse.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "models[\"lgb\"] = lgb.LGBMRegressor(..., random_state=42, ...)",
+   "reasoning": "The agent trains stochastic models (like LightGBM, XGBoost, MLP) using a single fixed random seed and evaluates them once, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def loss_func(weights): ... return np.sqrt(mean_squared_error(y_va_usd, pred_usd))",
+   "reasoning": "The agent evaluates and optimizes the ensemble using solely the RMSE metric, without verifying against other regression metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a regression task and applies a suitable log transformation to the target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive domain-specific feature engineering, including interaction terms and out-of-fold target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses optimization (SLSQP) to find the optimal weights for the ensemble, avoiding a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Reusing validation set for early stopping and ensemble optimization",
+   "description": "The agent uses the same validation set to early-stop gradient boosting models and to subsequently optimize the weights for the model ensemble. Because early stopping biases the models' predictions towards the validation set, the ensemble weights are optimized on overfitted predictions, which can lead to sub-optimal generalization on unseen test data. A separate holdout set should be used for ensemble weighting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "models[\"lgb\"].fit(X_tr, y_tr_log, eval_set=[(X_va, y_va_log)], ...) ... res = minimize(loss_func, init_weights, ...)"
+  },
+  {
+   "name": "Label encoding on full dataset before transformation",
+   "description": "The agent fits a LabelEncoder on the concatenated train, validation, and test sets. While common in competitive data science to prevent unseen category errors, this technically exposes the test set's categorical domains to the preprocessing pipeline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "all_cats = pd.concat([tr_df[col], va_df[col], test_df[col]]).astype(str)\nle.fit(all_cats)"
+  }
+ ],
+ "summary": "The agent provides a highly robust and sophisticated data science solution, leveraging out-of-fold target encoding, domain-specific feature engineering, and proper scaling. However, it relies on a single random seed for its stochastic models and optimizes its ensemble weights on the exact same validation set used for early stopping, which introduces a moderate risk of sequential overfitting.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

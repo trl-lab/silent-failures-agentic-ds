@@ -1,0 +1,109 @@
+{
+ "task": "financial-intermediary-funds-cash-transfers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a 'Transfer Quarter' column indicating a temporal component, but the agent uses randomized K-Fold cross-validation, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = ['Fund Name', 'Principal Recipient', 'Transfer Quarter', 'Sector/Theme']",
+   "reasoning": "The agent uses raw columns directly with basic encoding, without extracting any derived features from the temporal or categorical data.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += (0.5 * pred_lgb + 0.5 * pred_cat) / kf.n_splits",
+   "reasoning": "The agent uses a naive equal-weight average to ensemble the LightGBM and CatBoost predictions without any tuning of the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing evaluation metric computation",
+   "description": "The agent performs cross-validation but never computes, prints, or logs any evaluation metric (like RMSE) on the validation folds, making it impossible to assess model quality before submission.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X): ... pred_lgb = lgb_model.predict(X_test_lgb) ... test_preds += ..."
+  },
+  {
+   "name": "Missing target transformation for highly skewed data",
+   "description": "The target variable is a financial amount ('Amount in USD'), which is typically highly skewed. Training directly on the raw scale to optimize RMSE makes the model overly sensitive to outliers; a log transformation is usually required.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "target_col = 'Amount in USD'\n...\ny = train_df[target_col].copy()"
+  }
+ ],
+ "summary": "The agent implements a basic modelling pipeline with LightGBM and CatBoost, combined using a naive equal-weight ensemble. It fails to account for the temporal nature of the data (using randomized K-Fold instead of time-based splitting) and lacks any feature engineering or target transformations for the financial amount. Furthermore, the agent does not calculate or report any validation metrics during training.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

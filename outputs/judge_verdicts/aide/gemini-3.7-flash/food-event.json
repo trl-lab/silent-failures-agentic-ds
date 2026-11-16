@@ -1,0 +1,134 @@
+{
+ "task": "food-event",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(combined[col])\n...\nfreq_map = combined[col].value_counts().to_dict()\ncombined[f\"{col}_freq\"] = combined[col].map(freq_map)",
+   "reasoning": "The agent fits a TF-IDF transformer and calculates frequency encoding maps on the combined train and test datasets, leaking test distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined[col].fillna(\"Missing\").astype(str)",
+   "reasoning": "The agent explicitly handles missing values by filling them with constants before feature extraction/encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical scalers (like StandardScaler) are used in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=50, stop_words=\"english\", token_pattern=r\"(?u)\\b\\w+\\b\")\ntfidf_mat = tfidf.fit_transform(combined[col])",
+   "reasoning": "By setting max_features=50 on the combined dataset, the agent selects the top vocabulary features based on term frequencies that include the test set, leaking test information into the feature selection process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined[col].fillna(\"\").astype(str)",
+   "reasoning": "The agent only uses constant imputation (e.g., filling with empty strings or 'Missing'), which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While datetime features are extracted, it is not strictly defined whether this task requires temporal splitting or if random K-Fold is acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "params = {\"objective\": \"multiclass\", \"num_class\": num_classes, ...}",
+   "reasoning": "The agent correctly uses a multiclass objective for a multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):",
+   "reasoning": "The model is evaluated over 5 distinct folds rather than relying on a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "oof_accuracy = accuracy_score(y, oof_classes)",
+   "reasoning": "The agent uses accuracy which matches the required task metric, and additionally monitors multi_logloss during training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test_pred_labels)), \"outcomes\": test_pred_labels})",
+   "reasoning": "The task is properly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[f\"{col}_year\"] = parsed.dt.year\n...\ntfidf_mat = tfidf.fit_transform(combined[col])",
+   "reasoning": "The agent actively engineers date components, TF-IDF features for text, and frequency counts for categoricals.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (\n    model.predict(X_test, num_iteration=model.best_iteration) / skf.n_splits\n)",
+   "reasoning": "The agent averages predictions across folds using an unweighted equal-weight average with no attempt to tune combination weights, though this is standard practice for CV.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a solid end-to-end LightGBM pipeline with robust cross-validation and appropriate feature engineering. However, the data preprocessing relies on combining train and test sets, which causes severe data leakage through the fitting of TF-IDF transformers and calculation of frequency encodings.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

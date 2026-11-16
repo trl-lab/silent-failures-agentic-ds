@@ -1,0 +1,109 @@
+{
+ "task": "ieee-fraud-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent makes no effort to handle missing values or outliers in numerical features, relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The data has a strong temporal component (TransactionDT), but the agent uses randomized cross-validation, which introduces severe look-ahead bias into the validation scores.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / n_splits",
+   "reasoning": "The agent uses a naive, unweighted average to combine predictions from the 5 cross-validation folds without exploring optimal weighting or stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage through Test Set Encoding",
+   "description": "The agent fits a categorical encoder on the combined unique values of the training and test sets, which leaks information about the test set distribution into the training pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le.fit(list(X_train[col].unique()) + list(X_test[col].unique()))"
+  },
+  {
+   "name": "Incorrect Submission ID Formatting",
+   "description": "The agent generates synthetic IDs for the submission file instead of using the actual identifier column from the test set, leading to an invalid or misaligned submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_preds))"
+  }
+ ],
+ "summary": "The agent correctly frames the classification task and implements some sensible feature engineering. However, it critically fails by ignoring the temporal nature of the dataset during cross-validation (causing look-ahead bias) and by discarding the required 'TransactionID' column for the final submission. It also engages in data leakage by fitting a LabelEncoder on test data and relies entirely on LightGBM for numerical data cleaning.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,148 @@
+{
+ "task": "corporate-procurement-contract-awards",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by imputing with constants and creating a missing count feature.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\n        svd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (conceptually similar to PCA) is applied to the combined train and test dataset before splitting, leaking test information into the transformed features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are imputed with constants, not learned statistics, preventing imputation leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date/time columns related to contract awards, but the agent uses random K-Fold splitting, introducing look-ahead bias instead of respecting temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (CatBoostRegressor) is appropriately used for predicting the numerical contract award amount.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which evaluates the stochastic model across multiple folds, mitigating variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))",
+   "reasoning": "The agent only computes and reports RMSE, without verifying if it's the most appropriate metric or comparing it with others like MAE which might be more robust for highly skewed monetary amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a regression problem on the award amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively extracts date features, text features, and computes missing value counts.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent simply averages predictions across CV folds (standard practice) and does not perform naive ensembling of distinct models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Encoding before splitting",
+   "description": "Categorical frequency encoding and TF-IDF vectorization are fit on the entire dataset (train and test combined) before splitting. This leaks the distribution and vocabulary of the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = str_series.value_counts(normalize=True).to_dict()\n    df_all[f\"{c}_freq\"] = str_series.map(freq).fillna(0).astype(np.float32)"
+  },
+  {
+   "name": "Target transformation evaluation mismatch",
+   "description": "The agent applies a log transformation to the target variable before training, but computes the validation metric (RMSE) directly on these log-transformed targets and predictions. This results in computing RMSLE while labelling it as RMSE, yielding a misleadingly low validation score that does not correspond to the true objective scale.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = np.log1p(np.maximum(y_raw, 0))\n...\ncv_rmse = np.sqrt(mean_squared_error(y, oof_preds))"
+  }
+ ],
+ "summary": "The agent implements a robust CatBoost regression pipeline with thoughtful feature engineering, including TF-IDF and SVD for text. However, it introduces severe data leakage by fitting SVD, TF-IDF, and frequency encoders on the combined train and test sets prior to splitting. Furthermore, it ignores the temporal nature of contract awards by using random cross-validation, and computes its validation metric on a log-transformed target, reporting an incorrect metric scale.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

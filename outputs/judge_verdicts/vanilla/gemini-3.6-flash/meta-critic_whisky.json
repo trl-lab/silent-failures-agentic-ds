@@ -1,0 +1,148 @@
+{
+ "task": "meta-critic_whisky",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=10000, ngram_range=(1, 2), stop_words='english')\n    text_tfidf = tfidf.fit_transform(combined_text)",
+   "reasoning": "The agent fits the TF-IDF transformer on the combined train and test text data, leaking test set vocabulary and document frequencies into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs data cleaning by extracting numeric values from strings and handling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=svd_dim, random_state=42)\n        svd_feats = svd.fit_transform(text_tfidf)",
+   "reasoning": "TruncatedSVD is applied to the combined train and test data, leaking test set information into the derived dimensionality reduction components.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_all_num[col] = X_all_num[col].fillna(X_all_num[col].median())",
+   "reasoning": "The median for missing value imputation is calculated on the combined dataset, leaking test set distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor, XGBRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not iteratively for model tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which evaluates the models on multiple folds rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmse(y_true, y_pred):\n    return np.sqrt(mean_squared_error(y_true, y_pred))",
+   "reasoning": "The agent evaluates and optimizes ensemble weights using only RMSE, without checking if it's the most appropriate metric or reporting secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs significant feature engineering, including string parsing, TF-IDF/SVD on text, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes ensemble weights using a grid search over OOF predictions rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded ID generation in submission",
+   "description": "The agent generates submission IDs using an auto-incrementing integer sequence rather than extracting the actual ID column from the test set, which will misalign predictions and invalidate the submission if the test set IDs are non-sequential.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(final_preds))"
+  },
+  {
+   "name": "Dropping categorical features for specific ensemble models",
+   "description": "The agent trains one of the models in the ensemble (XGBoost) using only numerical features, silently dropping all categorical features and throwing away predictive signal.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_xgb = X_train_num.values\n...\nmodel_xgb.fit(\n        X_tr_x, y_tr,"
+  }
+ ],
+ "summary": "The agent implements a solid 3-model ensemble with proper cross-validation and weight optimization. However, the solution suffers from critical data leakage by applying median imputation, TF-IDF vectorization, and TruncatedSVD on the combined train and test datasets. Additionally, it hardcodes the submission IDs (breaking evaluation) and silently drops categorical features when training the XGBoost model.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

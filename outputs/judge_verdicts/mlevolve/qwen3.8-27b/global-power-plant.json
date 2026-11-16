@@ -1,0 +1,146 @@
+{
+ "task": "global-power-plant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(\"./input/train.parquet\")\ntest = pd.read_parquet(\"./input/test.parquet\")\nprint(f\"Train shape: {train.shape}\")\nprint(f\"Test shape: {test.shape}\")",
+   "reasoning": "The agent loads the test set but only checks its shape, without peeking at its statistics or distributions for EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[col + \"_is_missing\"] = df[col].isnull().astype(int)\n... df[col] = df[col].fillna(med)\n... df[col] = df[col].fillna(\"__MISSING__\")",
+   "reasoning": "The agent explicitly handles missing values via median imputation for numericals and string imputation for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any global scaling or normalisation before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before the train/test split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med = train_raw[col].median()\nval_split[col] = val_split[col].fillna(med)",
+   "reasoning": "Imputation statistics (like medians) are correctly computed on the training split and applied to the validation and test splits, avoiding data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\",\n\"metric\": \"rmse\"",
+   "reasoning": "The agent correctly uses regression objectives (Huber and MSE) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_raw, val_raw = train_test_split(train, test_size=0.15, random_state=42)",
+   "reasoning": "The agent splits the training data into a training and validation set.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(val_target_orig, val_pred_orig_ens))",
+   "reasoning": "The agent evaluates models and optimizes ensemble weights on a dedicated validation set, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_raw, val_raw = train_test_split(train, test_size=0.15, random_state=42, stratify=train[stratify_col])",
+   "reasoning": "The agent trains stochastic LightGBM models on a single train/validation split without using cross-validation or multiple random seeds to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(val_target_orig, val_pred_orig_ens))\nprint(f\"Ensemble val RMSE (orig): {val_rmse:.4f}\")",
+   "reasoning": "The agent optimizes and evaluates solely using RMSE, without reporting secondary metrics like MAE or R\u00b2 to verify performance comprehensively.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly framed as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[col_name] = (df[top_cats[i]].astype(str) + \"|\" + df[top_cats[j]].astype(str))\ndf[f\"{col}_sq\"] = df[col] ** 2",
+   "reasoning": "The agent implements several feature engineering techniques, including polynomial features and categorical interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for w1 in np.arange(0.1, 0.7, 0.1):\n    for w2 in np.arange(0.1, 0.7 - w1 + 0.01, 0.1):",
+   "reasoning": "The agent performs a grid search over ensemble weights to optimize the combination rather than using a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dead code in target encoding due to missing column",
+   "description": "The agent attempts to create target encodings using a transformed target variable (e.g., log target), but it checks for this variable's presence in the original reference dataframe where it hasn't been added. This causes the target encoding logic to be silently skipped.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if col in train_df.columns and \"log_capacity\" in train_df.columns:"
+  }
+ ],
+ "summary": "The agent successfully implements a structured LightGBM ensemble pipeline with appropriate data splitting, imputation, and holdout validation. However, a logical bug in the feature engineering function causes the target encoding steps to be silently bypassed because the transformed target is not added to the reference dataframe. Additionally, the agent relies on a single validation split (FM14) and only uses a single evaluation metric (FM15).",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,142 @@
+{
+ "task": "open-problems-single-cell-perturbations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly fits feature extractors and scalers only on the training set without peeking at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is handled via fillna and np.nan_to_num.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "scaler_desc = StandardScaler()\ncont_desc_tr = scaler_desc.fit_transform(cont_desc_tr).astype(np.float32)",
+   "reasoning": "Standard scaling is applied to the entire training dataset before the internal cross-validation split, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(..., max_features=1024)\ntfidf.fit(df_train[\"SMILES\"].fillna(\"\").astype(str))",
+   "reasoning": "The TF-IDF vectorizer selects the top 1024 features based on the entire training dataset before cross-validation, leaking validation fold vocabulary into the training folds.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No stateful imputers are fit; missing values are replaced with simple constants.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A multi-output regression neural network is correctly used for predicting the 18,211 target genes.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model uses Dropout, LayerNorm, and weight decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The final predictions are averaged across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model optimizes and evaluates on MRRMSE, which is the exact competition metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a multi-output regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is applied, including RDKit molecular descriptors, Morgan fingerprints, SMILES TF-IDF, and compound frequencies.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Averaging predictions from K-fold cross-validation models is a standard and robust ensembling technique.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper Cross-Validation Strategy",
+   "description": "The cross-validation strategy uses random or simple stratified splitting that does not reflect the group structure or train/test distributional shift (e.g., failing to group by compound). This causes data leakage between train and validation folds for grouped entities, leading to overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)\nfolds = list(skf.split(X_train, df_train[\"cell_type\"]))"
+  }
+ ],
+ "summary": "The agent implements a solid deep multi-output residual network with a custom MRRMSE loss and extensive domain-specific feature engineering. However, it scales features and fits TF-IDF on the entire training dataset prior to performing cross-validation, resulting in internal data leakage. More critically, the cross-validation splits stratify on cell type rather than grouping by compound, failing to simulate the competition's test set distribution and leading to a highly inflated out-of-fold validation score.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

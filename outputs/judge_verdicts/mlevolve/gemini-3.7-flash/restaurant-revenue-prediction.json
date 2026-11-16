@@ -1,0 +1,150 @@
+{
+ "task": "restaurant-revenue-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or test data peeking is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled via fillna() during encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pca_scaler = StandardScaler()\np_train_scaled = pca_scaler.fit_transform(train_df[p_cols])",
+   "reasoning": "A scaler is fit on the full pre-split training dataset to prepare features for SVD, and these transformed features are never recomputed inside the cross-validation loop, leaking validation statistics into training.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=3, random_state=42)\nsvd_train = svd.fit_transform(p_train_scaled)",
+   "reasoning": "TruncatedSVD is applied to the full training dataset before cross-validation, and its output components are used directly in the CV folds without being re-fitted, causing feature distribution leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation models are fitted on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is cross-sectional across locations, so random K-Fold is appropriate rather than time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models are used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch MLP uses Dropout and weight decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is correctly implemented.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection or blending.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "RMSE is evaluated, which is the competition metric, and target log transformations are appropriately used for training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date features, aggregations, and dimensionality reduction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An advanced SLSQP optimization strategy is used to blend model predictions.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "double_exponentiation_bug",
+   "description": "The custom evaluation function incorrectly applies an inverse log transformation (e.g., expm1) to ground truth targets that are already on the original scale, causing massive overflow and invalidating single-model evaluation metrics.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "rmse_m = compute_rmse(y_true_orig, oof_predictions[m_name], is_log_scale=True)\n... \nif is_log_scale:\n    y_true_orig = np.expm1(y_true)"
+  }
+ ],
+ "summary": "The solution demonstrates a strong overall architecture, utilizing diverse models, extensive feature engineering, and an optimized blending ensemble. However, it contains moderate data leakage because TruncatedSVD and its preceding scaler are fitted on the entire training set before cross-validation and are not recomputed per fold. Additionally, a critical logical bug in the custom RMSE function double-exponentiates the raw target during single-model evaluation, causing overflow that breaks the single-model tracking, though the ensemble step fortunately circumvents the crash.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

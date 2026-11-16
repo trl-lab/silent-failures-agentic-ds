@@ -1,0 +1,152 @@
+{
+ "task": "global-dams-database",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = train_df.dropna(subset=feature_cols)\ntest_df = test_df.dropna(subset=feature_cols)",
+   "reasoning": "The agent simply drops all rows with missing values instead of applying a proper imputation strategy, which also actively destroys the test set shape.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+   "reasoning": "The scaler is fit only on the training set before transforming the test set, avoiding train/test leakage (though it leaks within CV).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used; missing values are dropped instead.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is a database of dams, not a time series, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent implements 5-fold cross-validation to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "mean_cv_rmse = np.mean(cv_scores)",
+   "reasoning": "The stochastic model is evaluated over 5 cross-validation folds and the scores are averaged.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((y_val_fold - y_pred_val) ** 2))",
+   "reasoning": "The agent relies entirely on RMSE without checking secondary metrics like MAE or R-squared to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [\"id\", \"Res_capacityM3\"]]",
+   "reasoning": "The agent uses raw columns as-is and implements zero derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Altering test set shape",
+   "description": "Dropping rows with missing values from the test set reduces its length, causing the final submission file to have fewer rows than expected and breaking downstream evaluation pipelines.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df = test_df.dropna(subset=feature_cols)"
+  },
+  {
+   "name": "Validation leakage during cross-validation",
+   "description": "Applying a global transformation (like standard scaling) to the entire training dataset before splitting it into cross-validation folds leaks distributional statistics from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n... \nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train_scaled)):"
+  },
+  {
+   "name": "Invalid early stopping configuration",
+   "description": "Passing an early stopping callback to a model training routine without simultaneously providing a validation set will cause the training to crash with an execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(\n    params,\n    train_data_final,\n    num_boost_round=1000,\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)"
+  }
+ ],
+ "summary": "The solution employs a basic LightGBM regression setup with 5-fold cross-validation but suffers from critical execution and pipeline design flaws. Most notably, dropping NaNs from the test set will break submission evaluation, and using an early stopping callback without a validation set in the final training run will cause an immediate crash. Additionally, scaling before CV introduces internal data leakage, and there is a total absence of feature engineering or proper missing value imputation.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,104 @@
+{
+ "task": "house_prices_ames",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "neigh_gr_liv_mean = combined.groupby(neigh)[\"Gr_Liv_Area\"].transform(\"mean\")\n...\ncombined[\"GrLivArea_to_Neigh_Mean\"] = gr_liv / (neigh_gr_liv_mean + 1e-5)",
+   "reasoning": "The agent normalizes features by dividing them by neighborhood means calculated on the concatenated train and test sets, leaking test distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y, oof_preds))",
+   "reasoning": "The agent only calculates the requested RMSE without using other metrics (like MAE or RMSLE) to verify if the model is robust to outliers in the skewed house prices.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Combined Train/Test Group Statistics",
+   "description": "The agent concatenates the train and test sets to compute group-wise statistics (e.g., neighborhood means) and derives features from them. This leaks the distribution of the test set into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "neigh_qual_mean = combined.groupby(neigh)[\"Overall_Qual_Num\"].transform(\"mean\")"
+  },
+  {
+   "name": "Missing Target Transformation",
+   "description": "The target variable is highly right-skewed, but the agent models it directly on a linear scale without applying a log transformation (e.g., np.log1p), which is standard practice to improve model fit and prevent negative predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train_df[target_col].values"
+  }
+ ],
+ "summary": "The agent provides a strong solution with extensive domain-specific feature engineering, proper target encoding strictly inside the CV loop, and an optimized ensemble of gradient boosting models. However, it introduces critical data leakage by calculating neighborhood statistical means on the concatenated train and test sets. Additionally, it fails to apply a log transformation to the highly skewed target variable, which is a standard best practice for this dataset.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

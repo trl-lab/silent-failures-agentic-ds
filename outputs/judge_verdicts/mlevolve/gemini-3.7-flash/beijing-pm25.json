@@ -1,0 +1,150 @@
+{
+ "task": "beijing-pm25",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data, such as dropping rows with missing targets and imputing missing numeric features with medians.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scaler.fit_transform(X_tr_df)",
+   "reasoning": "The StandardScaler is correctly fit only on the training fold (X_tr_df) inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform automated feature selection before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "medians = train_features[numeric_cols].median()\ntrain_features[numeric_cols] = train_features[numeric_cols].fillna(medians)",
+   "reasoning": "The median imputation is correctly calculated solely on the training features after the train/test split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=seed)",
+   "reasoning": "The dataset is a time series of hourly measurements, but the agent uses a randomized K-Fold split instead of a time-based split, causing severe data leakage from the future into the past.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout_rate)",
+   "reasoning": "The PyTorch neural network includes dropout layers, and the optimizer uses weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_splits = list(kf.split(X, y))",
+   "reasoning": "The agent evaluates the models using a 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for inference at the end, not for selecting models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_nn += test_pred_nn / n_splits",
+   "reasoning": "Stochastic models (like Neural Networks and GBDTs) are trained across 5 folds with different subsets and random states, and their test predictions are averaged.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimises for RMSE, which is the standard and requested metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is appropriately formulated to predict the continuous PM2.5 target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def create_atmospheric_and_temporal_features(df: pd.DataFrame) -> pd.DataFrame:",
+   "reasoning": "The agent performs extensive domain-specific feature engineering, including atmospheric physics approximations and temporal dynamics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "opt_result = minimize(\n    ensemble_loss,\n    initial_weights,\n    method=\"SLSQP\",",
+   "reasoning": "The agent uses constrained SLSQP optimization to find the optimal blending weights instead of naive averaging.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Look-ahead bias via future features",
+   "description": "Creating 'lead' features (shifting data backwards from the future) on exogenous variables. While the test set technically provides these columns, relying on future information to predict current states creates a model that cannot be used in a real-time production setting without an oracle or perfect forecasts.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[f\"{col}_lead_{lead}\"] = df[col].shift(-lead)"
+  }
+ ],
+ "summary": "The agent builds a very sophisticated solution featuring extensive domain-specific feature engineering, a deep learning model, and an optimally weighted ensemble. However, it critically fails to respect the temporal nature of the time-series data. By using a randomized K-Fold cross-validation strategy and incorporating 'lead' features that look into the future, the solution suffers from look-ahead bias and substantial data leakage.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

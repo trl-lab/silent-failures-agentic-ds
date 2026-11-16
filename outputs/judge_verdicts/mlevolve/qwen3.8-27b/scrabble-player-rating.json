@@ -1,0 +1,145 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing them using global means and zeroes.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "game_id_max = train_df[\"game_id\"].max()\ntrain_split[\"game_id_normalized\"] = train_split[\"game_id\"] / game_id_max",
+   "reasoning": "The maximum game_id is computed on the full training dataframe (which includes the validation set) before normalizing the train and validation splits, leaking validation statistics.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation values (like global_mean_score) are computed only on the train_split and then applied to validation and test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBMRegressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split using GroupShuffleSplit and evaluates on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "gss = GroupShuffleSplit(n_splits=1, test_size=0.15, random_state=42)",
+   "reasoning": "The stochastic LightGBM models are trained and evaluated on a single data split with a fixed random seed, without cross-validation or multiple runs to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mae = mean_absolute_error(y_val, val_preds)",
+   "reasoning": "The agent only computes and reports MAE (the target metric) and does not evaluate any other metrics to better understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates numerous derived features including aggregations, temporal features, and interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_preds = 0.5 * val_preds1 + 0.5 * val_preds2",
+   "reasoning": "The agent combines predictions from two models using a hardcoded equal unweighted average without attempting to optimize the blend weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Temporal leakage causing train-test feature skew",
+   "description": "The agent computes global aggregations over the entire dataset (e.g., player mean score across all games) and assigns them to all rows. For training data, this leaks future game outcomes into earlier games. For test data, it uses only historical data, creating a massive distribution mismatch between training and inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_player_stats = (\n    train_df.groupby(\"nickname\")\n    .agg(...) ... train_df = train_df.merge(full_player_stats, on=\"nickname\", how=\"left\")"
+  },
+  {
+   "name": "Incorrect temporal features on test set",
+   "description": "Temporal/sequential features (like cumulative counts or time since last event) are computed on the test set in isolation. For subjects that exist in both train and test sets, their historical events in the training data are ignored, resulting in incorrect feature values during inference.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_df_sorted[\"games_before\"] = test_df_sorted.groupby(\"nickname\").cumcount()\ntest_df_sorted[\"time_since_last_game\"] = test_df_sorted.groupby(\"nickname\")[\"game_id\"].diff()"
+  }
+ ],
+ "summary": "The agent correctly sets up a validation split grouped by player and builds a wide array of features. However, its feature engineering suffers from severe temporal leakage by aggregating all future games into historical rows, creating a major train-test distribution skew. Additionally, it computes sequential features on the test set in isolation, uses naive equal-weight ensembling, and evaluates its stochastic models only once on a single split.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

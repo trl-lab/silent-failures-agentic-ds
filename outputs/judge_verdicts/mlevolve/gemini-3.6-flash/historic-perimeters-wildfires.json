@@ -1,0 +1,141 @@
+{
+ "task": "historic-perimeters-wildfires",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data was used for exploratory data analysis or to fit preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is correctly performed, including missing value imputation and invalid date filtering.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The standard scaler for the PyTorch model is properly fit only on the training set and applied to validation/test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No improper feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is properly instantiated and fit only on X_train_final after the train/validation split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf_split = KFold(n_splits=5, shuffle=True, random_state=42)\ntrain_idx, val_idx = next(kf_split.split(train_raw))",
+   "reasoning": "The dataset contains temporal components (wildfire dates) but the agent uses a random shuffle split, which can introduce look-ahead bias by predicting past fires using information from future fires.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a continuous target variable.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes appropriate regularisation techniques like Dropout, Weight Decay, and Early Stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 20% holdout validation set is correctly created and used.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is used strictly for final predictions, while the ensemble weights are tuned on the validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "np.random.seed(42)\ntorch.manual_seed(42)",
+   "reasoning": "The agent evaluates its stochastic models (including deep learning and GBDTs) on a single train/validation split with fixed random seeds instead of averaging over multiple runs or folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "final_val_rmse = np.sqrt(mean_squared_error(y_val_raw, val_preds_final))",
+   "reasoning": "The agent relies solely on RMSE for evaluation, omitting secondary metrics like MAE which would better indicate performance on highly skewed targets like wildfire acreage.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as regression with log1p transformations to handle the right-skewed target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering including spatial clustering, temporal intervals, and out-of-fold target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to tune the ensemble blend weights, rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent generally provides a strong solution with comprehensive feature engineering, out-of-fold target encoding, and rigorous multi-model ensembling. However, it fails to account for the temporal nature of wildfire data by using a random train/validation split, which can introduce look-ahead bias (FM05). Additionally, it relies on a single evaluation run (FM14) and only assesses performance using a single metric (RMSE), missing insights into outlier robustness (FM15).",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

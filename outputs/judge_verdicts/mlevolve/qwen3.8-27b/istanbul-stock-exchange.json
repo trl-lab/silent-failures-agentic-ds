@@ -1,0 +1,156 @@
+{
+ "task": "istanbul-stock-exchange",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking during EDA is observed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning and imputation are performed appropriately.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is done before splitting; expanding windows are causal and do not leak future data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection before splitting is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is correctly fit only on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A temporal split (last 20% of training data) is correctly used to preserve time order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is a standard and appropriate model for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and utilized for early stopping and model selection.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates on an internal validation set, not the final held-out test set (which has no labels).",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(**cfg)\nmodel.fit(...)",
+   "reasoning": "The agent trains stochastic LightGBM models (using subsampling) exactly once per configuration without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_val, val_pred))",
+   "reasoning": "The agent evaluates performance using only RMSE without checking complementary metrics like MAE to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed (though it contains critical logic flaws).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in rolling correlation",
+   "description": "The agent calculates rolling correlations between the unshifted target variable and other features. This directly leaks the current row's target value into the features used for training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[f\"corr_ISE_{mkt}_20\"] = ( df[\"ISE\"].rolling(20, min_periods=10).corr(df[mkt]) )"
+  },
+  {
+   "name": "Invalid lagged target features in test set",
+   "description": "The agent creates features based on lagged target values. Because the target is missing in the test set, it is arbitrarily filled with 0.0, causing all target-derived features in the test set to be meaningless and creating a massive train/test distribution mismatch.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if not has_ise:\n        df[\"ISE\"] = 0.0\n...\ndf[f\"ISE_lag1_minus_{mkt}\"] = df[\"ISE\"].shift(1) - df[mkt]"
+  },
+  {
+   "name": "Time-series feature history truncation",
+   "description": "Time-series features (lags, rolling windows) are computed on the test set entirely independently of the training set. This deprives the test set of historical context, causing the first several rows to have missing values that are then improperly imputed with the training median.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_feat = engineer_features(train)\ntest_feat = engineer_features(test)"
+  }
+ ],
+ "summary": "The agent implements a thorough pipeline with a correct temporal split and extensive feature engineering. However, the feature engineering contains three critical logic flaws: it leaks the target variable via unshifted rolling correlations, incorrectly fills the test set target placeholder with 0.0 (ruining all lagged target features during inference), and computes rolling features on the test set independently, causing a loss of necessary temporal history.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

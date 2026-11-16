@@ -1,0 +1,148 @@
+{
+ "task": "grant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data interactively.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and drops rows with missing targets.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit numerical scaling (e.g., StandardScaler or MinMaxScaler) applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd_w = TruncatedSVD(n_components=25, random_state=42)\nsvd_word_feats = svd_w.fit_transform(X_tfidf_word)",
+   "reasoning": "TruncatedSVD (a form of PCA for sparse data) is fit on the combined train and test data before splitting, leaking test set variance into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in num_cols:\n    med = combined[col].median()\n    features_df[col] = combined[col].fillna(med).astype(np.float32)",
+   "reasoning": "Median imputation is computed on the combined train and test dataset before splitting, which leaks test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal component identified in the dataset that would require time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LightGBM, CatBoost, XGBoost) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models across 5 cross-validation folds, which inherently averages over multiple data splits rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y_raw, oof_final)\nprint(f\"Validation RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent only computes and evaluates the RMSE metric, without verifying performance using other robustness metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the problem correctly as a standard regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including TF-IDF, SVD, text statistics, frequency encoding, and out-of-fold Ridge meta-features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal weighted blend for the ensemble rather than a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Text feature extraction before splitting",
+   "description": "Text vectorizers (like TF-IDF) are fit on the full combined dataset before the train/test split. This leaks the vocabulary and document frequencies of the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_word = TfidfVectorizer(max_features=10000, ngram_range=(1, 2), sublinear_tf=True)\nX_tfidf_word = tfidf_word.fit_transform(text_combined)"
+  },
+  {
+   "name": "Frequency encoding before splitting",
+   "description": "Categorical frequency encoding is computed on the combined train and test dataset, leaking the test set's category distribution into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(normalize=True).to_dict()\nfeatures_df[f\"{col}_freq\"] = combined[col].map(freq).fillna(0).astype(np.float32)"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated pipeline with advanced feature engineering, target encoding, out-of-fold meta-features, and a robust optimized ensemble. However, the solution suffers from multiple forms of data leakage because several global transformations (TF-IDF vectorization, TruncatedSVD, median imputation, and frequency encoding) are applied to the combined train and test datasets before splitting. This leakage compromises the integrity of the cross-validation and could lead to overly optimistic performance estimates.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

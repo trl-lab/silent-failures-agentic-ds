@@ -1,0 +1,133 @@
+{
+ "task": "MiceProtein",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "or X_te[col].isnull().sum() > 0",
+   "reasoning": "The agent inspects the test set for missing values to decide whether to create missing indicator columns for the training set, which is a leak of test set statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "temp_df = pd.DataFrame(temp_imp, columns=protein_cols)\n    corr_matrix = temp_df.corr().abs()\n    ... \n    top_pairs.append((c1, c2))",
+   "reasoning": "The agent computes feature correlations on the entire training dataset before cross-validation splitting to select pairs for interaction features, leaking validation information into the feature engineering process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "temp_imp = SimpleImputer(strategy=\"median\").fit_transform(df_train[protein_cols])",
+   "reasoning": "An imputer is fit on the full training dataset before splitting. While only used to safely compute correlations rather than for the final model input, it is technically an imputation leak.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a classification model with CrossEntropyLoss which is appropriate for m-classification.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes Dropout layers, BatchNorm, and weight decay in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_score = accuracy_score(y_train, oof_preds)",
+   "reasoning": "The agent evaluates the model using only accuracy and does not verify class balance or report other appropriate multi-class metrics like F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including PCA, ICA, and domain-specific interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a simple average of CV fold predictions, which is standard best-practice for cross-validation.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a generally strong solution with a well-structured deep learning model, appropriate regularisation, and extensive feature engineering. However, it introduces data leaks by using the test set to determine missing indicator creation (FM02) and by computing feature correlations on the entire training set before CV splitting (FM09, FM04).",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

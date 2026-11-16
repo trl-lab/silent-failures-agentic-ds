@@ -1,0 +1,138 @@
+{
+ "task": "kickstarter-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "Xte = Xte.loc[:, Xte.notna().any(axis=0)]\n...\ncommon_final = [c for c in Xtr.columns if c in Xte.columns]\nXtr = Xtr[common_final]",
+   "reasoning": "The agent drops features from the training set if they are completely null in the test set, effectively using test set statistics to filter the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data, handles missing values via coercion and LightGBM's native support, and drops constant columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection based on target correlation is performed only on the training set, not the full dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)",
+   "reasoning": "The dataset involves temporal elements like project creation and deadlines, but the agent uses randomized cross-validation instead of a time-based split, causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with a binary objective is appropriate for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is evaluated across 5 folds in cross-validation, which inherently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_auc = roc_auc_score(y, oof)",
+   "reasoning": "The agent only computes and reports the ROC-AUC score, lacking verification of other important classification metrics like precision, recall, or log-loss.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives datetime components and creates interaction features like ratios and durations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The model incorporates features that are mechanically derived from or directly represent the target variable and would not be available at prediction time in a real-world scenario.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "Xtr[\"pledged_goal_ratio\"] = safe_ratio(Xtr[\"usd_pledged\"], Xtr[\"goal\"])"
+  }
+ ],
+ "summary": "The agent successfully implements a LightGBM model with robust data cleaning, datetime parsing, and a 5-fold cross-validation scheme. However, the solution exhibits critical target leakage by engineering features based on 'usd_pledged', a post-event variable that directly determines the target status. Additionally, it ignores temporal ordering during validation, peeks at test data to filter training columns, and relies on a single evaluation metric.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,148 @@
+{
+ "task": "device-covid19serology",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by explicitly filling them and adding a missing count feature.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical scaler (like StandardScaler) is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant ('Missing'), which does not leak statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the data has a strict temporal order that must be respected during splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classifier (CatBoostClassifier) is appropriately used for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold stratified cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model over 5 different random seeds and averages the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "overall_auc = roc_auc_score(y, oof_preds)\nprint(f\"Overall OOF ROC AUC Score: {overall_auc:.5f}\")",
+   "reasoning": "The agent only computes the ROC AUC score and does not evaluate other metrics like log loss or precision-recall AUC to verify calibration or performance on minority classes.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task formulation is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including aggregations, frequency encoding, and pairwise interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += fold_test_ranks / skf.n_splits",
+   "reasoning": "The agent uses a simple unweighted average to ensemble predictions across multiple random seeds and folds without attempting to tune combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Global Aggregation",
+   "description": "The agent computes frequency encoding and group-level numerical aggregations on the combined train and test datasets before cross-validation. This leaks test set distribution statistics into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = df_all[col].value_counts(normalize=True)\ndf_all[f\"{col}_freq\"] = df_all[col].map(freq)\n...\ngrp_mean = df_all.groupby(cat)[num].transform(\"mean\")"
+  },
+  {
+   "name": "Flawed OOF Rank Concatenation",
+   "description": "The agent converts validation predictions to percentiles/ranks within each fold before concatenating them to compute the global out-of-fold (OOF) AUC. Because probability distributions can vary slightly across folds, a rank in one fold does not strictly correspond to the same probability threshold in another, which distorts the combined global OOF AUC calculation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_val_ranks += rankdata(val_prob) / (len(val_prob) * len(SEEDS))\n...\noof_preds[val_idx] = fold_val_ranks\n...\noverall_auc = roc_auc_score(y, oof_preds)"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold cross-validation pipeline with CatBoost, utilizing multiple seeds and generating various engineered features. However, it introduces critical data leakage by calculating frequency encodings and grouped means over the combined train-test dataset before splitting. Additionally, the agent converts validation probabilities to ranks on a per-fold basis before computing the global OOF AUC, which mathematically distorts the overall score.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

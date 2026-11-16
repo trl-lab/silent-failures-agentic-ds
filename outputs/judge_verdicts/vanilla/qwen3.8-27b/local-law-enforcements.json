@@ -1,0 +1,138 @@
+{
+ "task": "local-law-enforcements",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis or peek at the test dataset statistics to inform preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed; missing targets are removed, categoricals are filled with 'missing', and infinite values are handled.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping constant/empty columns) is performed only on the training set, so no test information is leaked.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies on constant filling ('missing') or native LightGBM missing value handling, rather than statistics computed across the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The task is not a time series forecasting problem, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for predicting a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split (`train_test_split`) to determine the optimal number of boosting rounds before retraining on the full set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model on a single validation split without cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"metric\": \"rmse\",",
+   "reasoning": "The agent optimises exclusively for RMSE via early stopping and does not verify performance across other relevant regression metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train[col] = pd.to_numeric(train[col], errors=\"coerce\")",
+   "reasoning": "The agent uses raw columns with only basic type conversions and constant imputation, failing to create any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded ID column in output",
+   "description": "The agent generates an artificial ID column (e.g., using `np.arange`) for the submission file instead of preserving the actual ID column from the test dataset, which will cause the submission to fail evaluation or mismatch with the ground truth.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(predictions), dtype=int),"
+  }
+ ],
+ "summary": "The agent implements a generally sound LightGBM pipeline with proper missing target handling, early stopping on a validation set, and categorical variable processing. However, it fails to perform any substantive feature engineering. Critically, the agent discards the original test IDs and hardcodes an artificial ID sequence in the output, which will silently invalidate the submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

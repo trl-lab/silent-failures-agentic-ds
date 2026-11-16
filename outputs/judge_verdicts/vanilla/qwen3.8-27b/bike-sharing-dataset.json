@@ -1,0 +1,105 @@
+{
+ "task": "bike-sharing-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "raw_rmse = evaluate_model(raw_model, X_val, y_val, False)\n    log_rmse = evaluate_model(log_model, X_val, y_val, True)",
+   "reasoning": "The stochastic LightGBM model is evaluated exactly once on a single validation split to determine whether to use the log target, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = float(np.sqrt(mean_squared_error(y_val, pred)))",
+   "reasoning": "The agent uses only RMSE to evaluate the models and does not compute any alternative metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded sequential ID for predictions",
+   "description": "The agent generates submission IDs using a simple range instead of extracting and passing through the original identifier column (e.g., 'instant' or 'id') from the test set, which will cause evaluation checks to fail if specific IDs are expected.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(pred), dtype=int),"
+  },
+  {
+   "name": "Treating integer-encoded nominal categories as continuous",
+   "description": "The agent identifies categorical columns solely based on `object` or `Categorical` dtypes. Nominal features encoded as integers in the dataset (e.g., season, weathersit, holiday) will be incorrectly treated as continuous numeric variables.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if dtype == object or isinstance(dtype, pd.CategoricalDtype):\n            cat_cols.append(col)"
+  }
+ ],
+ "summary": "The agent implements a generally sound pipeline that correctly avoids data leakage by using a time-based validation split and fitting encoders exclusively on the training set. However, it evaluates its stochastic model only once using a single metric, treats integer-encoded categorical features as continuous, and hardcodes sequential IDs for the final predictions which will likely break submission formatting.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

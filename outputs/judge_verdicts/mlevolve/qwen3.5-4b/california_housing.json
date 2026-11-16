@@ -1,0 +1,149 @@
+{
+ "task": "california_housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or fitting transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = pd.read_parquet(\"./input/train.parquet\")\n...\ntrain_X = train_data[\n    [\n        \"longitude\",",
+   "reasoning": "The agent makes no attempt to handle missing values (e.g., in totalBedrooms) or outliers before passing data to transformers and models.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\nX_val_scaled = scaler.transform(X_val)",
+   "reasoning": "The scaler is correctly fit only on the training split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regressor is appropriate for predicting median house value.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(",
+   "reasoning": "The agent splits the data into training and validation sets.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n                    params,\n                    train_data_lgb,",
+   "reasoning": "The stochastic LightGBM model is evaluated exactly once per hyperparameter configuration without multiple runs to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = mean_squared_error(y_val, y_pred_val, squared=False)",
+   "reasoning": "The agent only uses RMSE for evaluation and optimization, without looking at other metrics like MAE or R2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_X[\"population_totalRooms\"] = train_X[\"population\"] / train_X[\"totalRooms\"]",
+   "reasoning": "The agent creates several derived features, polynomial features, and interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_test_pred = np.mean(ensemble_preds, axis=0)",
+   "reasoning": "The ensemble simply averages the predictions of the top 5 models without any weighting or tuning of the combination.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid log transformation on negative values",
+   "description": "The agent blindly applies np.log1p to all base features, including longitude, which contains negative values. This produces NaNs, destroying the spatial features and ultimately causing StandardScaler to crash during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_X = np.log1p(train_X)"
+  },
+  {
+   "name": "Biased final evaluation",
+   "description": "The script reports an 'Ensemble Validation Score' on the exact same validation set (X_val) used for early stopping and hyperparameter tuning, resulting in an overly optimistic performance estimate.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ensemble_val_pred = np.mean([r[\"model\"].predict(X_val_scaled, num_iteration=r[\"best_iteration\"]) for r in top_5], axis=0)\nensemble_val_rmse = mean_squared_error(y_val, ensemble_val_pred, squared=False)"
+  }
+ ],
+ "summary": "The agent implements a solid overarching structure with feature engineering, hyperparameter grid search, and ensembling. However, a critical bug exists where it applies a log transformation to negative longitude values, which produces NaNs and causes the script to crash when it reaches the standard scaler. Additionally, the agent uses a naive unweighted average for its ensemble and reports an overly optimistic final evaluation metric by testing on the same hold-out set used for early stopping.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

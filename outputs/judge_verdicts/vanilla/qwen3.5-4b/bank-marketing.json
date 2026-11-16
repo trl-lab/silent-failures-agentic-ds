@@ -1,0 +1,141 @@
+{
+ "task": "bank-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# catboost handles categorical columns (strings) automatically and missing values",
+   "reasoning": "The agent makes no effort to clean the data and explicitly relies on CatBoost to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostClassifier is an appropriate model for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Make predictions on test set\npreds = model.predict(X_test)",
+   "reasoning": "The agent trains the model on the full training set and makes predictions on the test set without performing any internal train/validation split to evaluate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so this failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model and thus does not compute any metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = df_train.drop(columns=['Class'])\n\ny_test = None  # Not needed for prediction\nX_test = df_test.copy()",
+   "reasoning": "The agent uses the raw features as-is without doing any feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "CatBoost missing cat_features",
+   "description": "When using CatBoost with pandas DataFrames containing 'category' or 'object' dtype columns, the user must explicitly identify these columns via the `cat_features` argument, otherwise the model will raise an error during fitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)"
+  },
+  {
+   "name": "Outputting hard labels for probabilistic metric",
+   "description": "The task's evaluation metric is ROC AUC, which requires probability predictions to correctly rank samples. The agent outputs hard class labels (0 or 1), which severely degrades the ROC AUC score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predicted_classes = [idx_to_class[i] for i in predicted_indices]\n\n# Prepare output dataframe\nresult_df = pd.DataFrame({\n    'id': range(len(predicted_classes)),\n    'Class': predicted_classes\n})"
+  }
+ ],
+ "summary": "The agent wrote a minimal script to train a CatBoost model but failed to execute successfully because categorical features were not explicitly declared. Additionally, the agent did not perform any data cleaning, feature engineering, or internal validation. Finally, the agent made the critical mistake of outputting hard class labels instead of probabilities for an ROC AUC evaluation metric.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 1,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "nomad2018-predict-transparent-conductors",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(\"./input/train.parquet\")\ntest = pd.read_parquet(\"./input/test.parquet\")\n\nprint(f\"Train shape: {train.shape}\")\nprint(f\"Test shape: {test.shape}\")",
+   "reasoning": "The agent only prints basic shapes and does not use test data statistics for decision making.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in X.columns:\n    if X[col].dtype == object:\n        X[col] = pd.factorize(X[col])[0]",
+   "reasoning": "The agent does not perform any explicit data cleaning, outlier removal, or imputation, relying entirely on LightGBM's default handling of missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "The agent correctly uses a regression objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_folds, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_folds, shuffle=True, random_state=42)",
+   "reasoning": "The agent evaluates the model across 5 distinct CV folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmsle(y_true, y_pred):",
+   "reasoning": "The agent relies solely on RMSE/RMSLE without calculating complementary metrics to verify behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_col = \"formation_energy_ev_natom\"\ny = train[target_col].values",
+   "reasoning": "The agent correctly formulates the task as predicting the continuous target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in X.columns:\n    if X[col].dtype == object:\n        X[col] = pd.factorize(X[col])[0]",
+   "reasoning": "The agent uses the raw features as-is (with basic factorization for strings) and creates no derived features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Independent categorical encoding of train and test",
+   "description": "Categorical variables are encoded independently for the train and test sets (e.g., using `pd.factorize` separately). If the categories appear in a different order or if there are unseen categories in the test set, the integer mappings will not match, completely breaking the model's understanding of those features during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = pd.factorize(X[col])[0]\nX_test[col] = pd.factorize(X_test[col])[0]"
+  },
+  {
+   "name": "Hardcoded hyperparameters ignoring cross-validation results",
+   "description": "The agent uses cross-validation with early stopping to evaluate the model, but when retraining on the full dataset, it uses a arbitrarily hardcoded number of boosting rounds instead of leveraging the optimal number of rounds (e.g. the mean of `best_iteration`) found during CV.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_boost_round=int(np.mean([500])),  # reasonable number of rounds"
+  }
+ ],
+ "summary": "The agent sets up a standard LightGBM model with 5-fold cross-validation but completely neglects data cleaning and feature engineering. Critically, it applies `pd.factorize` independently to the train and test sets, which will cause a mismatched categorical mapping and ruin test predictions. Furthermore, the agent ignores the early stopping iterations found during cross-validation, opting to retrain the final model with an arbitrarily hardcoded number of boosting rounds.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,151 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning, handling missing values in object columns and converting data types explicitly.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation with fitted statistics is performed before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation to split the training data.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic models over 5 folds, averaging the test predictions to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the MAE metric for optimization, which exactly matches the evaluation metric specified for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is straightforward regression and correctly handled.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates derived features such as datetime components and frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * preds_lgb + 0.5 * preds_cb",
+   "reasoning": "The agent combines the predictions of two models using a hardcoded equal-weight average without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage (Frequency Encoding)",
+   "description": "Frequency encoding is applied to the full training dataset before cross-validation splitting. This leaks the distribution of categories from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = tr[c].value_counts().to_dict()\n            tr[c + '_freq'] = tr[c].map(freq).fillna(0)"
+  },
+  {
+   "name": "Test data leakage (Categorical Encoding)",
+   "description": "The categorical encoding mapping is constructed using the unique values from both the training and test datasets concatenated together, leaking knowledge of test set categories into the training process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categories = pd.concat([tr[c], te[c]]).unique()\n            mapping = {val: idx for idx, val in enumerate(categories)}"
+  },
+  {
+   "name": "No validation score reported",
+   "description": "The agent performs cross-validation but does not compute or report any validation metrics, making it impossible to gauge the model's actual performance or track improvements.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train_proc, y)):"
+  }
+ ],
+ "summary": "The agent correctly identifies the regression task and builds an ensemble of LightGBM and CatBoost models using KFold cross-validation. However, it suffers from naive ensembling with an unoptimized 50/50 split. More critically, the preprocessing pipeline introduces data leakage by computing frequency and categorical encodings on the entire training set (and test set) before the cross-validation split, and the code fails to report any validation scores to actually evaluate model performance.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

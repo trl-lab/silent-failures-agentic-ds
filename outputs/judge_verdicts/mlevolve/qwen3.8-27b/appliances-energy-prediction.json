@@ -1,0 +1,160 @@
+{
+ "task": "appliances-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or to inform preprocessing decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[feature_cols] = df[feature_cols].fillna(0)",
+   "reasoning": "The agent explicitly handles missing values in the training and validation sets by filling them with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for df in [train_split, val_split]:\n    df.replace([np.inf, -np.inf], np.nan, inplace=True)\n    df[feature_cols] = df[feature_cols].fillna(0)",
+   "reasoning": "Imputation is correctly applied independently to the train and validation splits.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df = train_df.sort_values(\"date\").reset_index(drop=True)\n\nsplit_idx = int(len(train_df) * 0.85)",
+   "reasoning": "The dataset is sorted by date and split chronologically, respecting temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_split = train_df.iloc[:split_idx].reset_index(drop=True)\nval_split = train_df.iloc[split_idx:].reset_index(drop=True)",
+   "reasoning": "A chronological train/validation split is created and used for evaluation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is strictly used for final predictions and not for any model selection or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The stochastic models (LightGBM, XGBoost, CatBoost) are trained and evaluated only once with a fixed random seed, without averaging multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_val_rmse = root_mean_squared_error(y_val, lgb_val_preds)",
+   "reasoning": "The agent only calculates and reports RMSE, omitting other metrics like MAE or R-squared to provide a fuller picture of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a time-series regression task with recursive forecasting for the test set.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def create_engineering_features(df):",
+   "reasoning": "The agent engineers numerous domain-specific features, interactions, and time-based cyclical features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for w1 in weight_options:\n    for w2 in weight_options:",
+   "reasoning": "The agent optimizes ensemble weights via grid search over the validation predictions rather than using a naive average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in rolling features",
+   "description": "Rolling statistics are computed on the target variable without shifting the series first, meaning the rolling window at step t includes the true target value at step t. This leaks the target directly into the features during training and validation, causing severe overfitting that will fail on the test set (where features are computed recursively from past steps).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_split[f\"Appliances_roll_mean_{window}\"] = train_split[\"Appliances\"].rolling(window, min_periods=1).mean().values"
+  },
+  {
+   "name": "Train-test preprocessing mismatch",
+   "description": "The agent handles infinite values and missing values (filling with 0) for the train and validation sets, but fails to apply this same cleaning step to the test set. This creates a feature distribution mismatch where missing values in test are left as NaN instead of being mapped to 0.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for df in [train_split, val_split]:\n    df.replace([np.inf, -np.inf], np.nan, inplace=True)\n    df[feature_cols] = df[feature_cols].fillna(0)"
+  },
+  {
+   "name": "Ensemble weight overfitting on early-stopped validation set",
+   "description": "The agent uses the validation set for early stopping of the individual base models, and then re-uses those exact same validation predictions to grid-search the optimal ensemble weights. This causes sequential overfitting on the validation set, making the reported ensemble validation score overoptimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(..., eval_set=[(X_val, y_val)], callbacks=[early_stop_lgb])\n... \nensemble_pred = val_preds_array @ w\nrmse = root_mean_squared_error(y_val, ensemble_pred)"
+  }
+ ],
+ "summary": "The agent implements a sophisticated time-series approach with extensive feature engineering and a tuned weighted ensemble. However, a critical target leakage occurs because rolling target features are computed without shifting, meaning the current step's target is embedded in the feature set during training. Additionally, the test set misses the missing-value imputation applied to train/val, and ensemble weights are sequentially overfitted on the validation set used for early stopping.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

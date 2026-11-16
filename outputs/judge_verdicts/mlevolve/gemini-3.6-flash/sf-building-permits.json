@@ -1,0 +1,159 @@
+{
+ "task": "sf-building-permits",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA, though it does fit a LabelEncoder on the union of train and test categories later (noted in other_failure_modes).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including missing value imputation and data type conversions.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent imputes using medians from the training data only, so it does not leak test missing-value statistics (though it does leak validation statistics, noted in other_failure_modes).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Building permits approval has a strong temporal component, but the agent uses a random KFold split rather than a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final inference, not for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which evaluates the stochastic models across 5 different folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE, which is the requested evaluation metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correct; it treats the problem as a regression task and appropriately log-transforms the right-skewed time target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering, including date extractions, pairwise temporal differences, and domain-specific interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a constrained SLSQP optimization to find the best ensemble weights, which is a sophisticated ensembling technique.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage in cross-validation",
+   "description": "The agent computes dataset-wide statistics (such as imputation medians and frequency encodings) on the entire training set before performing the cross-validation split. This leaks information from the validation folds into the training folds, making the validation score artificially optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_medians = X_train_fe[num_cols].median()\n...\nfor fold, (trn_idx, val_idx) in enumerate(kf.split(X_full, y_full_log)):"
+  },
+  {
+   "name": "Inconsistent feature engineering based on dataset statistics",
+   "description": "The agent conditionally applies transformations (like log1p) independently on the train and test sets based on their respective skewness. If a column's skewness differs slightly between splits, this can lead to a mismatched feature space (e.g., a feature being generated in train but not in test), causing errors during inference.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if df_feat[col].skew() > 1.5:\n    df_feat[f\"{col}_log1p\"] = np.log1p(np.maximum(0, df_feat[col].fillna(0)))"
+  },
+  {
+   "name": "Test data leakage in categorical encoding",
+   "description": "The agent fits a LabelEncoder on the union of the training and test sets. While common in competitive data science, this is a bad practice for production models as it assumes all future test categories are known at training time.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "le.fit(list(set(X_train_fe[col]).union(set(X_test_fe[col]))))"
+  }
+ ],
+ "summary": "The agent provides a robust and well-structured machine learning pipeline, featuring extensive domain-specific feature engineering, target log-transformation, and an optimized model ensemble. However, it ignores the temporal nature of the dataset by using a random KFold split instead of a time-based validation scheme, introducing look-ahead bias. Additionally, it computes imputation and frequency encoding statistics prior to cross-validation, leading to data leakage between folds, and uses a risky conditional feature engineering approach that could result in mismatched train and test schemas.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

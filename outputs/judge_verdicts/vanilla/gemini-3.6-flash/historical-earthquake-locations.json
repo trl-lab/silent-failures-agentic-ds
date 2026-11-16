@@ -1,0 +1,105 @@
+{
+ "task": "historical-earthquake-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in X_train.columns:\n    X_train[c] = pd.to_numeric(X_train[c], errors='coerce').astype(np.float32)",
+   "reasoning": "The agent makes no effort to handle missing values, relying completely on the tree-based models to handle them natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains historical earthquake data with temporal components (dates), but the agent uses random shuffled cross-validation instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train, y_train)):\n    X_tr, y_tr = X_train.iloc[train_idx], y_train[train_idx]",
+   "reasoning": "The agent sets up cross-validation but completely ignores the validation indices, never calculating a validation score to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += probs\n...\ntest_preds /= total_weight",
+   "reasoning": "The agent combines predictions from LGBM, CatBoost, and XGBoost using a naive unweighted average without any tuning of the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Silent error suppression in training loop",
+   "description": "The agent wraps model training in bare try-except blocks that pass on exceptions. This hides critical failures in model fitting or prediction, leading to potentially silent degradation of the ensemble if models fail without the user knowing.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "try:\n    lgb = LGBMClassifier(...)\n    lgb.fit(X_tr, y_tr)\n...\nexcept Exception:\n    pass"
+  }
+ ],
+ "summary": "The agent successfully implements a multi-model ensemble using cross-validation splits, but critically fails to ever evaluate the models on the validation sets, providing no estimate of generalisation performance. Additionally, the agent ignores the temporal nature of the dataset by using shuffled cross-validation, relies entirely on models to handle missing values, and uses a naive unweighted average for ensembling.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

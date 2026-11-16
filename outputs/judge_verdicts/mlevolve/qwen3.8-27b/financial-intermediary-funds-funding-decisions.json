@@ -1,0 +1,138 @@
+{
+ "task": "financial-intermediary-funds-funding-decisions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values using SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any global scaling or normalization before the split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_cat_raw = X_combined.iloc[: len(X_train)][categorical_cols]\n    cat_imputer.fit(train_cat_raw)",
+   "reasoning": "The agent correctly fits imputers only on the training portion of the data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(train_df, y_full, test_size=0.15, random_state=42)",
+   "reasoning": "The dataset involves funding decisions over time (and the agent extracts datetime features), but a random train/val split is used instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a regression model (LGBMRegressor) which matches the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates and evaluates on a validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(**lgb_params)\n\nprint(\"Training with early stopping...\")\nmodel.fit(...)",
+   "reasoning": "The agent trains a stochastic LightGBM model (with subsampling/bagging) exactly once and reports a single validation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(y_val, val_pred_orig)))",
+   "reasoning": "The agent evaluates the model exclusively using RMSE without checking secondary metrics like MAE which might be relevant for skewed currency amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including datetime parts and numeric interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data-dependent conditional feature generation",
+   "description": "The agent applies a conditional feature transformation (e.g., creating a log-transformed column if >90% of values are positive) based on the statistics of the current dataset (train vs test) independently. If the test set's distribution slightly differs and fails the condition, the feature is not generated at test time, resulting in the missing column being filled with zeros and causing a severe data shift.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "positive_ratio = (vals > 0).sum() / len(vals)\n        if positive_ratio > 0.9:\n            X_test_proc[f\"{col}_log\"] = np.log1p(np.maximum(vals, 0))"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline that correctly prevents data leakage during imputation and encoding. However, it ignores the temporal nature of the funding decisions by using a random split, and evaluates a stochastic model only once. Critically, the agent conditionally creates log-transformed features based on independent dataset statistics; if the test set's positive ratio drops below a threshold, the feature is skipped and later filled with zeros, which would severely degrade model performance.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "historic-perimeters-wildfires",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using SimpleImputer for both numerical and categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is correctly applied within an sklearn Pipeline, fitting only on the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly placed inside the Pipeline, preventing data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not split the data internally (uses provided train/test sets), so it does not perform a random split on temporal data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression and the agent correctly uses LGBMRegressor.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline.fit(X_train, y_train.values)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without any internal train/validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation score, so it does not report a single score from a stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any evaluation or metric calculation.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as regression on the 'gisacres' target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_features = []\ncategorical_features = []\nfor col in X_train.columns:\n    if pd.api.types.is_numeric_dtype(X_train[col]):",
+   "reasoning": "The agent uses raw columns directly, applying only basic imputation, scaling, and encoding, with no domain-specific or derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper OneHotEncoder configuration",
+   "description": "Using `drop='first'` alongside `handle_unknown='ignore'` in OneHotEncoder causes unknown categories in the test set to be encoded as all zeros. Since the first category is also implicitly encoded as all zeros, the model cannot distinguish between a genuinely unknown category and the first category of the training set, potentially skewing predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "OneHotEncoder(handle_unknown='ignore', sparse_output=False, drop='first')"
+  },
+  {
+   "name": "Arbitrary ID generation for test set",
+   "description": "The agent generates a sequential ID column for the test predictions using `range(len(predictions))` instead of preserving the actual identifier column from the test dataset. If the test set IDs are not simply 0 to N-1, the predictions will be misaligned with the ground truth.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "id\u5217 = range(len(predictions))\n    result_df = pd.DataFrame({\n        'id': id\u5217,"
+  },
+  {
+   "name": "Using identifier columns as features",
+   "description": "The agent includes all columns except the target as features, without filtering out identifiers or metadata columns. This can cause the model to overfit on arbitrary indices and reduces generalisation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df_reset.drop(columns=[target_col], errors='ignore')"
+  }
+ ],
+ "summary": "The agent implements a functionally complete pipeline using LightGBM, handling imputation and encoding correctly within sklearn Pipelines to avoid data leakage. However, it fails to perform any internal validation (FM06), conducts no feature engineering (FM07), and blindly uses all columns (including identifiers) as features. Additionally, it incorrectly configures OneHotEncoder (`drop='first'` with `handle_unknown='ignore'`) and constructs an arbitrary sequential ID for the submission file, which will likely break evaluation alignment.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

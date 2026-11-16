@@ -1,0 +1,155 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df[[\"game_id\", \"nickname\", \"score\"]]",
+   "reasoning": "The agent makes no effort to clean the data, handle missing values, or address outliers, passing raw data directly to the model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages performance over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "mae = mean_absolute_error(y_val_fold, val_pred)",
+   "reasoning": "The agent evaluates the model using only Mean Absolute Error without verifying if it is fully appropriate or robust alongside other metrics like RMSE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the problem correctly as predicting the rating from the available features.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df[[\"game_id\", \"nickname\", \"score\"]]",
+   "reasoning": "The agent uses raw columns as-is (with basic one-hot encoding) and fails to engineer any derived features from the game data.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Train/Test Feature Mismatch",
+   "description": "Applying categorical encoding (e.g., pd.get_dummies) separately to train and test sets leads to mismatched feature columns if the categories present in train and test are not perfectly identical, causing the model to crash during prediction.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_encoded = pd.get_dummies(train_features, columns=[\"nickname\"], prefix=\"nickname\")\ntest_encoded = pd.get_dummies(test_features, columns=[\"nickname\"], prefix=\"nickname\")"
+  },
+  {
+   "name": "Execution Crash (KeyError)",
+   "description": "The code attempts to drop a column that has already been removed or replaced by a prior function (like pd.get_dummies replacing the target column), leading to a KeyError and immediately crashing the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_encoded.drop(columns=[\"nickname\"])"
+  },
+  {
+   "name": "Validation Data Leakage (Train as Val)",
+   "description": "The validation set provided for early stopping during the final model training is a direct subset of the training set, causing the model to overfit since it is evaluated on data it is actively learning from.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_data = lgb.Dataset(\n    X_train.iloc[:10000], label=y_train.iloc[:10000], reference=train_data\n)"
+  },
+  {
+   "name": "ID Column as Feature",
+   "description": "A unique identifier column is passed directly to the model as a predictive feature, which offers no generalizable signal and can lead to overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features = train_df[[\"game_id\", \"nickname\", \"score\"]]"
+  }
+ ],
+ "summary": "The solution suffers from several critical execution and logic failures, including mismatched train/test features due to separate one-hot encoding, an execution crash when attempting to drop a non-existent column, and using a subset of the training data as the validation set for early stopping. Additionally, it exhibits poor data science practices such as not cleaning data, ignoring subject overlap by using random KFold instead of GroupKFold, and lacking any meaningful feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

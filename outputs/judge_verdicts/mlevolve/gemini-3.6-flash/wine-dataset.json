@@ -1,0 +1,100 @@
+{
+ "task": "wine-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "return root_mean_squared_error(y_train, pred_price)",
+   "reasoning": "The agent only optimizes and evaluates using RMSE on the original, exponentially-transformed Price scale, which is highly sensitive to outliers, without verifying if a more robust metric like MAE or RMSLE would be better suited for the heavily skewed target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test-set group statistics calculation",
+   "description": "The agent computes group-level statistics (like mean or min/max by category) independently on the test set using only test set data. This causes a severe train-test distribution mismatch because small groups in the test set will have wildly different statistic values compared to the robust averages computed on the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grp = ref_df.groupby(g_cat)[num_c]\ngrp_mean = df[g_cat].map(grp.mean())"
+  },
+  {
+   "name": "Cross-fold data leakage during imputation and TF-IDF",
+   "description": "The agent computes statistics like the median for imputation and fits TF-IDF vectorizers on the entire training set before splitting it into cross-validation folds. This leaks validation fold information into the training folds, making the out-of-fold validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train_full[col].median()\nX_train_full[col] = X_train_full[col].fillna(median_val)"
+  }
+ ],
+ "summary": "The agent implements a strong end-to-end pipeline with out-of-fold target encoding, a PyTorch TabularGatedNet, and SLSQP ensemble blending. However, it introduces a critical feature engineering bug by computing group statistics independently on the test set, leading to a train-test distribution mismatch. Additionally, it suffers from cross-fold leakage during imputation and TF-IDF fitting, and optimizes its ensemble solely for RMSE on a highly skewed target.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

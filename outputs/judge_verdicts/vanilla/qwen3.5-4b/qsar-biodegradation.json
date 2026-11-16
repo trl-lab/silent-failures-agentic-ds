@@ -1,0 +1,148 @@
+{
+ "task": "qsar-biodegradation",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or setup.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median(axis=0))",
+   "reasoning": "The agent explicitly handles missing values using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median(axis=0))\nX_test = X_test.fillna(X_test.median(axis=0))",
+   "reasoning": "Imputation is not done on the full dataset before splitting (though it is done incorrectly on the test set).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(",
+   "reasoning": "A classifier is appropriately used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Predict on test set\ny_prob = model.predict_proba(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without establishing any internal validation split to evaluate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(\n    random_state=42,\n    n_jobs=-1,\n    max_depth=5,\n    learning_rate=0.1\n)\nmodel.fit(X_train, y_train)",
+   "reasoning": "The stochastic LGBMClassifier is initialized and trained exactly once without any cross-validation or multiple seed averaging.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform internal evaluation, so it does not report or optimize using a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "FEATURE_COLS = [col for col in df_train.columns if col != TARGET_COL]\n\n# Extract features and target\nX_train = df_train[FEATURE_COLS].copy()",
+   "reasoning": "The agent uses the raw features as-is without attempting any domain-specific or mathematical feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target column assumed in test set",
+   "description": "The agent attempts to extract the target column from the test dataset, which causes a KeyError and immediate execution failure because test sets typically do not contain the target.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test = df_test[TARGET_COL].copy()"
+  },
+  {
+   "name": "Imputing test data with test statistics",
+   "description": "The agent computes the median on the test set to impute missing values in the test set. Test data should always be imputed using statistics fitted solely on the training data to prevent distribution shifts.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median(axis=0))"
+  },
+  {
+   "name": "Outputting hard labels for ranking metric",
+   "description": "The task metric is ROC AUC, which requires continuous predicted probabilities to measure ranking quality. The agent extracts probabilities but destroys the ranking information by converting them to hard labels (argmax) before saving.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for p_idx in np.argmax(y_prob, axis=1):\n    if p_idx < len(prob_map):\n        final_predictions.append(prob_map[p_idx])"
+  }
+ ],
+ "summary": "The agent's solution immediately fails execution due to assuming the target column is present in the test set. Furthermore, it improperly outputs hard labels instead of probabilities for an ROC AUC task, imputes test data using test-set statistics rather than train-set statistics, and fails to implement any internal validation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

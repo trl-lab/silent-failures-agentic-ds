@@ -1,0 +1,142 @@
+{
+ "task": "antenna-structure-registration",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_full[col].astype(str), X_test[col].astype(str)], axis=0)\n    combined = combined.fillna('MISSING')\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on a combined dataset that includes the test set, leaking test set categories into the training process.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values and drops high-cardinality/uninformative columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train_full[col].median()\n    X_train_full[col] = X_train_full[col].fillna(median_val)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.15, random_state=42)",
+   "reasoning": "Median imputation is calculated on the full training set before splitting off the validation set, leaking validation set statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (LGBM, XGBoost, CatBoost) are correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and evaluated on.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The validation set is used for evaluation and ensembling, but not to select the best model across variants iteratively.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "random_state=42",
+   "reasoning": "Stochastic models like LGBM, XGBoost, and CatBoost are trained and evaluated exactly once with a fixed random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(np.mean((y_val - val_pred) ** 2))",
+   "reasoning": "The agent only computes and evaluates using a single metric (RMSE) without assessing other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_full = X_train_full.drop(columns=drop_cols)",
+   "reasoning": "The agent only applies basic imputation and encoding without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_ensemble = np.mean(val_preds, axis=0)\ntest_ensemble = np.mean(test_preds, axis=0)",
+   "reasoning": "The agent uses a naive unweighted average to combine predictions instead of optimizing blend weights or stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Ineffective missing value filling for categoricals",
+   "description": "Calling `.astype(str)` on a Pandas Series converts `np.nan` values into the literal string `'nan'`, meaning a subsequent `.fillna('MISSING')` will do nothing because there are no actual null values left.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_full[col] = le.transform(X_train_full[col].astype(str).fillna('MISSING'))"
+  }
+ ],
+ "summary": "The agent correctly applies appropriate gradient boosting regressors but introduces data leakage by fitting the LabelEncoder on the test set and computing median imputation before the train/validation split. Additionally, the solution lacks feature engineering, uses naive unweighted ensembling, evaluates stochastic models exactly once, and contains a minor bug in string conversion that defeats the categorical missing value imputation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

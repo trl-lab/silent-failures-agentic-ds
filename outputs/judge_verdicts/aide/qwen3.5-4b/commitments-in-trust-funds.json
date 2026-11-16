@@ -1,0 +1,152 @@
+{
+ "task": "commitments-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent relies entirely on LightGBM to handle any missing values or outliers, with no explicit cleaning strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not clear if the dataset has a strict temporal order without inspecting the data, though trust fund commitments might be sequential.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regressor is appropriate for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently averages performance over multiple runs on different folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y_train, y_pred_cv))",
+   "reasoning": "The agent only computes and reports RMSE, without evaluating other metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated as a standard regression problem, which is correct.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != \"New Commitments (US$)\"]\nX_train = train_df[feature_cols].values",
+   "reasoning": "The agent uses raw feature columns without any derived features, domain-informed transforms, or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage through LightGBM Reference Dataset",
+   "description": "Using the entire un-split dataset as the reference dataset for a training fold in LightGBM causes feature bin boundaries to be computed using the validation data, leaking the validation distribution into the training process.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "reference_data=lgb.Dataset(X_train, label=y_train, is_predict=True)"
+  },
+  {
+   "name": "Early Stopping without Validation Set",
+   "description": "The agent applies an early stopping callback during model training but does not provide a validation set. This will cause the execution to crash as early stopping requires a metric to monitor.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(..., callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)])"
+  },
+  {
+   "name": "Loss of DataFrame Metadata",
+   "description": "Converting a pandas DataFrame to a numpy array via `.values` before passing it to tree-based models drops column names and categorical dtypes, which can degrade model performance and break categorical feature handling.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values"
+  }
+ ],
+ "summary": "The agent provides a basic LightGBM solution with 5-fold cross-validation but entirely skips data cleaning and feature engineering. Critically, the implementation introduces data leakage by building LightGBM feature bins on the entire training set during CV folds, and the final model training will crash due to enabling early stopping without providing a validation set.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

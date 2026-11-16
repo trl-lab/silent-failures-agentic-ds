@@ -1,0 +1,102 @@
+{
+ "task": "hypertension-control-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_model, final_optimizer = build_model()\ntrain_fixed(\n    final_model,\n    criterion,\n    final_optimizer,\n    full_x_cat,\n    full_x_num,\n    full_y,\n    epochs=max(1, int(best_epoch)),\n    batch_size=256,\n)",
+   "reasoning": "The agent trains a stochastic deep learning model exactly once and generates a single set of predictions without ensembling across multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def _validate(model):\n    if valid_y.size == 0:\n        return 0.5\n\n    val_logits = predict_from_tensors(model, valid_x_cat, valid_x_num)\n    val_preds = _postprocess(val_logits)\n    score = official_auc(valid_y, val_preds)",
+   "reasoning": "The agent evaluates the model using only the target metric (AUC) without tracking other metrics like validation loss or accuracy to better understand model behavior and calibration.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for f in feature_candidates:\n    s = train[f]\n    if s.nunique(dropna=True) <= 1:\n        continue\n\n    if (\n        pd.api.types.is_object_dtype(s)\n... \n    features.append(f)",
+   "reasoning": "The agent does not create any derived features or domain-specific transforms, relying entirely on the raw columns provided.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overwriting Submission IDs",
+   "description": "The agent overwrites the original 'id' column in the test set with a newly generated sequential range. If the evaluation platform expects the original test set IDs to match predictions, this will cause the submission to fail automated evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test[\"id\"] = np.arange(len(test), dtype=np.int64)"
+  }
+ ],
+ "summary": "The agent successfully implements a Factorization Machine with a custom ranking loss but neglects feature engineering and relies on a single run of a stochastic model. Most critically, the agent overwrites the original test dataset IDs with sequential integers, which will almost certainly break the submission scoring pipeline.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

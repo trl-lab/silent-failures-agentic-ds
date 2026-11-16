@@ -1,0 +1,140 @@
+{
+ "task": "kickstarter-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis that peeks at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements data cleaning steps such as handling missing values in JSON fields and handling missing goals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(combined_text)\n    svd = TruncatedSVD(n_components=40, random_state=42)\n    svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD are fitted on the concatenated train and test dataset, leaking test set text statistics and vocabulary into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated imputer is fitted on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features like launch and deadline dates, but the agent uses standard random stratified splitting instead of time-based splitting, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM Classifier is an appropriate model choice for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy, ensuring validation takes place.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 different cross-validation folds, which accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_auc = roc_auc_score(y_train, oof_preds)\nprint(f\"Validation ROC AUC Score: {final_auc:.6f}\")",
+   "reasoning": "The agent reports only the ROC AUC score without verifying other metrics like precision, recall, or log loss which might provide a more complete picture of the classifier's performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task formulation is correct for predicting the project status.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including datetime derivation, text parsing, and aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent uses standard unweighted averaging of cross-validation fold predictions, which is common practice and not considered naive ensembling in this context.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage through full-dataset aggregations",
+   "description": "Target-like aggregations (group means) and frequency encoding are computed on the combined train and test datasets prior to splitting. This incorporates test set distribution characteristics into the training data features, causing data leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "g_mean = df.groupby(cat)[target].transform(\"mean\")\n...\nfreq = df[c].value_counts(normalize=True).to_dict()\ndf[f\"{c}_freq\"] = df[c].map(freq)"
+  }
+ ],
+ "summary": "The agent provides a structurally robust machine learning pipeline with extensive feature engineering and cross-validation. However, it suffers from severe data leakage because text vectorisation (TF-IDF/SVD), feature aggregations, and frequency encoding are applied to the concatenated train and test sets before splitting. Furthermore, it ignores the temporal nature of the project data by employing a random splitting strategy, introducing look-ahead bias.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

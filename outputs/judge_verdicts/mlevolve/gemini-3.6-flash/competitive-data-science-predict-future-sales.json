@@ -1,0 +1,104 @@
+{
+ "task": "competitive-data-science-predict-future-sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model_xgb = xgb.XGBRegressor(..., random_state=42, ...)",
+   "reasoning": "The agent trains several stochastic boosting models with a fixed random seed and evaluates them exactly once without multiple runs to estimate variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_val_rmse = np.sqrt(np.mean((y_val.values - val_preds_lgb) ** 2))",
+   "reasoning": "The agent evaluates the models and optimises the ensemble using only RMSE, without reporting secondary metrics like MAE to provide a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Lookahead bias in global aggregations",
+   "description": "Global statistics (such as the overall average price of an item) are calculated over the entire training set (which includes the validation period) and then merged into all time steps. This leaks future information (e.g., prices from later months) into the training examples of earlier months.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "global_item_prices = (train_sales.groupby(\"item_id\")[\"item_price\"].mean().reset_index().rename(columns={\"item_price\": \"global_avg_price\"}))"
+  },
+  {
+   "name": "Hardcoded submission column names",
+   "description": "The agent hardcodes the submission identifier column name to lowercase ('id'), which may break the submission parser if the platform strictly expects the original casing (often 'ID').",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "submission_df = pd.DataFrame({\"id\": sub_ids, \"item_cnt_day\": final_test_preds})"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated and mostly correct pipeline for the competition, featuring comprehensive lag features, target encodings, and a properly tuned ensemble using non-negative least squares. However, it introduces a moderate lookahead bias by calculating global item prices over the entire training period (including the validation month) and applying them to earlier months, and it only evaluates its stochastic models once using a single metric.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

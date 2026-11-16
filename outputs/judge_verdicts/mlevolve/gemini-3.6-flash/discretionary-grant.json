@@ -1,0 +1,163 @@
+{
+ "task": "discretionary-grant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or use test data to inform preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med = np.nanmedian(tr_vals)\nif np.isnan(med):\n    med = 0.0\ntr_imputed = np.where(np.isnan(tr_vals), med, tr_vals)",
+   "reasoning": "The agent explicitly handles missing values by computing and applying median imputation for numeric features and 'missing' substitution for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "fold_scaler = StandardScaler()\nX_tr = fold_scaler.fit_transform(X_train_arr[train_idx])\nX_va = fold_scaler.transform(X_train_arr[val_idx])",
+   "reasoning": "Scaling is correctly applied inside the cross-validation loop, fitted exclusively on the training folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_tfidf = tfidf.fit_transform(tr_combined_text)\nte_tfidf = tfidf.transform(te_combined_text)",
+   "reasoning": "Feature extraction (TF-IDF and SVD) is fitted strictly on the training dataset, without leaking test set information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med = np.nanmedian(tr_vals)\n...\nte_imputed = np.where(np.isnan(te_vals), med, te_vals)",
+   "reasoning": "The median for imputation is derived solely from the training data and then applied to the test data, preventing test set leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "While date features are extracted, it is unclear from the task description alone whether the discretionary grants must be predicted in strict chronological order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a NN with MSELoss) for the continuous target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout)",
+   "reasoning": "The PyTorch model includes appropriate regularisation techniques, specifically Dropout, LayerNorm, and weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(cv_splits):",
+   "reasoning": "The agent implements a proper 5-fold cross-validation scheme to evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_preds_lgb += lgb_model.predict(X_test_fold) / n_splits",
+   "reasoning": "The held-out test set is only used for generating final predictions, not for model selection or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds_lgb += lgb_model.predict(X_test_fold) / n_splits",
+   "reasoning": "Predictions from stochastic models are averaged across the 5 cross-validation folds, reducing variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "return root_mean_squared_error(y_train, blend)",
+   "reasoning": "The agent uses RMSE, which perfectly aligns with the target evaluation metric specified for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train_log = np.log1p(np.maximum(0, y_train))",
+   "reasoning": "The agent appropriately frames the regression task and applies a standard log1p transformation for a right-skewed monetary target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_feat[f\"cat_{c}_te\"] = oof_target_enc",
+   "reasoning": "The agent engineers multiple derived features, including text statistics, TF-IDF+SVD, date parts, frequency encoding, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(\n    blend_objective,\n    init_weights,\n    method=\"SLSQP\",",
+   "reasoning": "The agent uses SLSQP optimization to find the optimal blend weights based on OOF predictions rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "leaky_target_encoding_mismatched_folds",
+   "description": "Target encoding is performed out-of-fold using one cross-validation split (e.g. KFold), but the downstream models are trained and evaluated using a completely different split (e.g. StratifiedKFold). Because the folds do not align, the training folds in the second split contain target information from their corresponding validation folds, leading to target leakage and overly optimistic OOF scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf_target = KFold(n_splits=5, shuffle=True, random_state=42)\n...\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\ncv_splits = list(skf.split(X_train_feat, y_binned))"
+  },
+  {
+   "name": "cv_data_leakage_preprocessing",
+   "description": "Various preprocessing steps (such as median imputation, TF-IDF vectorization, and SVD) are fitted on the entire training dataset before the cross-validation loop begins. This leaks global statistics (like vocabulary, IDF weights, and median values) from the validation folds into the training folds, violating strict isolation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med = np.nanmedian(tr_vals)\n...\ntr_tfidf = tfidf.fit_transform(tr_combined_text)\n...\ntr_svd = svd.fit_transform(tr_tfidf)"
+  },
+  {
+   "name": "pytorch_cpu_state_dict_reference",
+   "description": "When saving the best PyTorch model state for early stopping, `v.cpu()` is used. On a CPU device, this returns a reference to the parameter tensor rather than a copy. As the model continues training, the saved state is modified in-place, meaning the 'best' state is overwritten and ultimately becomes the final epoch's state. `copy.deepcopy` or `v.clone()` should be used to safely store weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "best_nn_state = {k: v.cpu() for k, v in nn_model.state_dict().items()}"
+  }
+ ],
+ "summary": "The agent demonstrates a highly sophisticated pipeline with excellent model diversity, strong feature engineering, and a robust SLSQP ensemble. However, the solution suffers from target leakage because the cross-validation splits used for OOF target encoding do not match the splits used for model evaluation. Additionally, global fitting of text transformers before the CV loop causes minor data leakage, and a subtle PyTorch state-dict referencing bug breaks early stopping if executed on a CPU.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

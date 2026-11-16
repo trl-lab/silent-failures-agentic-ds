@@ -1,0 +1,155 @@
+{
+ "task": "meta-critic_whisky",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SimpleImputer to handle missing values, demonstrating an effort to clean data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is performed safely inside a pipeline, avoiding leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline_model.fit(X_tr_clean, y_vals.values)\n\npreds_val = pipeline_model.predict(test_df.drop(columns=['id']))",
+   "reasoning": "The agent trains on the training set and predicts on the test set without any internal validation or holdout score computation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so it does not evaluate exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation is performed, so no metrics are used.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preproc_full = ColumnTransformer([\n    ('num', SimpleImputer(strategy='median'), num_feats_list),\n    ('cat', OneHotEncoder(drop='if_binary', sparse_output=False, handle_unknown='ignore'), cat_feats_list)\n])",
+   "reasoning": "The agent applies only basic imputation and encoding without deriving any new features.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unhandled unknown categories in test data",
+   "description": "The OneHotEncoder is not configured to handle unknown categories in the initial pipeline, causing a ValueError when transforming the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "('cat_onehot', OneHotEncoder(drop='if_binary', sparse_output=False), categorical_features)\n...\npreds = full_pipeline.transform(test_df)"
+  },
+  {
+   "name": "NameError on undefined variable",
+   "description": "The code attempts to use a variable that was never defined due to a typo, causing a runtime exception.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline_model.fit(X_tr_clean, y_vals.values)"
+  },
+  {
+   "name": "Target variable replaced with flattened features",
+   "description": "The target array is erroneously assigned the values of the flattened feature matrix, completely discarding the actual target labels for training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_X = trans_fom.fit(...).transform(train_df.drop(columns='Meta Critic'))\ny_vals = final_X.reshape(-1, 1).flatten() if hasattr(final_X, 'reshape') else final_X.flatten()\n...\npipeline_model.fit(X_tr_clean, y_vals.values)"
+  },
+  {
+   "name": "Accidental massive column creation",
+   "description": "A loop iterates over the DataFrame's row index instead of a feature list, creating a new column for every single row index and filling it with zeros.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for feat in X_tr_final.index:\n    if feat not in X_tr_final.columns:\n        X_tr_final.loc[:, feat] = 0"
+  }
+ ],
+ "summary": "The agent's solution contains severe logic and execution errors, including a NameError due to a typo, replacing the target variable with a flattened feature array, and iterating over row indices to create thousands of useless columns. Additionally, the first of two disjoint pipelines lacks `handle_unknown='ignore'` in the OneHotEncoder, causing it to crash on unknown categories in the test set before the later logic can even run. Methodologically, the agent fails to perform any validation (FM06) and applies no feature engineering (FM07).",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

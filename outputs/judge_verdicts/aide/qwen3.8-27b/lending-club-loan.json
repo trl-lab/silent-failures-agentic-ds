@@ -1,0 +1,138 @@
+{
+ "task": "lending-club-loan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data statistics during EDA or feature preparation.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs basic data cleaning by removing columns with high missing rates and constant values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (e.g., dropping constant or mostly-missing columns) is applied only on the training set, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=RANDOM_STATE)",
+   "reasoning": "The agent uses random shuffling for cross-validation on a dataset with a strong temporal component (loan issuance over time), introducing look-ahead bias by training on future economic conditions.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classification model (LightGBM) is correctly used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly sets up a train/validation split using StratifiedKFold.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across multiple folds and averages the results to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "auc = roc_auc_score(y_val_fold, pred_val)\n            fold_aucs.append(auc)",
+   "reasoning": "The agent only computes and reports ROC AUC, failing to verify performance with other metrics like Precision-Recall AUC which are crucial for imbalanced credit risk datasets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The task is standard binary classification, and the problem formulation does not discard the primary signal.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if n_unique > 1000 or n_unique > 0.5 * len(X):\n                drop_text_cols.append(col)",
+   "reasoning": "The agent applies no domain-specific feature engineering (e.g., debt-to-income ratios, date parsing) and simply discards high-cardinality or text columns like 'desc' and 'title'.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Arbitrary multiclass to binary conversion",
+   "description": "When a target has more than 2 classes, the agent automatically assigns the rarest class as the positive class (1) and groups all other classes as negative (0). This is highly arbitrary and can destroy the target signal by grouping fundamentally different classes (e.g., 'Fully Paid' and 'Default') together into a single category.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if y_clean.nunique() > 2:\n        value_counts = y_clean.value_counts()\n        positive_class = value_counts.idxmin()\n        return (y_raw == positive_class).astype(int)"
+  }
+ ],
+ "summary": "The agent provides a robust basic LightGBM pipeline with proper cross-validation and avoids test-data leakage. However, it fails to account for the temporal nature of the loan dataset by using a random shuffle split, potentially introducing look-ahead bias. It also lacks any domain-specific feature engineering, merely dropping high-cardinality text columns, and evaluates performance using only a single metric.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

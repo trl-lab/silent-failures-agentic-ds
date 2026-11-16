@@ -1,0 +1,148 @@
+{
+ "task": "spaceship-titanic",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No data-driven feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df = df.fillna(df.median(numeric_only=True))\n...\nX_train, y_train = preprocess(train_df)\n...\nX_train_full, X_val, y_train_full, y_val = train_test_split(\n    X_train, y_train, test_size=0.2, random_state=42, stratify=y_train\n)",
+   "reasoning": "Missing value imputation uses the median of the entire training dataframe before it is split, leaking validation statistics into the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data into training and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(\n    ...\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n)\n...\nmodel.fit(X_train_full, y_train_full, eval_set=[(X_val, y_val)], callbacks=callbacks)\n...\naccuracy = accuracy_score(y_val, y_val_pred)",
+   "reasoning": "A stochastic model (LightGBM with feature and row subsampling) is trained and evaluated exactly once without cross-validation or multiple seed runs to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "accuracy = accuracy_score(y_val, y_val_pred)\n\nprint(f\"Validation Accuracy: {accuracy:.4f}\")",
+   "reasoning": "The agent relies entirely on accuracy as the sole evaluation metric, without calculating complementary metrics like ROC-AUC or F1-score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\"Age\", \"FoodCourt\", \"RoomService\", \"ShoppingMall\", \"Spa\", \"VRDeck\"]\nX = df[feature_cols].values",
+   "reasoning": "The agent only uses raw numerical features and performs no feature engineering, despite the dataset containing useful strings like Cabin and Name that could be parsed.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage KeyError on test set",
+   "description": "The preprocessing function unconditionally extracts the target column from the input DataFrame. When applied to the test dataset, which typically lacks the target column, this will raise a KeyError and cause execution to fail.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = df[target_col].values\n...\nX_test, y_test = preprocess(test_df)"
+  },
+  {
+   "name": "Discarding categorical features",
+   "description": "Categorical columns are explicitly cast to strings but are then excluded from the feature matrix because the feature selection strictly filters for a hardcoded list of numerical columns, discarding highly predictive information.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\"Age\", \"FoodCourt\", \"RoomService\", \"ShoppingMall\", \"Spa\", \"VRDeck\"]\n    X = df[feature_cols].values"
+  },
+  {
+   "name": "Imputing test data with test statistics",
+   "description": "Missing values in the test set are imputed using the median of the test set itself, rather than the median computed from the training set. This can lead to inconsistencies and distribution shifts.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df = df.fillna(df.median(numeric_only=True))\n...\nX_test, y_test = preprocess(test_df)"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM model but introduces multiple severe flaws in preprocessing. The most critical failure is an execution-halting KeyError caused by attempting to extract the target column from the test set. Additionally, the agent completely discards all categorical features, computes imputation statistics before the validation split, and incorrectly uses test set statistics to impute missing values in the test set.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

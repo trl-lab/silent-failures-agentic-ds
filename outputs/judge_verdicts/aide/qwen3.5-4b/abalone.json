@@ -1,0 +1,141 @@
+{
+ "task": "abalone",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_full = train_df.drop(columns=[target])",
+   "reasoning": "The agent directly splits the data into features and target without checking for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses train_test_split to create a validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pipeline.fit(X_train, y_train)\n\n# Evaluate on validation set\ny_pred_val = pipeline.predict(X_val)",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model exactly once, without using cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_val = np.sqrt(mean_squared_error(y_val, y_pred_val))",
+   "reasoning": "The agent relies exclusively on RMSE for evaluation and does not compute any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(...)",
+   "reasoning": "The agent uses raw features as-is and does not attempt any domain-informed feature engineering (e.g., volume from dimensions).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing eval_set for early stopping",
+   "description": "The model is initialized with `early_stopping_rounds`, but no `eval_set` is provided during `fit()`. In LightGBM, this will result in a ValueError and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "early_stopping_rounds=50, ... pipeline.fit(X_train, y_train)"
+  },
+  {
+   "name": "Dropping missing column in test set",
+   "description": "The code attempts to drop the target column from the test set. If the test set does not contain the target column (which is standard for test sets), this will raise a KeyError and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = test_df.drop(columns=[target])"
+  }
+ ],
+ "summary": "The agent built a standard LightGBM pipeline with a categorical encoder but failed to include any data cleaning or feature engineering. More critically, the code contains two execution failures: attempting to drop a likely non-existent target column from the test set, and configuring early stopping without passing an evaluation set to the fit method, both of which will crash the script.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

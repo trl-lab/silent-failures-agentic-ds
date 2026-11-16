@@ -1,0 +1,159 @@
+{
+ "task": "schools",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly imputed using median values and string operations handle NaNs.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fitted on the training fold and applied to validation/test folds inside the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median) are computed strictly on the training subset (iloc[:n_train]), avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task does not involve a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes dropout layers, weight decay, and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold StratifiedKFold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly considers metric appropriateness by designing a custom CompositeRMSELoss that combines Huber loss for outlier robustness with the target RMSE metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the requested target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including spatial coordinates, text metadata, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble weights are optimized using scipy.optimize.minimize rather than a naive average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "pandas_index_alignment_bug",
+   "description": "During target encoding, a pandas Series created from a numpy target array (which defaults to a 0-indexed range) is grouped by a feature Series that retains the original dataframe indices. Pandas aligns these by index, causing severe target-to-feature misalignment and resulting in mostly NaN or garbage encodings.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "means = pd.Series(y[train_idx]).groupby(s_tr).mean()"
+  },
+  {
+   "name": "knn_feature_distribution_shift",
+   "description": "When computing KNN distance features, the model queries the training set for nearest neighbors of both train and test samples, then slices off the first neighbor. This correctly removes the self-neighbor for train samples, but incorrectly discards the actual nearest training sample for test samples, causing a fundamental feature distribution shift between train and test.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "distances, _ = nn_model.kneighbors(all_coords)\ndist_k = distances[:, 1:]"
+  },
+  {
+   "name": "categorical_features_treated_as_continuous",
+   "description": "Categorical columns are integer-encoded (Label Encoding) and horizontally stacked into a numpy array before being passed to LightGBM and CatBoost. Because the categorical feature indices are not specified to the model APIs, the algorithms treat these nominal integers as continuous numerical features.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr_tree = np.hstack([num_tr_fold, cat_enc_train[train_idx]])"
+  }
+ ],
+ "summary": "The agent implements a highly advanced pipeline featuring custom spatial engineering, a PyTorch ResNet, and an optimized ensemble, successfully avoiding all standard predefined failure modes. However, the solution is severely compromised by a pandas index alignment bug during in-fold target encoding, which misaligns targets with features. Additionally, there is a subtle train-test distribution shift introduced by incorrectly slicing KNN distances for test samples.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

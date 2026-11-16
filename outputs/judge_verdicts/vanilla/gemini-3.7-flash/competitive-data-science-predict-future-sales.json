@@ -1,0 +1,142 @@
+{
+ "task": "competitive-data-science-predict-future-sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_full = preprocess_df(train_df.drop(columns=[target_col]))",
+   "reasoning": "The agent makes no attempt to handle obvious outliers in the sales data or explicitly manage missing values, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No target-based feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a random, shuffled split on time-series sales data, which introduces massive look-ahead bias (data leakage from future to past).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is an appropriate model type for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does perform a train/validation split using KFold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 folds, so it does not rely on a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any metrics at all, rather than optimising on the wrong one.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in X_train_full.columns if col in X_test_full.columns and col not in ignore_cols]",
+   "reasoning": "The agent frames a time-series forecasting task as a stateless regression by dropping all temporal features (since they aren't explicitly in the test set), effectively ignoring the time dimension and predicting a global average per item.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train_full[feature_cols].copy()",
+   "reasoning": "The agent extracts date features but subsequently drops them because they aren't in the test set, ultimately training the model on raw ID columns with no derived features or historical lags.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent simply averages the predictions of the 5 cross-validation folds with equal weights, without any tuning of the combination.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unreported_validation_metrics",
+   "description": "The agent sets up a cross-validation loop and passes an evaluation set to the model, but fails to compute, print, or log any validation metrics. This makes it impossible to assess how well the model is performing without evaluating the output externally.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], callbacks=[])"
+  }
+ ],
+ "summary": "The agent's solution exhibits critical flaws in handling time-series data. It uses a shuffled K-Fold split that introduces massive look-ahead bias, and completely discards all temporal features because they are not present in the test set's raw schema. Furthermore, the agent makes no effort to clean the data, lacks any meaningful feature engineering, and fails to compute or report any validation metrics during training.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

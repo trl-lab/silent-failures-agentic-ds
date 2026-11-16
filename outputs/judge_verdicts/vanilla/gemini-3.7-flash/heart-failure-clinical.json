@@ -1,0 +1,142 @@
+{
+ "task": "heart-failure-clinical",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or preprocessing that inappropriately peeks at the test data distribution.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing with median or mode.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within the cross-validation loop after the split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are derived only from the training set (X), so test missing-value statistics do not leak into training (though there is CV leakage, noted separately).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal sequence structure for rows that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X.iloc[val_idx], y.iloc[val_idx]\n    \n    # Scale features for logistic regression\n    scaler = StandardScaler()\n    X_tr_scaled = scaler.fit_transform(X_tr)\n    X_va_scaled = scaler.transform(X_va)",
+   "reasoning": "The agent creates a validation set inside the cross-validation loop but completely forgets to evaluate any of its models on it, resulting in no internal validation score being computed.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Although the models are stochastic, they are trained over 5 cross-validation folds and their test predictions are averaged, reducing variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute or report any evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col])",
+   "reasoning": "The agent collapses a survival-analysis problem into plain binary classification and fails to drop the 'time' (follow-up period) column, resulting in severe target leakage because the time-to-event is used to predict the event itself.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col])",
+   "reasoning": "The agent relies entirely on the raw columns and does not construct any derived features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_test_pred = (\n        0.30 * lgb_model.predict_proba(X_test)[:, 1] +\n        0.30 * xgb_model.predict_proba(X_test)[:, 1] +\n        0.30 * cat_model.predict_proba(X_test)[:, 1] +\n        0.10 * lr_model.predict_proba(X_test_scaled)[:, 1]\n    )",
+   "reasoning": "The agent blends the predictions of four distinct models using hardcoded, arbitrary weights instead of tuning the ensemble through a search or using a meta-model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage Across CV Folds",
+   "description": "Imputation statistics (like median or mode) are calculated on the entire training dataset before it is split into cross-validation folds. This leaks information from the validation folds into the training folds, making the validation performance overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\nX[col] = X[col].fillna(median_val)\n# ... later ...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):"
+  }
+ ],
+ "summary": "The agent structures a modeling pipeline using multiple gradient boosting frameworks and logistic regression, but fails critically in evaluation and task formulation. Most notably, it constructs a cross-validation setup but forgets to evaluate the validation set, meaning no performance metric is ever computed. Furthermore, it treats a survival analysis task as standard binary classification and leaves the 'time' feature in the dataset, leading to massive target leakage.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

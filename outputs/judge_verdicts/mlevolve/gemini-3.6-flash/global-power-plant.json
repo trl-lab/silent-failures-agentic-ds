@@ -1,0 +1,158 @@
+{
+ "task": "global-power-plant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent separates train and test sets for all global transformations and properly fits encoders only on the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by imputing missing values and handling categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling for the neural network is correctly performed inside the cross-validation loop after splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is fitted only on the training set (X_raw), avoiding leakage of test missing-value statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, etc.) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes BatchNorm, Dropout (0.15), and weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE, which perfectly matches the designated metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent generates multiple domain-informed features, including spatial KNN density metrics, generation statistics, and group-level frequency encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an SLSQP optimizer to find the optimal blending weights rather than using a naive unweighted average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "train_test_knn_skew",
+   "description": "When constructing KNN distance features, the agent queries the training set against a tree built on the exact same training set. This causes the first nearest neighbor for training samples to always be the point itself (distance 0), while test samples have non-zero distances. This introduces a systematic train-test distribution skew.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "nn_tree.fit(train_lat_lon)\n...\ndistances, _ = nn_tree.kneighbors(coords)\ndf[\"nn_dist_mean_5\"] = distances[:, :5].mean(axis=1)"
+  },
+  {
+   "name": "unscaled_nn_target",
+   "description": "The agent trains a neural network for regression without scaling the target variable. Since the target (capacity_mw) can have very large values, this can lead to massive gradients and unstable training with MSE loss.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "train_dataset = TensorDataset(torch.tensor(X_tr_sc, dtype=torch.float32), torch.tensor(y_tr, dtype=torch.float32).unsqueeze(1))"
+  },
+  {
+   "name": "cv_leakage_imputation",
+   "description": "Missing values are imputed using the median of the entire training dataset before performing cross-validation splitting. This leaks the distribution of the validation folds into the training folds, slightly compromising the integrity of the cross-validation.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_medians = X_raw[num_cols].median()\nX_raw[num_cols] = X_raw[num_cols].fillna(train_medians)"
+  },
+  {
+   "name": "optimistic_oof_blending",
+   "description": "The out-of-fold predictions used to optimize the ensemble blending weights are generated by models that use early stopping on those same validation folds. This makes the OOF predictions overly optimistic and can bias the meta-learner or blender.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_va, y_va)] ... callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)] ... res = minimize(blend_objective, ...)"
+  }
+ ],
+ "summary": "The solution is a well-structured pipeline using cross-validation and an optimized ensemble of LightGBM, XGBoost, CatBoost, and a PyTorch Neural Network. The agent correctly avoids peeking at test data for global transformations. However, there is a critical flaw in the spatial KNN feature engineering where querying the training data against itself includes self-distances of zero, creating a systematic train-test distribution skew. Additionally, there are minor data leakages in the cross-validation setup due to global imputation and using early-stopped OOF predictions for blending.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

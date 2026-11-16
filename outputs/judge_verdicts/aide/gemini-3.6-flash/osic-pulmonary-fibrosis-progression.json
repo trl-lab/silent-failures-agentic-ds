@@ -1,0 +1,149 @@
+{
+ "task": "osic-pulmonary-fibrosis-progression",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_vals = list(train_df[col].astype(str).unique()) + list(test_df[col].astype(str).unique())\nle.fit(all_vals)",
+   "reasoning": "The agent fits the LabelEncoder on the combined training and test sets, leaking test set categorical distributions into the preprocessing phase.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[features].copy()\n...\nmodel.fit(X_train, y_train,...)",
+   "reasoning": "The agent makes no explicit effort to handle missing values in the training set, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the features.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is limited to dropping identifier columns, not data-driven selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the full combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses GroupKFold on the 'Patient' column, which prevents temporal or intra-patient leakage across splits.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM Regressor is an appropriate model type for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with an explicit validation set for each fold.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds, which inherently accounts for variance in data splitting.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_mae = mean_absolute_error(y, oof_preds)\nprint(f\"Validation MAE: {cv_mae:.4f}\")",
+   "reasoning": "The agent computes and reports only the Mean Absolute Error (MAE), without checking any secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a regression problem to predict FVC, matching the provided target context.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers meaningful features, such as baseline FVC and time differences (Weeks_Diff).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent merely averages predictions across cross-validation folds, which is standard practice rather than naive ensembling of different model types.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "failure_to_expand_test_set",
+   "description": "The task requires predicting outcomes for multiple future time steps (e.g., all weeks) for each test entity, but the agent only predicts on the raw provided test rows without expanding the dataset to cover the required time steps.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = test_df[features].copy()\n...\ntest_preds += model.predict(X_test) / gkf.n_splits"
+  },
+  {
+   "name": "invalid_submission_format",
+   "description": "The agent generates a submission file with an arbitrary sequence of IDs instead of preserving or constructing the required task-specific string identifiers.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub = pd.DataFrame({\"id\": np.arange(len(test_preds)), \"FVC\": test_preds})"
+  }
+ ],
+ "summary": "The agent demonstrates a solid understanding of grouped time-series data by using GroupKFold and engineering appropriate baseline features. However, it fails critically on the specific submission requirements by not expanding the test set to predict all required future weeks and outputting arbitrary integers for the ID column. Additionally, the agent introduces minor test set leakage by fitting a LabelEncoder on combined train and test data.",
+ "agent": "aide",
+ "target_model": "gemini-3.6-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

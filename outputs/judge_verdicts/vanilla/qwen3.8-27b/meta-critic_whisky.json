@@ -1,0 +1,105 @@
+{
+ "task": "meta-critic_whisky",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for name in model_names:\n        model = make_model(name)\n        model.fit(x_train, y_train)",
+   "reasoning": "The agent trains stochastic models (LightGBM, XGBoost, CatBoost) exactly once with a fixed random seed, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_scores.append(rmse(y_val, pred))",
+   "reasoning": "The agent evaluates models using only RMSE, without checking any other metrics to gain a comprehensive view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "test_set_statistic_leakage",
+   "description": "The agent computes imputation statistics (such as medians) on the validation or test set itself rather than saving and applying the statistics learned from the training set. This causes a sample's predictions to depend on the other samples present in the test batch.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "x_test = prepare_features(test_df, vectorizer_full, categories_full, None)"
+  },
+  {
+   "name": "arbitrary_prediction_clipping",
+   "description": "The agent clips the final predictions to a hardcoded range without verifying if this matches the target variable's actual distribution. If the target is on a different scale (like 0-100, which is common for rating tasks), this will severely degrade the model's accuracy.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_predictions = np.clip(final_predictions, 0.0, 10.0)"
+  }
+ ],
+ "summary": "The agent implements a solid pipeline with good feature engineering for text and categorical columns, and uses an inverse-RMSE weighted ensemble. However, it fails to evaluate stochastic models over multiple seeds and relies solely on RMSE. More critically, it incorrectly computes median imputation values on the test set instead of carrying forward training set medians, and applies an arbitrary [0, 10] clipping to the final predictions which could be catastrophic if the target scale is higher.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "historic-perimeters-wildfires",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing them with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is correctly fit only on the training set (X_train) after the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = train_df[col].median()\n    train_df[col].fillna(median_val, inplace=True)\n...\nX_train, X_val, y_train, y_val = train_test_split(\n    train_df[feature_cols]",
+   "reasoning": "The median for imputation is calculated on the entire training dataframe before it is split into train and validation sets, leaking validation set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "While historic wildfires inherently occur over time, it is not possible to confirm from the code alone whether the dataset includes a temporal feature that mandates a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into train and validation sets and evaluates the model on the validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=1000,\n    valid_sets=[val_data],\n    callbacks=[lgb.early_stopping(50)],\n)",
+   "reasoning": "The LightGBM model is trained and evaluated only once, without using cross-validation or multiple runs with different seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, y_val_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without evaluating other metrics like MAE which could provide a more comprehensive view of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard regression task predicting gisacres.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = train_df.select_dtypes(include=[np.number]).columns.tolist()\nfeature_cols = [c for c in feature_cols if c != target_col and c != id_col]",
+   "reasoning": "The agent completely ignores non-numeric columns and uses raw numeric features without creating any derived features or transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission ID generation",
+   "description": "The agent generates submission IDs using a simple numerical sequence (e.g., `range(len(test_df))`) instead of preserving the actual identifier column from the test dataset. This will likely cause the submission to fail evaluation if the test IDs are not a 0-indexed contiguous sequence.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame({id_col: range(len(test_df)), target_col: y_test_pred})"
+  }
+ ],
+ "summary": "The agent provides a basic LightGBM regression pipeline but introduces a data leakage issue by imputing missing values before splitting into train and validation sets (FM04). The solution also lacks any feature engineering (FM07), evaluates the stochastic model only once (FM14), and uses only a single evaluation metric (FM15). Crucially, it hardcodes the submission IDs as a range rather than extracting them from the test set, which will likely cause the submission to fail downstream evaluation.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

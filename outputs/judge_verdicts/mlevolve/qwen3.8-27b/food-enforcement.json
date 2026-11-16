@@ -1,0 +1,152 @@
+{
+ "task": "food-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "print(f\"\\nMissing values (test):\\n{test.isnull().sum()[test.isnull().sum() > 0]}\")",
+   "reasoning": "The agent inspects test set missing value statistics during the data exploration phase, which constitutes peeking at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing medians for numeric columns and mapping unseen categories.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fit only on X_train before transforming X_val and test.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation medians are correctly calculated only from X_train.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no clear temporal column indicating a time series nature, so it cannot be determined if a time-based split is required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multi-class classification model (LightGBM) for this task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a 15% validation split and evaluates the model on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(\n    X_train_loaded,\n    y_train_loaded,\n    eval_set=[(X_val_loaded, y_val_loaded)],\n    callbacks=callbacks,\n)",
+   "reasoning": "The agent trains a single instance of a stochastic model (LightGBM) and reports its performance without averaging over multiple runs or cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent prints a full classification report (precision, recall, f1-score) in addition to the target metric (accuracy).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers new row-wise meta-features (mean, std, min, max, range, skew).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "LabelEncoder corruption on test data",
+   "description": "The agent re-fits the LabelEncoder when encountering unseen categories in the test set. This changes the internal integer mappings, causing the test set to be encoded differently than the training set and destroying the meaning of the categorical features for the model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if \"__UNSEEN__\" not in le.classes_:\n        le.fit(pd.concat([combined, pd.Series([\"__UNSEEN__\"])], axis=0))\n    test[col] = le.transform(test[col])"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent extracts and saves the original test IDs but then ignores them when creating the final submission, instead using a simple integer range. This will cause the submission to fail if the evaluator expects the original identifier strings.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame(\n    {\"id\": range(len(test_pred_labels)), \"classification\": test_pred_labels}\n)"
+  },
+  {
+   "name": "Dropped n_estimators parameter",
+   "description": "The agent pops the `n_estimators` parameter from the LightGBM config but never passes it to the model constructor or `fit` method. As a result, the model falls back to the default 100 trees instead of the intended 2000.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "n_estimators = lgb_params_loaded.pop(\"n_estimators\")"
+  }
+ ],
+ "summary": "The agent implements a generally well-structured pipeline but introduces a critical data corruption bug by re-fitting the LabelEncoder on test data. Additionally, the agent fails to use the original test IDs for the submission file and mistakenly drops the `n_estimators` parameter, severely limiting the model's training length.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,163 @@
+{
+ "task": "house-prices-advanced-regression-techniques",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for EDA or inappropriate preprocessing design, though it is used to build the categorical vocabulary which is acceptable in this context.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled via median imputation for numeric features and a 'Missing' category for categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is fitted on the training set (X) only, so test statistics do not leak into training (though it does leak validation into train across CV folds, covered separately).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so random splitting via KFold is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor, XGBRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation split, so there is an internal train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, which accounts for variance, rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report or optimise using any evaluation metric at all.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem with a log-transformed target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=['Id', 'SalePrice'])",
+   "reasoning": "The agent uses the raw columns with only basic imputation and encoding, and creates no derived features or domain-specific transforms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "final_log_preds = 0.4 * lgb_preds + 0.4 * cat_preds + 0.2 * xgb_preds",
+   "reasoning": "The agent ensembles predictions using manually hardcoded weights without any tuning or validation to justify the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "incorrect_submission_format",
+   "description": "The agent constructs the submission file using a generated sequence for the ID column instead of the original IDs from the test set, and uses the wrong column name casing ('id' instead of 'Id'). This will cause a submission error on Kaggle.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(final_preds))"
+  },
+  {
+   "name": "missing_validation_evaluation",
+   "description": "The agent implements a cross-validation split but never calculates or logs any evaluation metric on the validation folds, making it impossible to assess model generalisation or tune hyperparameters before submission.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in kf.split(X):\n    ... \n    lgb_preds += lgb.predict(X_test) / kf.n_splits"
+  },
+  {
+   "name": "leakage_in_cv_preprocessing",
+   "description": "Preprocessing steps (like median imputation) are calculated on the entire training set before the cross-validation loop. This leaks information from the validation folds into the training folds, which would artificially inflate validation scores if they were computed.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\n    X[col] = X[col].fillna(median_val)"
+  },
+  {
+   "name": "unspecified_categorical_features",
+   "description": "Categorical variables are integer-encoded but not explicitly declared as categorical to the tree-based models (e.g., via `cat_features` or Pandas category dtypes). As a result, the models treat these variables as continuous, which is suboptimal for categorical data.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].map(cat_mapping).astype(int)\n    ... \n    cat.fit(X_tr, y_tr, eval_set=(X_va, y_va), early_stopping_rounds=50, verbose=False)"
+  }
+ ],
+ "summary": "The solution implements a basic machine learning pipeline using cross-validated tree models, but fails to execute key data science workflows correctly. Crucially, the final submission uses arbitrary IDs rather than the required test IDs, which will invalidate the submission. Furthermore, the agent lacks any feature engineering, leaks validation data during imputation, fails to compute a validation score to estimate generalisation, and treats encoded categorical features as continuous variables.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

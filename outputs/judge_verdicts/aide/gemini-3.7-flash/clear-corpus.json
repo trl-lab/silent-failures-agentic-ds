@@ -1,0 +1,149 @@
+{
+ "task": "clear-corpus",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_texts = train_df[text_col].fillna(\"\").astype(str)",
+   "reasoning": "The agent explicitly handles missing values in the text column by filling them with empty strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_dense_train = scaler.fit_transform(...)\nX_dense_test = scaler.transform(...)",
+   "reasoning": "The scaler is correctly fitted only on the training set and then applied to the test set, preventing test statistics from leaking.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_word_train = word_vec.fit_transform(train_texts)\nX_word_test = word_vec.transform(test_texts)",
+   "reasoning": "Feature selection and extraction (TF-IDF, SVD) are properly fitted on the training set only, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal component requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = Ridge(alpha=3.0, random_state=42, solver=\"auto\")",
+   "reasoning": "A regression model (Ridge) is correctly used for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, which inherently involves multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"5-Fold CV RMSE: {cv_rmse:.5f}\")",
+   "reasoning": "The agent evaluates and reports only a single metric (RMSE) without verifying its robustness or looking at complementary metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correct; it predicts 'BT Easiness' directly as a regression target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def extract_readability_features(texts):",
+   "reasoning": "The agent performs extensive and highly relevant feature engineering, extracting multiple readability scores and text statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_full_test) / kf.n_splits",
+   "reasoning": "Averaging predictions across CV folds is standard bagging practice and does not require complex tuning like stacking would.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation leakage",
+   "description": "Fitting data transformations (such as TF-IDF, PCA, and scalers) on the entire training set before performing cross-validation splits leaks information from the validation folds into the training folds, making the CV scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_word_train = word_vec.fit_transform(train_texts)\n...\nscaler.fit_transform(...)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_full_train, y)):"
+  },
+  {
+   "name": "Redundant feature inclusion (Multicollinearity)",
+   "description": "Including both the raw high-dimensional features and their lower-dimensional SVD projections in the final feature matrix introduces massive multicollinearity and redundancy.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_full_train = hstack([X_word_train, X_char_train, X_dense_train]).tocsr()"
+  }
+ ],
+ "summary": "The agent builds a robust baseline using extensive readability feature engineering, TF-IDF vectorization, and Ridge regression. However, it applies all data transformations to the entire training set before splitting it for cross-validation, which causes target leakage across folds and results in overly optimistic CV scores. Additionally, the agent concatenates both the sparse TF-IDF matrices and their dense SVD representations into the final feature set, creating unnecessary redundancy.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,104 @@
+{
+ "task": "avito-demand-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "vec = TfidfVectorizer(max_features=40000, ngram_range=(1, 2), min_df=3)\nX_text = vec.fit_transform(combined_text)",
+   "reasoning": "The TF-IDF vectorizer selects the top 40,000 features based on the term frequencies of the combined train and test datasets, leaking test information into the feature selection process.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset has a temporal component (activation_date), but the agent uses a random cross-validation split instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "execution_crash_categorical_fillna",
+   "description": "The script crashes due to a TypeError when attempting to fill missing values with a string on a column that has already been converted to a categorical type, where the string is not a valid category.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "p1_text = df[\"param_1\"].fillna(\"\").astype(str) if \"param_1\" in df.columns else \"\""
+  },
+  {
+   "name": "feature_engineering_leakage",
+   "description": "Grouped statistics (such as group means or counts) are computed on the combined train and test datasets prior to splitting, leaking the distribution of test set features into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_price_mean = df.groupby(\"category_name\")[\"price_log\"].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with text TF-IDF extraction, LightGBM, and proper out-of-fold stacking. However, the code ultimately crashes due to a pandas TypeError when manipulating categorical columns. Methodologically, the solution leaks test data into the training process by fitting the TF-IDF vectorizer and computing grouped statistics on the combined dataset, and ignores both the temporal and user-grouped nature of the data during cross-validation.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

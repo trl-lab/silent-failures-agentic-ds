@@ -1,0 +1,145 @@
+{
+ "task": "commitments-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use the test set during the setup of the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing data in numeric columns using a SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is correctly fitted only on the training split inside the ColumnTransformer.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The SimpleImputer is fitted on X_train_split after the train/validation split has occurred.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear whether the dataset contains a temporal element that necessitates a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is performed using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_split, X_val_split, y_train, y_val = train_test_split(..., random_state=42)",
+   "reasoning": "The agent performs a single train/validation split and relies on a single random seed, rather than using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = mean_squared_error(y_val, y_val_pred, squared=False)",
+   "reasoning": "The agent only computes RMSE and does not verify performance with secondary metrics (like MAE) which might be more robust to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the task correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_features = X_train.select_dtypes(include=[\"int64\", \"float64\"]).columns.tolist()",
+   "reasoning": "The agent uses raw numeric columns as-is without any derived features, domain transformations, or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Silent exclusion of categorical and text features",
+   "description": "By configuring a ColumnTransformer exclusively for numeric features and relying on the default behavior of `remainder='drop'`, all non-numeric features are silently discarded, leading to a substantial loss of potential signal.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor_train = ColumnTransformer(transformers=[('num', Pipeline(...), numeric_features)])"
+  },
+  {
+   "name": "Unsafe file path writing without directory creation",
+   "description": "Attempting to save a DataFrame to a nested directory without first ensuring the directory exists often results in a FileNotFoundError. This likely caused the script execution crash noted in the process log.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df.to_csv('./submission/submission.csv', index=False)"
+  }
+ ],
+ "summary": "The agent successfully avoids data leakage by properly splitting the data before applying imputation and scaling. However, its solution is overly simplistic: it drops all non-numeric features and performs zero feature engineering. Furthermore, saving the final output to a nested path without ensuring the directory exists caused a critical execution failure.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

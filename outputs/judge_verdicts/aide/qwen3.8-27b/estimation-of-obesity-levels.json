@@ -1,0 +1,145 @@
+{
+ "task": "estimation-of-obesity-levels",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data distributions for EDA or fitting preprocessors.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans data by dropping missing targets and imputing missing features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed prior to splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_value = train[col].median()\n        if pd.isna(median_value):\n            median_value = 0.0\n\n        train[col] = train[col].fillna(median_value)",
+   "reasoning": "The agent computes the median for numerical imputation on the entire training set before splitting it into cross-validation folds, leaking validation set distribution statistics into the training folds.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification model for a multiclass task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold for cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic LightGBM model is evaluated across 5 cross-validation folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for and reports accuracy, which is the exact required metric for this specific task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers a BMI feature based on Height and Weight.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "rule_weight = 0.6\n    lgb_weight = 1.0 - rule_weight\n... valid_probs = rule_weight * valid_rule_probs + lgb_weight * valid_lgb_probs",
+   "reasoning": "The agent combines the rule-based probabilities and LightGBM probabilities using an arbitrarily hardcoded weight ratio (0.6 / 0.4) without performing any tuning or search to optimize the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "pandas_deprecated_astype_categories",
+   "description": "The agent uses `astype(\"category\", categories=...)` which has been removed in modern pandas versions and will raise a TypeError, causing the script to crash. The correct approach is to use `pd.CategoricalDtype`.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train[col] = train[col].astype(\"category\", categories=train_categories)"
+  },
+  {
+   "name": "incorrect_domain_formula",
+   "description": "The agent incorrectly assumes the 'Height' column is in centimeters and divides by 100 before squaring it for the BMI calculation. In this dataset, 'Height' is already provided in meters, so dividing by 100 will produce astronomically high BMI values and completely break the rule-based predictor.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "bmi = weight / (height / 100.0) ** 2"
+  }
+ ],
+ "summary": "The agent correctly formulates the task and includes a clever domain-specific rule-based model for BMI, but makes critical execution and logic errors. It uses an obsolete pandas syntax that will crash the script, incorrectly calculates BMI by assuming Height is in centimeters instead of meters, and leaks validation data by imputing missing values before cross-validation splitting. Additionally, the ensemble weights are hardcoded without tuning.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

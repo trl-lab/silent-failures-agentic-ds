@@ -1,0 +1,130 @@
+{
+ "task": "first-time-nadac-rates",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data during the setup or preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train[TARGET] = train[TARGET].replace([np.inf, -np.inf], np.nan)\ntrain = train.dropna(subset=[TARGET])",
+   "reasoning": "The agent cleans the target variable by handling infinite values and dropping missing targets, while relying on preprocessing and LightGBM to handle feature missingness.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any global scaling or normalisation before splitting the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pre = build_preprocessor(X_fit)\n\n    if pre is None:\n        return np.full(len(X_eval), float(np.mean(y_fit))), 0\n\n    X_fit_p = clean_matrix(pre.fit_transform(X_fit))\n    X_eval_p = clean_matrix(pre.transform(X_eval))",
+   "reasoning": "The preprocessing pipeline, which handles missing value replacement and encoding, is fit exclusively on the training folds (X_fit).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses random K-Fold splits. If the dataset has a temporal structure (which might be the case for historical drug pricing rates), this would cause look-ahead bias, but this cannot be verified without seeing the data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression_l2\",\n\"metric\": \"rmse\",",
+   "reasoning": "The agent correctly uses a regression objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly evaluates the model using 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.mean(fold_scores))",
+   "reasoning": "The agent evaluates the model across 5 distinct validation folds and averages the scores, rather than evaluating it exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_scores.append(root_mean_squared_error(y_va, pred_va))",
+   "reasoning": "The agent evaluates and reports only RMSE, without calculating secondary metrics like MAE or R-squared to ensure a well-rounded view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the problem correctly as predicting the continuous target variable 'NADAC Rate'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "transformers.append((\"num\", num_pipe, numeric_cols))\n...\ntransformers.append((\"cat\", cat_pipe, cat_cols))",
+   "reasoning": "The agent uses the raw columns with basic type casting and one-hot encoding, completely omitting any domain-informed derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a clean and logically sound solution with no major data leakage issues. Cross-validation is implemented correctly, and the preprocessing pipeline is strictly fit on training data. However, the solution lacks feature engineering and relies solely on a single evaluation metric (RMSE), which limits the robustness of the model and its evaluation.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,134 @@
+{
+ "task": "home-credit-credit-risk-model-stability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or inspect the test set statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by dropping features with >95% missing values, explicitly encoding categorical variables, and allowing the LightGBM model to natively handle remaining missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is applied, which is appropriate for tree-based models like LightGBM.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (e.g., dropping columns based on missing ratios or zero variance) is strictly derived from the `train_df` inside the `handle_categorical_and_missing` function after the split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit imputation before splitting; categorical mappings are correctly applied and numerical missing values are left for the model.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification model (LightGBMClassifier) for this binary credit risk task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent utilizes StratifiedShuffleSplit to create an 80/20 train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)\n    train_idx, val_idx = next(sss.split(full_train, full_train[\"target\"]))",
+   "reasoning": "The agent evaluates a stochastic model (LightGBM with feature/row subsampling) on a single validation split, without cross-validation or multiple seeds to estimate variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def evaluation_metric(y_true, y_pred):\n        return roc_auc_score(y_true, y_pred)",
+   "reasoning": "The agent relies exclusively on ROC AUC for evaluation and does not calculate secondary metrics (e.g., PR AUC, log loss, or calibration) that are important for imbalanced credit risk data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including datetime relative offsets and statistical aggregations for nested depth-1 and depth-2 tables.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inefficient Memory Management Leading to Timeout",
+   "description": "The agent reads all partitions of large relational tables into memory simultaneously using Pandas and concatenates them before aggregating. For massive datasets, this causes severe memory swapping, out-of-memory errors, or extreme execution times, resulting in a timeout.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "dfs = [pd.read_parquet(fp) for fp in file_paths]\n    df = pd.concat(dfs, axis=0, ignore_index=True)"
+  }
+ ],
+ "summary": "The agent has written a reasonably well-structured data science pipeline with appropriate train/validation splitting, careful categorical encoding that prevents leakage, and extensive domain-aware feature engineering. However, the model evaluation is limited to a single split and metric. Furthermore, the solution is fundamentally flawed in its memory management strategy: attempting to concatenate all chunks of massive 1-to-many tables in Pandas causes the script to time out.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

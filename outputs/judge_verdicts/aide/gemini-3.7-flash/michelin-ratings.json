@@ -1,0 +1,149 @@
+{
+ "task": "michelin-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with median or empty strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard numerical scaler (like StandardScaler) is used before splitting, though other transformations leak data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\n    svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TF-IDF and TruncatedSVD are fit on the combined train and test dataset before splitting, leaking test vocabulary and distributions into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lat_median = combined_df[\"latitude\"].median()\n    lon_median = combined_df[\"longitude\"].median()\n    combined_df[\"lat_filled\"] = combined_df[\"latitude\"].fillna(lat_median)",
+   "reasoning": "Missing geographic coordinates are imputed using the median calculated across both the training and test sets, leaking test set statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task does not possess a strict temporal structure that would require time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "CatBoostClassifier with 'MultiClass' loss is appropriate for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses StratifiedKFold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 folds, which inherently assesses variance, avoiding a single point estimate from one split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y_train, oof_pred_labels)\nprint(f\"Validation Accuracy: {cv_accuracy:.5f}\")",
+   "reasoning": "The agent uses only accuracy to evaluate the multi-class model, which can be misleading if the award classes are imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a multi-class classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including text vectorization, clustering, and distance calculation.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test) / n_splits",
+   "reasoning": "The agent uses a simple unweighted average to combine predictions from the multiple fold models without attempting to optimize the ensemble weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Frequency Encoding",
+   "description": "Calculating the frequency or target encoding of categorical variables on the concatenated train and test data before splitting leaks the test set distribution of these categories into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined_df[c].value_counts(normalize=True).to_dict()\n    combined_df[f\"{c}_freq\"] = combined_df[c].map(freq).fillna(0).astype(float)"
+  },
+  {
+   "name": "Data Leakage via Clustering",
+   "description": "Fitting an unsupervised clustering algorithm (like KMeans) on the combined train and test sets before splitting leaks test set spatial distributions into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kmeans = KMeans(n_clusters=20, random_state=42, n_init=5)\n    combined_df[\"geo_cluster\"] = kmeans.fit_predict(coords)"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline using CatBoost and StratifiedKFold with extensive feature engineering. However, the solution suffers from systemic data leakage because almost all preprocessing steps (median imputation, TF-IDF, TruncatedSVD, KMeans clustering, and frequency encoding) are applied to a concatenated dataset of train and test sets before splitting. Additionally, it relies solely on accuracy for evaluation and uses naive unweighted averaging for ensembling.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

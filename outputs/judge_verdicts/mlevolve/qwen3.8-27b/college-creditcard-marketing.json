@@ -1,0 +1,145 @@
+{
+ "task": "college-creditcard-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train[col].dropna(), (test[col].dropna() if col in test.columns else pd.Series([], dtype=\"object\"))], axis=0).astype(str)\nuniques = sorted(combined.unique())\nmapping = {v: i for i, v in enumerate(uniques)}",
+   "reasoning": "The agent builds the vocabulary for categorical encoding using unique values from both the train and test sets, which leaks test data information into the training preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly drops rows with missing targets and handles missing values appropriately for a LightGBM model (mapping categorical NaNs to a sentinel value and leaving numeric NaNs for native tree handling).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The only feature selection is dropping 100% missing columns, which is computed strictly on the train set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While categorical encoding uses test data (captured in FM02), no statistical imputation (like mean/median) is fit on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no indication in the task description or code that this is a time series problem requiring temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A proper train/validation split is implemented using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_part, val_part = train_test_split(train, test_size=0.20, random_state=42)\n... \nmodel = lgb.LGBMRegressor(**LGB_PARAMS, n_estimators=3000)\nmodel.fit(...)",
+   "reasoning": "The agent evaluates a stochastic model (LightGBM with feature and row subsampling) on a single random split exactly once, making the validation score susceptible to high variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = root_mean_squared_error(y_va, val_pred)\nprint(f\"Validation RMSE: {val_rmse:.6f}\")",
+   "reasoning": "The agent computes and reports only RMSE, without supplementing it with other metrics like MAE or R2 to verify model robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly framed as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# 2. PREPROCESS \u2013 convert every feature to a numeric column",
+   "reasoning": "The agent performs basic type coercion and label encoding but creates zero derived features, interactions, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unsafe Type Casting on Missing Values",
+   "description": "Casting pandas columns directly to integer types without verifying the absence of NaN values will cause the code to crash with a ValueError or IntCastingNaNError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if t_dtype == \"bool\":\n    train[col] = train[col].astype(int)\n    test[col] = test[col].astype(int) if col in test.columns else np.nan"
+  },
+  {
+   "name": "Mocked Submission IDs",
+   "description": "Generating arbitrary sequential IDs for the submission file instead of using the actual identifier column provided in the test set will likely result in a failed submission evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test)), \"PAYMENTS_BY_ISSUER\": test_pred})"
+  }
+ ],
+ "summary": "The agent's solution provides a functional baseline using LightGBM but suffers from a few critical flaws. It leaks test set vocabulary during categorical encoding, lacks any feature engineering, and uses a single train/validation split for a stochastic model. Most problematically, the script contains execution bugs related to unsafe integer casting on NaN values and hardcodes arbitrary submission IDs, which will cause pipeline failures.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

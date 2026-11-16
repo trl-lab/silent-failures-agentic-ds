@@ -1,0 +1,152 @@
+{
+ "task": "historical-volcanic-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for col in feature_cols:\n        # Check if column is numeric or object\n        if X_train[col].dtype == 'object':",
+   "reasoning": "The agent makes an explicit attempt to impute missing values for both numeric and categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The data is loaded already split into train and test sets, and the agent calculates imputation statistics on the training set (even though the subsequent assignment is flawed).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The train/test split is pre-defined by the provided files.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(",
+   "reasoning": "The agent correctly uses a classifier for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n    \n    # Make Predictions\n    predictions = model.predict(X_test)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without establishing any validation set to evaluate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any model evaluation, so they do not perform a single evaluation of a stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]\n...\nmodel.fit(X_train, y_train)",
+   "reasoning": "The agent uses the raw columns as-is, with no derived features or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overwriting test data with train data",
+   "description": "The agent assigns a transformed training column directly to the test dataframe, effectively overwriting the test set features with training data and causing index/length mismatch errors.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val = X_train[col].fillna(X_train[col].median())\n        X_train[col] = val\n        X_test[col] = val # Apply same transformation"
+  },
+  {
+   "name": "Invalid pandas fillna syntax",
+   "description": "The agent passes an invalid keyword argument to pandas fillna (`mode=...` instead of `value=...`), which will cause a TypeError and crash the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val = X_train[col].fillna(mode=X_train[col].mode()).replace('', 'Unknown')"
+  },
+  {
+   "name": "Unspecified categorical features for CatBoost",
+   "description": "The agent uses object/string columns with CatBoostClassifier but fails to specify the `cat_features` parameter or convert the columns to pandas 'category' dtype, which will cause a CatBoostError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = CatBoostClassifier(\n        iterations=1000,\n        max_depth=6,\n        verbose=0,\n        random_state=42,\n        learning_rate=0.05,\n        loss_function='MultiClass',\n        num_classes=len(np.unique(y_train)),\n        eval_metric='Accuracy'\n    )"
+  }
+ ],
+ "summary": "The agent correctly identifies the task type and attempts basic imputation, but the implementation is fundamentally broken due to severe execution errors. Most critically, the imputation logic assigns the computed training column directly to the test dataframe, destroying the test set features. Furthermore, invalid arguments to pandas methods and missing `cat_features` configuration for CatBoost ensure the code will crash.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

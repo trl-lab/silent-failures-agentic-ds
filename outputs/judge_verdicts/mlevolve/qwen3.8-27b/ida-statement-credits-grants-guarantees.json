@@ -1,0 +1,105 @@
+{
+ "task": "ida-statement-credits-grants-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(fold_val_y, fold_val_preds)",
+   "reasoning": "The agent evaluates the model using only RMSE and does not compute any secondary metrics (like MAE or R-squared) to better understand the model's performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_test_preds += fold_model.predict(test_X, num_iteration=fold_model.best_iteration_) / n_splits",
+   "reasoning": "The agent combines the predictions from the cross-validation folds using a simple unweighted average, without attempting to optimize the combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation leakage",
+   "description": "Imputation and categorical encoding are fitted on an initial training subset (85% of the data), but the data is subsequently recombined to perform 5-fold cross-validation. This leaks the preprocessing statistics into the CV validation folds, making the CV scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_data_X = pd.concat([train_X, val_X], axis=0).reset_index(drop=True)\n... for fold, (train_idx, val_idx) in enumerate(kf.split(all_data_X)):"
+  },
+  {
+   "name": "Unused final model",
+   "description": "The agent explicitly trains a final model on the full dataset but ignores it when generating the test predictions, instead relying on the CV-averaged predictions and wasting the compute used for the final training.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_model.fit(\n    all_data_X, all_data_y,\n...\n# Use CV-averaged test predictions\ntest_preds_original = cv_test_preds"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with appropriate date-based feature engineering and a robust cross-validation setup. However, it introduces moderate leakage into the cross-validation loop by computing imputation statistics on an initial split and then recombining the data for CV. Furthermore, it wastes compute by training a final model that is never actually used for inference.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

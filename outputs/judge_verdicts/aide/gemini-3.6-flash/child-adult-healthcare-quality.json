@@ -1,0 +1,148 @@
+{
+ "task": "child-adult-healthcare-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if converted_numeric.notna().sum() > 0.5 * len(df_all):",
+   "reasoning": "The agent uses the proportion of non-null values in the combined train and test sets to decide whether to convert columns to numeric or datetime, leaking the test set's distribution into the preprocessing logic.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the target column, explicitly fills missing values in categorical columns, and relies on LightGBM's native handling for numericals, which constitutes an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The only imputation is a constant fillna('Missing') for categoricals, which does not leak any statistics from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if this specific healthcare quality dataset requires a temporal split, as it may just be cross-sectional panel data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regressor for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic LightGBM model is evaluated across 5 folds, which accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y_train, oof_preds)",
+   "reasoning": "The agent only computes and reports RMSE, without verifying performance with other metrics (like MAE or R2) to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a straightforward regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts year, month, and day features from date columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict(X_test) / kf.n_splits",
+   "reasoning": "The agent combines the models from the 5 CV folds using a simple, unweighted average without attempting to optimize the blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Redundant high-cardinality features",
+   "description": "When extracting date components (year, month, day), the agent fails to drop the original date column. The original dates are subsequently encoded as high-cardinality categorical features, which can lead to overfitting or inefficient tree splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[f\"{col}_year\"] = parsed_dates.dt.year\n# (original column `col` is never dropped)"
+  },
+  {
+   "name": "Ineffective missing value filling for strings",
+   "description": "Casting the entire column to string before filling NaNs converts actual null values into the string 'nan'. As a result, subsequent `.fillna('Missing')` calls are ineffective, leaving 'nan' as a category.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].astype(str).fillna(\"Missing\").astype(\"category\")"
+  }
+ ],
+ "summary": "The agent implements a reasonable LightGBM pipeline with K-Fold cross-validation and basic preprocessing. However, it introduces minor data leakage by using the combined dataset's size to dictate preprocessing logic, fails to drop original date columns after feature extraction (creating high-cardinality noise), and relies on a single evaluation metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

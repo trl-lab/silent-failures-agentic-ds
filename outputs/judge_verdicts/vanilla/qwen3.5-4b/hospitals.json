@@ -1,0 +1,109 @@
+{
+ "task": "hospitals",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "clf.fit(X_final_train.to_numpy(), y_train.values)\n\n# Predictions\npredictions = clf.predict(X_final_test.to_numpy()).reshape(-1,)",
+   "reasoning": "The agent trains the model on the full training set and predicts on the test set without any internal validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "clf = lgb.LGBMRegressor(\n    objective='regression',\n    learning_rate=0.05,\n    num_leaves=31,\n    max_depth=8,\n    n_estimators=1000,\n    random_state=42,\n    verbose=-1,\n    silent=True\n)\nclf.fit(X_final_train.to_numpy(), y_train.values)",
+   "reasoning": "The stochastic LightGBM model is trained exactly once rather than utilizing multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_X_train = pd.concat([X_train[num_cols], X_train[cat_cols]], ignore_index=True)",
+   "reasoning": "The agent applies only basic imputation and encoding without creating any domain-informed or derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Failure",
+   "description": "The script contains multiple fatal errors preventing execution, including a KeyError during column filtering, assigning DataFrames to single columns, missing axis=1 in concatenation causing row/column misalignment, and calling undefined variables (e.g., X_test before it is defined).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train_series = train_df.loc[train_df.index, [col for col in common_cols if col == TARGET_COLUMN]][TARGET_COLUMN]"
+  },
+  {
+   "name": "Test Set Statistic Leakage",
+   "description": "The agent imputes missing values in the test set using statistics (e.g., median, mode) calculated from the test set itself, rather than properly applying the statistics learned from the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test['temp_numeric'] = pd.concat([X_test[c].fillna(X_test[c].median()) for c in num_cols], axis=1)"
+  }
+ ],
+ "summary": "The agent's solution crashes due to several fatal coding errors, including a KeyError resulting from flawed column filtering and poorly structured pandas operations. Setting the crashes aside, the agent exhibits poor data science practices by applying imputation using test set statistics, failing to create a validation split, entirely skipping feature engineering, and evaluating a stochastic model only once.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

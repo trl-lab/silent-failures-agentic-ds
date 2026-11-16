@@ -1,0 +1,41 @@
+{
+ "task": "ida-statement-credits-grants-guarantees",
+ "failure_modes": {
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fabricated Submission IDs",
+   "description": "The agent generates the submission ID column using a sequential range (e.g., np.arange) instead of extracting the actual identifiers from the test set or a sample submission file, which causes predictions to be misaligned during evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame({\"id\": np.arange(len(test_final)), target_col: test_final})"
+  },
+  {
+   "name": "Train-Test Contamination via GroupBy Aggregation",
+   "description": "The agent calculates group-wise aggregated features (such as mean, std, min, max) on a concatenated dataset of both training and test sets, causing the test data distribution to leak into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_df_features = pd.concat([\n    pd.concat([train_df[top_group_cols], num_and_dur_train[numeric_target_cols]], axis=1),\n    pd.concat([test_df[top_group_cols], num_and_dur_test[numeric_target_cols]], axis=1)\n], axis=0, ignore_index=True)\n\nfor g_col in top_group_cols:\n    ...\n    agg_df = combined_df_features.groupby(g_col)[n_col].agg([\"mean\", \"std\", \"min\", \"max\"]).reset_index()"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with out-of-fold target encoding, text feature extraction, and optimized ensembling. However, it fails critically by generating fake sequential IDs for the submission file instead of using actual test identifiers, guaranteeing a severely misaligned evaluation. Additionally, it leaks test set statistics into the training data by computing groupby aggregations over a combined train-test dataframe.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

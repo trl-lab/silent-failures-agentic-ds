@@ -1,0 +1,138 @@
+{
+ "task": "kin8nm",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or look at test data distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"y\", axis=1)",
+   "reasoning": "The agent makes no effort to check for or handle missing values, duplicates, or outliers before modelling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n\n    # Create validation set\n    X_train_split, X_val, y_train_split, y_val = train_test_split(\n        X_train_scaled, y_train, test_size=0.2, random_state=42\n    )",
+   "reasoning": "The agent scales the entire training dataset before splitting it into training and validation sets, leaking validation statistics into the training distribution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation set and evaluates the model on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n            params,\n            train_data,\n            num_boost_round=500,\n            valid_sets=[train_data, val_data],",
+   "reasoning": "The agent trains and evaluates each stochastic LightGBM model configuration exactly once, rather than using K-Fold cross-validation or multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_score = np.sqrt(mean_squared_error(y_val, y_val_pred))",
+   "reasoning": "The agent evaluates model performance using only RMSE without looking at other metrics like MAE or R2 to assess robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the task correctly as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(\"y\", axis=1)",
+   "reasoning": "The agent uses the raw columns as-is without attempting any feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_test_pred = np.mean([model.predict(X_test_scaled) for model in models], axis=0)",
+   "reasoning": "The agent uses a naive unweighted average to combine the models without attempting to optimize the blend.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing directory creation for file output",
+   "description": "The agent attempts to save a file to a specific subdirectory without verifying that the directory exists or creating it, which can lead to FileNotFoundError/OSError crashes if the environment lacks the folder.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "submission_df.to_csv(\"./submission/submission.csv\", index=False)"
+  }
+ ],
+ "summary": "The agent's solution employs an ensemble of LightGBM models but suffers from a critical data leakage flaw by scaling the training data before performing the validation split. Furthermore, the solution is overly simplistic, missing data cleaning, feature engineering, and relying on naive averaging for the ensemble while evaluating each stochastic configuration only once.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

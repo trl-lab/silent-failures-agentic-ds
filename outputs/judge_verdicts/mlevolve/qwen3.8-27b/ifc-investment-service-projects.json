@@ -1,0 +1,138 @@
+{
+ "task": "ifc-investment-service-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or use test data during the setup of the modeling pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including target cleaning, dropping constants, and correctly casting numeric/categorical types.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature filtering (e.g., dropping constant features) is based purely on the training set within the `prepare_features` function.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are handled natively by LightGBM, and no global imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset involves project investments which likely have an approval date, but without seeing the dataset columns directly, it is unclear if a temporal split was strictly required over the random split used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly utilizes `train_test_split` to create a validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_model = make_model()\nval_model.fit(\n    x_train,\n    y_train,\n    eval_set=[(x_val, y_val)],",
+   "reasoning": "The LightGBM model relies on stochastic properties (e.g., subsample) but is trained and evaluated exactly once rather than across multiple seeds or cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = float(root_mean_squared_error(y_val, val_pred))",
+   "reasoning": "The agent only computes and reports RMSE, failing to look at other metrics (like MAE or R2) to get a more comprehensive understanding of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def prepare_features(\n    train_raw: pd.DataFrame, val_raw: pd.DataFrame, test_raw: pd.DataFrame\n):",
+   "reasoning": "The agent uses raw columns with only basic type conversions and fails to create any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent creates the final submission file by generating a new sequence of integers (`np.arange`) for the 'id' column instead of preserving the exact identifiers from the original test set. This will cause the submission to fail evaluation if the test set expects specific IDs (e.g., strings or non-sequential integers).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_pred), dtype=int)"
+  }
+ ],
+ "summary": "The agent follows generally safe data science practices, properly splitting the data before applying feature filtering and correctly handling missing values via the model. However, it fails to perform any feature engineering, evaluates its stochastic model only once on a single metric, and introduces a critical bug by hardcoding sequential IDs in the final submission file rather than retaining the original test IDs.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

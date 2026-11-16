@@ -1,0 +1,1 @@
+Wait, what if numeric columns contain `inf` or `-inf`?

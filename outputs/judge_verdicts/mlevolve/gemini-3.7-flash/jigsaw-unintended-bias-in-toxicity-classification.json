@@ -1,0 +1,142 @@
+{
+ "task": "jigsaw-unintended-bias-in-toxicity-classification",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing fitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are appropriately filled with empty strings for text processing.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The RobustScaler is correctly fit only on the training split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is fit before splitting; missing values are filled with a constant string.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No temporal order is provided or required for this dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model uses BCEWithLogitsLoss which is mathematically appropriate for handling the continuous probability targets (0 to 1) present in this dataset.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model includes Dropout layers and weight decay regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs a train/validation split using train_test_split with target stratification.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for epoch in range(1, epochs + 1):\n    model.train()",
+   "reasoning": "The stochastic PyTorch model is trained and evaluated only once without multiple runs or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_auc = roc_auc_score(y_val_binary, val_preds)",
+   "reasoning": "The agent evaluates the model's predictive performance using solely the ROC-AUC score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The formulation as continuous target prediction with BCE is a standard and effective approach for this task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts multiple dense linguistic features and uses TF-IDF representations.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inefficient Sparse-to-Dense Conversion",
+   "description": "The agent indexes a large CSR sparse matrix with a random permutation array and converts it to a dense array batch-by-batch. This non-contiguous indexing and repeated dense conversion of 75,000 features is extremely slow and memory-intensive, leading to a computational bottleneck and execution timeout.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "batch_indices = permutation[start_idx:end_idx]\n        batch_dense = X_train_sparse[batch_indices].toarray()"
+  }
+ ],
+ "summary": "The agent implements a deep MLP on top of TF-IDF and dense linguistic features, strictly avoiding data leakage by properly splitting the data before scaling and vectorizing. However, the model evaluates a stochastic architecture exactly once (FM14) and relies on a single metric (FM15). Most critically, the training loop performs random non-contiguous row indexing on a large CSR matrix and converts 75,000 sparse features to dense arrays per batch, resulting in massive computational overhead and a 2-hour execution timeout.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

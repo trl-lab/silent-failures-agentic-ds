@@ -1,0 +1,137 @@
+{
+ "task": "steel-plates-fault",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X[col].astype(str), X_test[col].astype(str)], axis=0)\n        le_feat.fit(combined)",
+   "reasoning": "The agent fits a LabelEncoder on the combined training and test data, leaking test set categorical distributions into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values, infinite values, and encodes categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "med = X.median()\nX = X.fillna(med)\nX_test = X_test.fillna(med)",
+   "reasoning": "Imputation statistics are correctly calculated using only the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses appropriate classification models (LGBM, XGB, CatBoost) for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X, y_encoded)):\n    X_tr, y_tr = X.iloc[train_idx], y_encoded[train_idx]",
+   "reasoning": "The agent sets up a cross-validation loop but completely ignores the validation indices (val_idx), failing to compute any metrics to estimate model generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No single evaluation is reported; in fact, no evaluation metrics are computed at all.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are reported or optimised by the agent.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = X.apply(pd.to_numeric, errors='coerce').replace([np.inf, -np.inf], np.nan)\nmed = X.median()\nX = X.fillna(med)",
+   "reasoning": "The agent uses the raw columns as-is, applying only basic type conversion and imputation, without engineering any new features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_probs = (test_preds_lgb + test_preds_xgb + test_preds_cat) / 3.0",
+   "reasoning": "The agent combines the predictions of three different models using a simple unweighted average without attempting to optimise the blending weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates submission IDs using an arithmetic sequence (e.g. np.arange) instead of preserving the identifier column from the test set, which can lead to invalid submissions if the true IDs are not sequential starting from 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\n    \"id\": np.arange(len(final_preds)),\n    \"target\": final_preds\n})"
+  }
+ ],
+ "summary": "The agent successfully trains an ensemble of gradient boosting models and makes predictions on the test set. However, it fails to perform any internal validation, completely ignoring the validation folds in its cross-validation loop. Additionally, it relies on naive ensembling, performs no feature engineering, leaks test data by fitting a LabelEncoder on the combined train and test sets, and incorrectly uses hardcoded sequential IDs for its final submission file.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "terms-cc-plans",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "full_df[col] = pd.to_numeric(full_df[col], errors=\"coerce\")",
+   "reasoning": "The agent actively cleans string columns by removing currency symbols and percentages before converting to numeric.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit any statistical imputers on the full dataset (only constant fillna is used).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset requires a strict temporal split, though a random KFold is used.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is regression and the agent properly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The stochastic models are evaluated across 5 folds, avoiding a single point estimate.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = root_mean_squared_error(y, oof_blend)\nprint(f\"Validation RMSE: {final_rmse:.5f}\")",
+   "reasoning": "The agent only computes RMSE and does not verify performance with any supplementary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task on the APR column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_df[col + \"_year\"] = parsed_dates.dt.year",
+   "reasoning": "The agent creates derived features from date columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "meta_model = Ridge(alpha=1.0, positive=True)",
+   "reasoning": "The agent uses a Ridge regression meta-learner to intelligently blend the models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Label encoding before train-test split",
+   "description": "Fitting a LabelEncoder on the combined train and test datasets leaks the test set's categorical distribution (such as the presence of specific unseen categories) into the training process.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "le = LabelEncoder()\nfull_df[col + \"_le\"] = le.fit_transform(full_df[col])"
+  },
+  {
+   "name": "Exception in date feature engineering",
+   "description": "When extracting date features, `parsed_dates.dt.is_month_end.astype(int)` will raise an exception if there are any missing values (NaT). This causes the code to silently catch the exception, skip dropping the original date column, and leave partially created date features in the dataframe.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_df[col + \"_is_month_end\"] = (\n                        parsed_dates.dt.is_month_end.astype(int)\n                    )"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with automated data cleaning, cross-validation, and stacking. However, it leaks categorical information by applying LabelEncoder before splitting, contains a bug in date processing that will cause feature extraction to fail silently on columns with missing dates, and relies strictly on a single evaluation metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

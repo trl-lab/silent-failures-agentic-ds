@@ -1,0 +1,142 @@
+{
+ "task": "abalone",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data during the feature engineering or data exploration phase.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = pd.read_parquet(\"./input/train.parquet\")\ntest = pd.read_parquet(\"./input/test.parquet\")\n\n# Convert target to numeric...",
+   "reasoning": "The agent makes no effort to check for missing values, duplicates, or outliers in the numeric features, implicitly relying on LightGBM to handle any issues.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any dataset-level scaling before the split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before the train/validation split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit any imputers on the dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames this as a regression task and uses a regressor (LightGBM with RMSE/Huber/L1 objectives).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_split, val_split = train_test_split(train_fe, test_size=0.15, random_state=42)",
+   "reasoning": "The agent explicitly creates a train and validation split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The true test set is only used to generate the final submission, not to evaluate model variants.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_split, val_split = train_test_split(\n    train_fe, test_size=0.15, random_state=42\n)",
+   "reasoning": "The stochastic models are trained and evaluated on a single train/validation split without repeated runs or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "ensemble_rmse = np.sqrt(mean_squared_error(val_y, val_pred_ensemble))\nprint(f\"Ensemble RMSE: {ensemble_rmse:.4f}\")",
+   "reasoning": "The agent only computes and reports RMSE, lacking additional regression metrics like MAE or R-squared that would provide a more complete picture of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The target 'Class_number_of_rings' is correctly treated as a continuous regression target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_features(df):\n    \"\"\"Create domain-informed features for abalone age prediction.\"\"\"",
+   "reasoning": "The agent implements extensive domain-informed feature engineering (ratios, densities, polynomial terms).",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "weights = np.array([1.0 / s for s in model_scores])\nweights = weights / weights.sum()",
+   "reasoning": "The agent uses inverse RMSE weighting rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Reporting score on tuning data",
+   "description": "The agent reports its final validation score using the exact same validation set that was used to tune the ensemble weights and select the best models for retraining. This causes the reported final score to be overly optimistic due to leakage of the validation distribution into the ensembling logic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "score = ensemble_rmse\nprint(f\"Final Validation Score: {score:.4f}\")"
+  }
+ ],
+ "summary": "The agent provides a strong solution with extensive feature engineering, a diverse ensemble, and a valid retraining strategy on the full data. However, it fails to implement explicit data cleaning routines, evaluates its stochastic setup on only a single data split, and reports its final score on the same validation set used to tune the ensemble weights.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

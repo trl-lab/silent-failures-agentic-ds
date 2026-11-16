@@ -1,0 +1,101 @@
+{
+ "task": "financial-intermediary-funds-funding-decisions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=seed)",
+   "reasoning": "The dataset contains temporal data (datetime columns) but the agent uses a randomized K-Fold split instead of a time-based split, potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y, oof_preds))\nprint(f\"5-Fold Multi-Seed CV RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent evaluates the model using only RMSE and does not compute secondary metrics to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += model.predict(X_test) / (kf.n_splits * len(seeds))\n...\noof_preds += seed_oof / len(seeds)",
+   "reasoning": "The agent ensembles predictions from multiple folds and seeds using a naive unweighted average without attempting any weighting or blending optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage through Global Feature Aggregations",
+   "description": "Computing frequency encoding or group-by aggregations (mean/std) on the combined train and test dataset before splitting leaks information about the test distribution into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = combined[col].value_counts(dropna=False).to_dict()\ncombined[f\"{col}_freq\"] = combined[col].map(freq)\n...\ngrp = combined.groupby(g_col)[n_col].agg([\"mean\", \"std\"]).reset_index()"
+  }
+ ],
+ "summary": "The agent implements a solid baseline with LightGBM, complete with datetime parsing and categorical feature engineering. However, it introduces significant data leakage by performing frequency encoding and group aggregations on the combined train and test sets prior to splitting. Furthermore, it ignores the temporal nature of the data by using a randomized K-Fold cross-validation strategy rather than a time-based split.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

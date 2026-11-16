@@ -1,0 +1,144 @@
+{
+ "task": "petfinder-adoption-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during exploratory data analysis.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately fills missing values in text columns and relies on LightGBM's robust native handling for numerical missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=32, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_vecs)",
+   "reasoning": "Applying TF-IDF and TruncatedSVD (PCA equivalent for sparse matrices) to the combined train and test text data leaks test set vocabulary and distribution into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputation is fit on the full dataset (only simple constant fillna is used).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "While the agent uses a regression model for a classification task, this is actually a known best practice for ordinal targets evaluated on Quadratic Weighted Kappa (QWK), so it is not a mismatch.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation which implicitly evaluates the model multiple times to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly targets the QWK metric for final evaluation while using RMSE for surrogate regression training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as regression with post-processing thresholds to maximize the QWK metric for an ordinal target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive domain-specific and text-based feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across cross-validation folds, which is the standard and correct way to ensemble identical models trained on different data subsets.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage in categorical encoding and aggregations",
+   "description": "Calculating frequency encodings and groupby statistical aggregations (mean, standard deviation) on the concatenated train and test datasets leaks test-set feature distributions into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "group_mean = combined_df.groupby(group_col)[num_col].transform(\"mean\")"
+  },
+  {
+   "name": "Biased evaluation of threshold optimization",
+   "description": "The post-processing threshold optimizer is fit on the out-of-fold predictions and then evaluated on those exact same predictions, leading to an overly optimistic cross-validation score since the rounder has no independent holdout set.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "opt.fit(oof_preds, y_train)\n\noof_discrete = opt.predict(oof_preds)\ncv_qwk = cohen_kappa_score(y_train, oof_discrete, weights=\"quadratic\")"
+  }
+ ],
+ "summary": "The agent effectively formulates the ordinal classification task as regression with threshold optimization, which is a highly effective strategy for the QWK metric. However, the solution suffers from data leakage because TF-IDF, TruncatedSVD, frequency encoding, and groupby aggregations are all applied to the combined train and test datasets before splitting. Additionally, the cross-validation score is slightly biased as the threshold optimizer is evaluated on the same out-of-fold predictions it was trained on.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

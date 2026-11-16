@@ -1,0 +1,145 @@
+{
+ "task": "electricity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# Load data\ntrain_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\n# Feature engineering",
+   "reasoning": "The agent relies entirely on LightGBM's internal handling of missing values and makes no explicit effort to clean the data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly uses TimeSeriesSplit to avoid look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs cross-validation using TimeSeriesSplit.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross validation, which averages performance over multiple splits rather than relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(accuracy_score(y_val_fold, y_pred_val))",
+   "reasoning": "The agent only uses accuracy as an evaluation metric without checking if the dataset is imbalanced or if accuracy is the most appropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers basic time-based features (hour, day_of_week).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Self-evaluation bug",
+   "description": "The agent evaluates the model's predictions against the predictions themselves rather than true labels, artificially resulting in a perfect score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "print(f\"Final Test Accuracy: {accuracy_score(y_test_pred, y_test_pred):.4f}\")"
+  },
+  {
+   "name": "Early stopping on training data",
+   "description": "The agent uses the training set as the evaluation set for early stopping, which defeats the purpose of early stopping and can lead to severe overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_train, y_train)],\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],"
+  }
+ ],
+ "summary": "The agent implements a LightGBM model with time-based cross-validation, which correctly accounts for the temporal nature of the data. However, the solution suffers from a critical bug where test predictions are evaluated against themselves, yielding a meaningless 1.0 accuracy. Furthermore, the agent incorrectly uses the training set for early stopping when fitting the final model, and skips data cleaning entirely.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

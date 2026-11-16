@@ -1,0 +1,142 @@
+{
+ "task": "fts-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "te_raw = strip_id_target(test)",
+   "reasoning": "The test set is explicitly isolated and not used for any fitting or EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_raw[col] = safe_float_series(tr_raw[col], numeric_medians[col])",
+   "reasoning": "The agent actively cleans the data by imputing missing values and dropping constant columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler.fit(tr_raw[numeric_cols].values)",
+   "reasoning": "The robust scaler is fitted exclusively on the training split after the train-validation split is made.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "keep_cols.append(col) ... tr_raw = tr_raw[keep_cols].copy()",
+   "reasoning": "Feature selection is performed on tr_raw, which is created after the data split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "numeric_medians[col] = float(med) ... tr_raw[col].median()",
+   "reasoning": "Imputation statistics are computed strictly on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tmp = tmp.sort_values(date_col, kind=\"mergesort\").reset_index(drop=True)",
+   "reasoning": "The agent explicitly checks for date columns and attempts a temporal split to preserve order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = TabularGatedMixtureModel(...) ... loss = rmse_loss(log_pred, yb)",
+   "reasoning": "A neural network regression model is appropriately used for the continuous regression target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "self.embed_dropout = nn.Dropout(dropout) ... weight_decay=WEIGHT_DECAY",
+   "reasoning": "The deep learning model includes dropout layers and weight decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr, va = train_test_split(...) ... val_rmse = float(...)",
+   "reasoning": "A validation split is created and used to evaluate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "torch.manual_seed(SEED)\nnp.random.seed(SEED)",
+   "reasoning": "The agent trains and evaluates the stochastic PyTorch model exactly once using a single random seed, without using cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(\n            np.sqrt(\n                np.mean((va_preds.astype(np.float64) - y_va.astype(np.float64)) ** 2)\n            )\n        )",
+   "reasoning": "The agent evaluates the model using only the RMSE metric and does not report any other secondary metrics to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_tr = clean_target_series(tr[TARGET])",
+   "reasoning": "The task is formulated as a standard regression problem targeting amountUSD, matching the requirements.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_raw = add_date_features(tr_raw, date_cols, date_min)",
+   "reasoning": "Extensive feature engineering is applied, including date features, text features, and group aggregations.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded test IDs in submission",
+   "description": "The agent creates the final submission file using a hardcoded sequential range (`np.arange`) for the ID column instead of preserving the actual identifiers from the test dataset. This causes a misalignment if the test data uses non-sequential, specific, or string-based IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_preds), dtype=np.int64)"
+  }
+ ],
+ "summary": "The agent implements a robust pipeline with proper data isolation (scaling, imputation, and feature selection are correctly fitted only on the training split) and reasonable regularisation. However, it critically fails to preserve the original test IDs in the submission file, hardcoding them as a sequence instead, which will break the submission format. Additionally, it evaluates the stochastic model only once and relies solely on RMSE.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

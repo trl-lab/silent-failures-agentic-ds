@@ -1,0 +1,138 @@
+{
+ "task": "gainful-employment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explores the data structure and prints statistics only for the training set, not the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling numerical features with medians and adding missingness indicators.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (medians) are properly calculated on the training set after splitting and applied to validation/test.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM regressor with Huber loss is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The data is properly split into training and validation sets using an 80/20 stratified split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains the model across 5 different random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly considers the metric (RMSE) and uses an outlier-robust objective function (Huber loss) for training.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a continuous regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements rich feature engineering including log/sqrt transforms, missing indicators, frequency encoding, and interaction ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "val_ensemble_pred = np.mean(val_preds_list, axis=0)",
+   "reasoning": "The agent uses a simple unweighted average to combine predictions from multiple seeds, though for seed averaging this is standard.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data-dependent feature transformations at inference",
+   "description": "The agent dynamically recomputes data-dependent feature transformations (like skewness checks for log-transforms) on the validation and test sets independently, instead of saving and applying the transformation columns selected on the training set. This causes feature mismatch where columns transformed in training are missing (and filled with zeros) during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skew = non_null.skew()\nif abs(skew) > 0.5:\n    log_cols.append(c)\n... (when is_training=False, log_cols and sqrt_cols are recomputed instead of loaded from col_stats)"
+  }
+ ],
+ "summary": "The agent implements a generally solid modeling pipeline with correct data splitting, robust objective functions (Huber loss), and multiple seeds to address variance. However, there is a critical execution flaw in the feature engineering pipeline: data-dependent transformations like log and sqrt are re-evaluated on the validation/test sets rather than reusing the exact transformations determined from the training set, leading to missing features and degraded inference.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

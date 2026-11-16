@@ -1,0 +1,141 @@
+{
+ "task": "ida-statement-credits-grants-guarantees",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or inspect the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[c] = combined[c].astype(str).fillna(\"Missing\")",
+   "reasoning": "The agent explicitly handles missing values by filling them with 'Missing' for categoricals and 0.0 for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scalers or normalisation transformers are fit on the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit feature selection step applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_num_train[col] = pd.to_numeric(X_num_train[col], errors=\"coerce\").fillna(0.0)",
+   "reasoning": "Missing values are filled with constants rather than using an imputer trained on the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=SEED)",
+   "reasoning": "While the dataset contains date columns, predicting the 'Original Principal Amount' is not strictly a time-series forecasting task that necessitates chronological splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "m1 = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=SEED)",
+   "reasoning": "The agent properly implements a 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_m1 += m1.predict(X_lgb_test) / n_folds",
+   "reasoning": "The agent uses cross-validation, meaning models are trained and evaluated across multiple folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = np.sqrt(np.mean((y_true - final_oof) ** 2))\nprint(f\"Final Validation Score: {final_rmse}\")",
+   "reasoning": "The agent evaluates and optimises using only RMSE, without verifying if it is the most appropriate metric or comparing it against others like MAE which might be more robust to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[f\"{c}_year\"] = combined[c].dt.year",
+   "reasoning": "The agent performs extensive feature engineering, including date decomposition, frequency encoding, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(\n    rmse_objective,\n    init_weights,\n    bounds=bounds,\n    method=\"SLSQP\",\n    options={\"maxiter\": 500},\n)",
+   "reasoning": "The agent uses an optimisation algorithm (SLSQP) to find the best ensemble weights, rather than a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via group aggregation",
+   "description": "Group-based statistics (like mean, standard deviation, min, and max) are computed on the combined train and test datasets. This leaks test set distribution information into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grouped = combined.groupby(g_col)[n_col]\ncombined[f\"{g_col}_{n_col}_mean\"] = grouped.transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a structurally sound cross-validation and ensembling pipeline, and correctly isolates frequency and target encodings to the training set. However, a critical flaw exists where test data leaks into the training set through group aggregation statistics computed on the combined dataset. Additionally, the agent evaluates solely on RMSE without considering other metrics that might be more robust to outliers.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

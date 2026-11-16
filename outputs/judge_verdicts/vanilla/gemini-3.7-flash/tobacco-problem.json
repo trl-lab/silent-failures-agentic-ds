@@ -1,0 +1,156 @@
+{
+ "task": "tobacco-problem",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled using fillna() across date, numeric, and text features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No continuous scalers are used (TF-IDF leakage is captured separately).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Constant imputation is used, which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a 'date_submitted' column, but the agent uses random cross-validation instead of a time-based split, risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A multiclass classifier (LGBMClassifier) is correctly applied to the multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent sets up a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated and averaged across 5 different cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "callbacks=[lgb.early_stopping(50, verbose=False)]",
+   "reasoning": "The agent relies entirely on LightGBM's default evaluation metric (multi-logloss) for early stopping and never computes or verifies the target metric (accuracy).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the task as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent generates multiple derived features, including date parts, text length metrics, and TF-IDF vectors.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += clf.predict_proba(X_test) / skf.n_splits",
+   "reasoning": "The agent uses a naive, unweighted average to combine the predictions of the 5 fold models without any tuning.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via TF-IDF",
+   "description": "Fitting a TF-IDF vectorizer on the combined training and test data leaks the test set vocabulary and document frequencies (IDF weights) into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_problems = TfidfVectorizer(max_features=250, ngram_range=(1, 2), stop_words='english')\ntfidf_problems_mat = tfidf_problems.fit_transform(combined_df['reported_product_problems'])"
+  },
+  {
+   "name": "Incorrect Submission ID",
+   "description": "The agent generates a synthetic ID column (`range(len(...))`) for the submission file instead of using the actual ID column from the test dataset, which will likely misalign with the expected evaluation format.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(final_predictions))"
+  },
+  {
+   "name": "Target Type Alteration",
+   "description": "The target variable is cast to string before encoding and the final predictions are left as strings. This can break downstream evaluation scripts that expect integers or floats.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "y_raw = train_df[target_col].astype(str)"
+  }
+ ],
+ "summary": "The agent implements a solid baseline pipeline with LightGBM, cross-validation, and reasonable feature engineering. However, there are critical execution and leakage flaws: fitting the TF-IDF vectorizers on the full combined dataset causes data leakage, and generating arbitrary IDs for the final output file will break submission scoring. Additionally, temporal information is ignored during splitting, which may introduce look-ahead bias.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

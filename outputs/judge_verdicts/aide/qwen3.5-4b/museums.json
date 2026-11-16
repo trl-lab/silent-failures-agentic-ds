@@ -1,0 +1,159 @@
+{
+ "task": "museums",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used during EDA or to inform preprocessing decisions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing numeric values are explicitly handled using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Train and test sets are imputed separately. While imputing test data with its own median is suboptimal, it avoids leaking test missing-value statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the museums dataset contains a strict temporal order requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regression is correctly chosen for this continuous target regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 folds, which accounts for variance, rather than relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = mean_squared_error(y_val_fold, y_pred, squared=False)",
+   "reasoning": "Only RMSE is calculated and optimized, without verifying its appropriateness for the distribution or checking other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns as features without creating any derived features, interactions, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Error: Undefined Variable",
+   "description": "The script references a variable during the metric calculation that was never defined, which will cause a NameError and crash the program.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "rmse = mean_squared_error(y_val_fold, y_pred, squared=False)"
+  },
+  {
+   "name": "Invalid Validation Labels",
+   "description": "The validation dataset is initialized with an array of zeros because the target column is intentionally excluded from the validation feature set. This breaks early stopping as the model incorrectly optimizes to predict zeros.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "label=(X_val_fold[target_col] if target_col in X_val_fold.columns else np.zeros(len(X_val_fold)))"
+  },
+  {
+   "name": "Execution Error: Early Stopping Without Validation Set",
+   "description": "The final model training includes an early stopping callback but does not provide a validation set. This will cause LightGBM to raise a ValueError and crash during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(..., callbacks=[lgb.early_stopping(50, verbose=False)])"
+  },
+  {
+   "name": "Imputing Test Data with Test Statistics",
+   "description": "The test set is imputed using its own statistics (e.g., median) instead of statistics learned from the training set, which can lead to inconsistencies during inference.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_df = test_df.fillna(test_df.median(numeric_only=True))"
+  }
+ ],
+ "summary": "The solution implements a LightGBM regression model with 5-fold cross-validation but contains several critical execution and logical errors. An undefined variable `y_val_fold` will crash the cross-validation evaluation, the validation labels are incorrectly set to zeros (breaking early stopping), and the final model training will crash due to early stopping being used without a valid dataset. Additionally, it lacks feature engineering and improperly imputes test data using test set statistics rather than training set statistics.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

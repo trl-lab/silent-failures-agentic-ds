@@ -1,0 +1,41 @@
+{
+ "task": "churn",
+ "failure_modes": {
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature leakage across CV folds",
+   "description": "Feature engineering steps, such as computing group means and frequency encodings, are performed on the entire training dataset before cross-validation. This leaks information from the validation folds into the training folds, making the validation scores less reliable.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "grp_means = X_train_fe.groupby(grp_s, observed=False)[m_col].mean().to_dict()\n... freq_map = train_vals.value_counts(normalize=True).to_dict()"
+  },
+  {
+   "name": "Biased OOF predictions due to early stopping",
+   "description": "The models use the validation fold for early stopping during cross-validation, and the predictions on that same validation fold are used as out-of-fold (OOF) predictions. This biases the OOF predictions to be overly optimistic, which can lead to overfitting when these predictions are subsequently used to optimize ensemble weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(X_va, y_va)], callbacks=[lgb.early_stopping(50, verbose=False)] ... val_preds_lgb = lgb_model.predict_proba(X_va)[:, 1] \n oof_lgb[val_idx] = val_preds_lgb"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated and structurally sound solution, utilizing deep tabular models, gradient boosting, 10-fold cross-validation, and optimized ensembling via Nelder-Mead. However, there are minor data leakage issues: group means and frequency encodings are computed across the entire training set before CV (leaking validation data into training folds), and OOF predictions are slightly biased due to using the validation fold for both early stopping and OOF generation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

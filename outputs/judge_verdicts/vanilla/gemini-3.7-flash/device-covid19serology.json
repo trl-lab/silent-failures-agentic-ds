@@ -1,0 +1,149 @@
+{
+ "task": "device-covid19serology",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed by filling missing values (median for numeric, 'Missing' for categoricals).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are derived only from the training set, so test missing-value statistics are not leaked (though validation data is leaked during cross-validation).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains a temporal component ('date_performed'), but the agent uses a random, shuffled train/validation split rather than a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses binary classification models (CatBoostClassifier, LGBMClassifier) for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models over 5 cross-validation folds, which inherently accounts for variance rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report evaluation metrics at all, so they don't explicitly rely on just one metric for decision-making.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering by extracting date parts and coercing sample numbers to numeric values.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * cb_preds + 0.5 * lgb_preds",
+   "reasoning": "The agent uses a naive, unweighted average to combine the CatBoost and LightGBM predictions without any tuning or blend-ratio optimisation.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "The agent computes imputation statistics (like the median) and fits categorical encoders on the entire training dataset before splitting it into cross-validation folds. This leaks information from the validation folds into the training folds, making the validation performance estimates overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median() ... X_encoded[cat_cols] = oe.fit_transform(X[cat_cols])"
+  },
+  {
+   "name": "Retaining high-cardinality raw features",
+   "description": "The agent extracts useful components from features like dates or IDs, but fails to drop the original raw columns. If these raw strings are passed to tree-based models as categorical features, their high cardinality can lead to severe memory issues and overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dt = pd.to_datetime(df['date_performed'], errors='coerce') ... df['sample_no_num'] = pd.to_numeric(df['sample_no'], errors='coerce')"
+  }
+ ],
+ "summary": "The agent provides a structurally sound pipeline with cross-validation and feature engineering, but fails to respect temporal ordering by using a shuffled K-Fold split on time-sensitive data. Additionally, it leaks validation set statistics into the training folds during imputation and encoding, and applies a naive, unweighted ensemble strategy.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

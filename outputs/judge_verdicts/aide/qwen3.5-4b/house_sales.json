@@ -1,0 +1,138 @@
+{
+ "task": "house_sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to clean the data by imputing missing values with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_features = combined_df[feature_cols].copy()\n...\ntrain_features = train_features.fillna(train_features.median())",
+   "reasoning": "The agent computes the median on the combined train and test dataset and fills missing values before the train/validation split, causing test distribution statistics to leak into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is not clear from the provided task context whether the house sales data contains a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=1000,\n    valid_sets=[val_data],...",
+   "reasoning": "The agent trains a stochastic LightGBM model (using feature and bagging fractions) exactly once and reports a single validation score, ignoring variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = mean_squared_error(y_val, val_predictions, squared=False)",
+   "reasoning": "The agent relies exclusively on RMSE for evaluation and does not incorporate or verify against any other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation correctly addresses the problem as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [target_col, id_col]]",
+   "reasoning": "The agent relies entirely on raw columns and implements no derived features, domain-specific transformations, or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution failure due to length mismatch",
+   "description": "The agent passes dataframes containing both train and test samples into functions that expect only train or test samples, which will throw a ValueError for inconsistent sample sizes. For instance, the target array in `train_test_split` has length N_train, but the features array has length N_train + N_test.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    train_features, train_df[target_col], test_size=0.2, random_state=42, stratify=None\n)"
+  }
+ ],
+ "summary": "The agent's solution contains a critical execution error because it uses the combined train and test dataset for data splitting and submission, leading to dimension mismatch crashes. Furthermore, calculating the median on this combined dataset introduces target leakage by exposing test statistics to the training pipeline. Finally, the agent omits feature engineering entirely and relies on a single evaluation run of a stochastic model.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

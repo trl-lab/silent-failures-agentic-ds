@@ -1,0 +1,142 @@
+{
+ "task": "animalandveterinary-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for EDA or fitting preprocessors.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive data cleaning, including extracting numeric values from structured text strings and handling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are handled via constant filling (e.g. 'missing', -1) or coercion, which does not leak statistics from the full dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal components (e.g., 'original_receive_date' and 'onset_date'), yet the agent splits the data randomly using StratifiedKFold, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (LightGBM and CatBoost) for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, successfully partitioning the training data into train and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly optimizes for ROC AUC, which is the specified target metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs excellent feature engineering by parsing complex text fields for age/weight, converting units, and using TF-IDF on text columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * test_preds_lgb + 0.5 * test_preds_cat",
+   "reasoning": "The agent combines the LightGBM and CatBoost predictions using a naive, equal-weight average without attempting to tune the blend ratio or use a stacking model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Encoding and vectorization before cross-validation",
+   "description": "Text vectorizers (like TF-IDF) and categorical encoders are fit on the entire training set before cross-validation splits are created. This leaks validation set vocabulary and distribution statistics into the training folds, making validation scores and early stopping slightly overoptimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "vec_reaction.fit_transform(train_df['reaction'].astype(str).fillna(''))\n...\nfor fold, (train_idx, val_idx) in enumerate(cv.split(X_train_all, y_train)):"
+  }
+ ],
+ "summary": "The agent provides a strong solution with impressive custom feature engineering to parse complex text fields for age, weight, and units. However, it applies random cross-validation on data containing temporal components, risking look-ahead bias, and relies on a naive, unweighted ensemble. Furthermore, fitting TF-IDF and OrdinalEncoders on the entire training set before cross-validation introduces minor data leakage into the early stopping mechanism.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

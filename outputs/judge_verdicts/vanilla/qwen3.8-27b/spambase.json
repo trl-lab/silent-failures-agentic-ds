@@ -1,0 +1,142 @@
+{
+ "task": "spambase",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test set for any exploratory data analysis, preprocessing design, or model tuning.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[col] = df[col].replace([np.inf, -np.inf], np.nan)",
+   "reasoning": "The agent only replaces infinity with NaN, but implements no explicit imputation strategy or duplicate removal, relying entirely on the tree models to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classifiers (LGBMClassifier, XGBClassifier, CatBoostClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is completely held out and only used for the final prediction, not for model selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_p, y_train)\nproba = model.predict_proba(X_val_p)[:, 1]\nscore = roc_auc_score(y_val, proba)",
+   "reasoning": "The agent uses stochastic models (e.g. subsample=0.9) but evaluates them exactly once on the validation set without averaging over multiple runs/seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = roc_auc_score(y_val, proba)",
+   "reasoning": "The agent only computes and relies on ROC AUC, without verifying performance using any other metrics (e.g. log loss, precision-recall).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "return [c for c in df.columns if c != target]",
+   "reasoning": "The agent uses the raw columns entirely as-is, with no attempt at generating derived features or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "weights = np.array([val_scores[name] for name in names], dtype=float)\n...\nweights /= weights.sum()",
+   "reasoning": "The agent uses the raw validation ROC AUC scores directly as blending weights, which involves no tuning, weight search, or stacking, and behaves essentially identically to a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unadjusted ensemble weights on model failure",
+   "description": "When ensembling models, if a model fails during the final inference step and is skipped via a try-except block, the weights of the remaining models are not re-normalized. This leads to the sum of weights being less than 1, distorting the output probabilities.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "try:\n    model = make_model(name)\n    model.fit(X_full_p, y_full)\n    test_proba += weight * model.predict_proba(X_test_p)[:, 1]\nexcept Exception:\n    continue"
+  }
+ ],
+ "summary": "The agent successfully establishes a safe, leak-free pipeline with a proper train/validation split and appropriate models. However, the solution falls short in data science depth due to a complete lack of feature engineering, relying completely on the models for missing value handling, and using a naive, untuned approach to ensembling.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

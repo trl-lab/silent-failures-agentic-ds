@@ -1,0 +1,153 @@
+{
+ "task": "device-pma",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_full[col].astype(str), X_test[col].astype(str)], axis=0)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on the combined training and test sets, leaking test set categorical distributions into the training pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements data cleaning by dropping high-cardinality columns and filling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping high-cardinality columns) is based only on the training set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train_full[col].median()\n...\nX_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.2, random_state=42, stratify=y_train)",
+   "reasoning": "Missing values are imputed using the median of the full training set before splitting into train and validation sets, leaking validation statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.2, random_state=42, stratify=y_train)",
+   "reasoning": "The dataset contains temporal features like 'date_received' and 'decision_date', but the agent uses a random split instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation split is created and used for evaluation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not used for model selection; models are evaluated solely on the internal validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_tr, y_tr)\n    val_pred = model.predict_proba(X_val)[:, 1]\n    score = roc_auc_score(y_val, val_pred)",
+   "reasoning": "The agent evaluates each stochastic model exactly once on a single validation split without cross-validation or multiple seed runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = roc_auc_score(y_val, val_pred)",
+   "reasoning": "The agent only computes and reports the ROC AUC score, ignoring other metrics like precision, recall, or log-loss that could provide a fuller picture of model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs feature engineering, including extracting date parts, text lengths, and word counts.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_pred = np.mean(test_preds, axis=0)",
+   "reasoning": "The agent uses a simple unweighted average to ensemble the models without attempting to optimize the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "Using features that are generated after or at the exact same time as the target variable is determined, which would not be available at prediction time in a real-world scenario.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df['review_duration_approx'] = (\n            (df['decision_date_year'] - df['date_received_year']) * 365 +\n            (df['decision_date_month'] - df['date_received_month']) * 30\n        )"
+  },
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "Using a generated sequence (like `range()`) for submission IDs instead of the actual identifiers from the test set, which can lead to misaligned or invalid submissions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\n    'id': range(len(final_pred)),\n    'decision_code': final_pred\n})"
+  }
+ ],
+ "summary": "The agent presents a structured solution with data cleaning, feature engineering, and ensembling. However, there are critical data leakage issues: the agent fits a LabelEncoder on the combined train and test sets (FM02), imputes missing values before the validation split (FM04), and utilizes heavily leaky temporal features like `decision_date` to engineer duration metrics. Additionally, the evaluation relies on a single run with a single metric, and ensembling is naive.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

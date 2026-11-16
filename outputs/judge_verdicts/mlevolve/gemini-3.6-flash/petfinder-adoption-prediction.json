@@ -1,0 +1,155 @@
+{
+ "task": "petfinder-adoption-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using .fillna(0.0) for numeric/embeddings and .fillna(\"\") for text.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler for the neural network is correctly fit only on the training folds and applied to the validation and test folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the full dataset before splitting that would leak test data statistics.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0.0 or empty string), which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Although the task is m-classification, using regression models followed by an optimized rounder is the standard and most effective formulation for ordinal classification evaluated on Quadratic Weighted Kappa.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The TabularResNet includes LayerNorm, Dropout, and the AdamW optimizer uses weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent sets up a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 cross-validation folds, which inherently accounts for variance better than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly optimizes for and evaluates using Quadratic Weighted Kappa, which is the correct metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Treating ordinal classification as regression and optimizing decision thresholds for QWK is a highly sophisticated and correct task formulation.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive domain feature extraction, including composite health features, text metrics, and target encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Nelder-Mead optimization to find optimal blend weights rather than using a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Fitting feature transformers (like TF-IDF, SVD) or computing aggregate statistics on the entire training dataset before splitting it into cross-validation folds leaks validation information into the training representations, resulting in overly optimistic OOF scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_tfidf = tfidf.fit_transform(train_text)\n...\ntrain_svd = svd.fit_transform(train_tfidf)\n...\ngrouped = train_df_copy.groupby(g_col)[agg_num_cols].agg(agg_funcs)"
+  },
+  {
+   "name": "Incorrect submission ID column",
+   "description": "The agent generates the submission file using an arbitrary sequence of integers instead of the actual identifier column from the test dataset. This will cause the submission to fail evaluation if a specific ID column (e.g., PetID) is expected.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(len(test_df))"
+  },
+  {
+   "name": "Overfitting thresholds on OOF predictions",
+   "description": "The agent fits the rounding thresholds on the out-of-fold predictions and then evaluates the validation metric on those exact same OOF predictions, yielding a biased and overly optimistic validation score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "rounder.fit(oof_blend, y_train_full)\n...\noof_discrete = rounder.predict(oof_blend)\n...\nfinal_score = cohen_kappa_score(y_train_full, oof_discrete, weights=\"quadratic\")"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated and effective solution using regression with optimized rounding thresholds, which is the optimal approach for ordinal classification evaluated on QWK. However, it introduces data leakage during cross-validation by fitting TF-IDF, SVD, and group statistics on the entire training set before splitting, and by fitting the rounder on the OOF predictions it evaluates. Critically, it constructs the submission file with an auto-generated integer ID column instead of extracting the test set's identifier, which will cause evaluation to fail.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

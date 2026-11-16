@@ -1,0 +1,105 @@
+{
+ "task": "optiver-trading-at-the-close",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_model = lgb.LGBMRegressor(**params)\n        val_model.fit(X_train, y_train, **fit_kwargs)\n        val_pred = val_model.predict(X_val)\n        val_mae = float(np.mean(np.abs(val_pred - y_val)))",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model exactly once on a single random seed, without averaging over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mae = float(np.mean(np.abs(val_pred - y_val)))",
+   "reasoning": "The agent reports only the Mean Absolute Error (MAE) and does not calculate any secondary metrics (such as RMSE or R2) to verify performance or model behavior.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No early stopping",
+   "description": "The agent trains a gradient boosting model with a fixed, hardcoded number of estimators (700) without using the validation set for early stopping, which can easily lead to overfitting or suboptimal generalization.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_model.fit(X_train, y_train, **fit_kwargs)"
+  },
+  {
+   "name": "Categorical encoding before splitting",
+   "description": "Categorical encoding is fitted on the entire training dataset before splitting it into train and validation sets, slightly leaking the validation set's category space into the training set.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df, test_df, encoded_cat_cols = encode_categoricals(train_df, test_df)\n...\nX_train = X_all[~val_mask]"
+  }
+ ],
+ "summary": "The agent implements a generally solid baseline with appropriate time-based validation splitting, robust handling of missing values via LightGBM, and strong domain-relevant feature engineering. However, it fails to evaluate the stochastic model across multiple seeds and relies solely on a single metric (MAE). Furthermore, it misses the opportunity to use early stopping during model training and applies categorical encoding globally prior to the validation split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

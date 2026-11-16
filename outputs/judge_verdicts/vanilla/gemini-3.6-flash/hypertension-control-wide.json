@@ -1,0 +1,148 @@
+{
+ "task": "hypertension-control-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_all = pd.concat([X_train, X_test], axis=0, ignore_index=True)\n\nfor c in cat_cols:\n    X_all[c] = LabelEncoder().fit_transform(X_all[c].astype(str))",
+   "reasoning": "The agent concatenates the train and test sets to fit a LabelEncoder on the combined data, leaking test set category information.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in num_cols:\n    X_all[c] = pd.to_numeric(X_all[c], errors='coerce')",
+   "reasoning": "The agent makes no explicit effort to impute missing values, relying entirely on the tree models to handle NaNs natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no clear indication that this dataset has a temporal component.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models are used for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly uses 5-fold cross-validation to evaluate models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation (5 folds), which inherently involves multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report static metrics to the user, it merely saves predictions.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": "y = (y_raw > y_raw.median()).astype(int).values",
+   "reasoning": "The agent binarizes the target using its median if there are more than 10 unique values; while this discards signal if the true underlying task is regression, the task context explicitly requests binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in cat_cols:\n    X_all[c] = LabelEncoder().fit_transform(X_all[c].astype(str))\n\nfor c in num_cols:\n    X_all[c] = pd.to_numeric(X_all[c], errors='coerce')",
+   "reasoning": "The agent applies no feature engineering, relying only on basic type coercion and label encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = (lgb_preds + xgb_preds + cat_preds) / 3.0",
+   "reasoning": "The agent uses a naive, unweighted average of the three models' predictions rather than optimising blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates dummy sequential IDs for the submission file instead of preserving the original identifier column from the test dataset. This typically causes submission misalignment or evaluation failure on external platforms.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test))"
+  },
+  {
+   "name": "Categorical Features Treated as Numeric",
+   "description": "Categorical features are label-encoded into integers but not explicitly declared as categorical to the gradient boosting models. The models will treat these nominal categories as ordinal/continuous numerical values, leading to mathematically incorrect splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model_lgb.fit(X_tr, y_tr, ...)"
+  }
+ ],
+ "summary": "The agent successfully implements a cross-validated ensemble of gradient boosting models but falls short in data preprocessing and ensembling strategy. Key issues include fitting a LabelEncoder on combined train/test data (data leakage), relying entirely on models to handle missing values without an explicit imputation strategy, applying no feature engineering, and using a naive unweighted average for the ensemble. Furthermore, the agent generates dummy IDs for the submission file and fails to declare label-encoded features as categorical to the tree models.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

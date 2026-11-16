@@ -1,0 +1,148 @@
+{
+ "task": "insurance-company-complaints",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed and test data is not used for preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "medians = train_feats.median(numeric_only=True)\n    train_feats.fillna(medians, inplace=True)",
+   "reasoning": "Missing values are properly imputed with the median of the training features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\n        X_tr_sc = scaler.fit_transform(X_tr)",
+   "reasoning": "The scaler is correctly fitted only on the training fold (X_tr) inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "tr_tfidf = tfidf.fit_transform(tr_text)\n        te_tfidf = tfidf.transform(te_text)",
+   "reasoning": "Feature selection (SVD) is fit only on the training set, not leaking any test information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "medians = train_feats.median(numeric_only=True)",
+   "reasoning": "The imputer is fit only on the training dataset, avoiding test set leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "meta_model = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], cv=5)",
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, RidgeCV) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "self.dropout = nn.Dropout(dropout_rate)\n            optimizer = torch.optim.AdamW(nn_model.parameters(), lr=1e-3, weight_decay=1e-4)",
+   "reasoning": "The deep learning model incorporates proper regularisation via dropout and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly uses a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "seeds = [42 + fold * 10, 100 + fold * 10, 2024 + fold * 10]",
+   "reasoning": "The agent evaluates stochastic models over multiple seeds and averages their predictions.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "RMSE is used as the evaluation metric, which is the exact and appropriate metric given for this regression task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[f\"{col}_year\"] = df[col].dt.year",
+   "reasoning": "Extensive feature engineering is applied, including datetime extraction, text SVD, and group-level statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "meta_model = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], cv=5)",
+   "reasoning": "The agent stacks the model predictions using a RidgeCV meta-model rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Optimistic meta-model evaluation",
+   "description": "The final validation score is computed by predicting on the same out-of-fold stack that was used to train the meta-model, resulting in an overly optimistic training score rather than a true cross-validated score for the ensemble.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_oof = meta_model.predict(oof_stack)\n    final_oof = np.maximum(0, final_oof)\n    final_rmse = np.sqrt(mean_squared_error(y, final_oof))"
+  },
+  {
+   "name": "Unsupervised feature leakage across folds",
+   "description": "Feature engineering steps like calculating group-level statistics, TF-IDF/SVD fitting, and computing quantiles for clipping are performed on the entire training dataset before cross-validation splitting. This leaks validation set feature distributions into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "grp = train_feats.groupby(cat_col)[num_col].agg([\"mean\", \"std\", \"min\", \"max\"])\n...\ntr_tfidf = tfidf.fit_transform(tr_text)"
+  }
+ ],
+ "summary": "The agent provides a robust and well-structured solution that avoids all major targeted failure modes. The pipeline correctly separates train and test sets, implements cross-validation, uses appropriate multi-seed bagging, and applies out-of-fold target encoding. The only minor issues observed are unsupervised feature distribution leakage across validation folds and an overly optimistic self-evaluation of the meta-model.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

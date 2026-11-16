@@ -1,0 +1,159 @@
+{
+ "task": "airbnb-recruiting-new-user-bookings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used at the end for final predictions, avoiding any peeking during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_transformer = Pipeline(steps=[(\"num\", \"passthrough\")])",
+   "reasoning": "The agent makes no effort to clean the data, leaving missing values to be implicitly handled by the LightGBM model and ignoring potential outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on the dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset involves user bookings over time, but the agent uses a randomized cross-validation split, ignoring temporal order and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classifier (LGBMClassifier) which matches the task type.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly sets up a 5-fold cross-validation loop to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds, not just a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def compute_ndcg(y_true, y_pred):",
+   "reasoning": "The agent evaluates using only a custom NDCG metric without calculating any secondary metrics like log-loss or accuracy to verify basic model health.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the problem correctly as predicting the multiclass target 'country_destination'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"date_account_created\",\n    \"date_first_booking\",",
+   "reasoning": "The agent performs no feature engineering, blindly one-hot encoding raw date strings rather than extracting useful temporal components (year, month, day).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage",
+   "description": "The target variable is explicitly included in the categorical features list and is not dropped from the training DataFrame before transformation. This causes the target to be one-hot encoded and passed as a feature, resulting in massive leakage and a likely crash when transforming the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "categorical_cols = [\n    \"affiliate_channel\",\n    \"affiliate_provider\",\n    \"country_destination\","
+  },
+  {
+   "name": "Execution Failure in Custom Metric",
+   "description": "The custom NDCG function references a globally defined, unfitted model instead of the passed predictions, and attempts to use string labels to slice a numpy array, which will trigger runtime crashes (NotFittedError and IndexError).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pred_probs = model.predict_proba(X_train)[:, true_label]"
+  },
+  {
+   "name": "Logic Error in Custom Metric",
+   "description": "The custom metric contains flawed logic, attempting to compare an integer rank index to a string class label, which will always evaluate to False.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if rank == true_label:"
+  },
+  {
+   "name": "Suboptimal Submission Format",
+   "description": "The task requires predicting up to 5 ranked destinations per user to optimize the NDCG metric, but the agent only outputs the single most likely class, severely capping the potential score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_test_pred = y_test_proba.argmax(axis=1)"
+  }
+ ],
+ "summary": "The solution suffers from critical data leakage by explicitly including the target variable in the feature set. Furthermore, it completely lacks feature engineering (treating date strings as generic categoricals), ignores temporal validation boundaries, and implements a custom NDCG evaluation metric that is logically broken and guaranteed to crash during execution.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

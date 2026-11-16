@@ -1,0 +1,61 @@
+{
+ "task": "goodreads-books-reviews-290312",
+ "failure_modes": {
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tfidf_word = word_vec.fit_transform(text_col)\n...\nsvd_feats = svd.fit_transform(X_tfidf_word)",
+   "reasoning": "TF-IDF vectorizer and TruncatedSVD are fitted on the combined train and test text data, leaking test set vocabulary, document frequencies, and latent distributions into the training features.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset includes temporal components (date_added, read_at), yet the agent splits the data randomly rather than chronologically, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = float(np.sqrt(mean_squared_error(y, oof_preds)))\nprint(f\"Validation RMSE: {cv_rmse:.5f}\")",
+   "reasoning": "The agent evaluates the model solely on RMSE without checking other metrics that might be informative for ordinal rating data.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission ID column",
+   "description": "The agent hardcodes the submission ID column as a sequential range of integers instead of using the actual ID column from the test dataset (e.g., `review_id`), which will result in an invalid submission file that fails evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test_preds_clipped)), \"rating\": test_preds_clipped})"
+  }
+ ],
+ "summary": "The agent implements a sophisticated stacking pipeline with target encoding, text feature extraction, and LightGBM. However, it introduces data leakage by fitting TF-IDF and SVD on the combined train and test sets, and uses random cross-validation despite the presence of temporal and subject-level data. Critically, the agent fails to use the correct ID column for the final submission file, rendering the output invalid for the task.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "santander-customer-satisfaction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by handling missing values and dropping constant columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "variances = train_df.var()\nkeep_cols = variances[variances > 0].index.tolist()",
+   "reasoning": "Variance thresholding is applied to the full dataset before the train/validation split, leaking validation set variance statistics into the training phase.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median = train_series.median()\n...\ntrain_series = train_series.fillna(median)",
+   "reasoning": "Median imputation is computed on the full dataset before splitting, which leaks validation set distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses LGBMClassifier, which is appropriate for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = make_model(2000)\nmodel.fit(\n    X_train,\n    y_train,",
+   "reasoning": "The stochastic LightGBM model is evaluated exactly once on a single validation split, without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses AUC as the evaluation metric, which is the requested and appropriate metric for this imbalanced classification task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "train_df = train_df[keep_cols]\ntest_df = test_df[keep_cols]",
+   "reasoning": "The agent uses the raw columns as-is (except for imputation and variance thresholding) and performs no feature engineering, such as domain-specific transformations or aggregating row statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dummy Submission IDs",
+   "description": "The agent drops the original identifier column from the test set and generates a sequential dummy ID column for the submission file. This will cause the submission to be rejected or scored incorrectly by the evaluation platform.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(n_rows, dtype=int),"
+  },
+  {
+   "name": "Categorical Encoding Before Splitting",
+   "description": "Categorical features are encoded based on the unique values found in the entire training dataset before splitting. This leaks information about the categories present in the validation set into the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categories = sorted(train_series.unique())\ntrain_codes = pd.Categorical(train_series, categories=categories).codes"
+  }
+ ],
+ "summary": "The agent successfully establishes a baseline LightGBM model with an early-stopping validation scheme and appropriate metric tracking. However, data leakage occurs because imputation, categorical encoding, and variance thresholding are all computed on the full dataset before the train/validation split. Most critically, the agent discards the original test IDs and writes dummy IDs to the submission file, which will completely invalidate the submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

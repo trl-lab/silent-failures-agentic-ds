@@ -1,0 +1,138 @@
+{
+ "task": "contract-awards-investment-project-financing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if is_numeric_like(tr) or is_numeric_like(ot):\n                Xtr[new] = clean_numeric_series(tr)\n                Xot[new] = clean_numeric_series(ot)",
+   "reasoning": "The agent dynamically inspects the validation/test fold ('ot') to determine whether a column should be parsed as numeric or date-like, which is a minor form of test set peeking.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def clean_numeric_series(series: pd.Series) -> pd.Series:",
+   "reasoning": "The agent actively attempts to clean numeric strings and handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is limited to dropping IDs and ensuring columns exist in both sets, which does not leak test statistics.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median = Xtr[col].median()",
+   "reasoning": "The imputation calculates the median exclusively on the training fold ('Xtr') before applying it to the validation/test fold.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)",
+   "reasoning": "Contract awards naturally have a chronological order, so using a shuffled KFold introduces look-ahead bias instead of employing a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.train(params, ...)",
+   "reasoning": "LightGBM regression is an appropriate model choice for predicting continuous contract amounts.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)",
+   "reasoning": "Cross-validation is explicitly performed across 5 folds.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (tr_idx, va_idx) in enumerate(kf.split(train), start=1):",
+   "reasoning": "The model is evaluated over 5 KFold splits, capturing variance across different subsets.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = root_mean_squared_error(y_raw.values[va_idx], va_pred)",
+   "reasoning": "The agent only evaluates RMSE on the raw scale, which is highly sensitive to outliers in financial contract amounts; checking a robust metric like MAE would be more appropriate.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the contract amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "Xtr[new] = datetime_to_days(tr)",
+   "reasoning": "The agent converts dates to simple integers and maps categoricals, but fails to extract useful derived features like year/month, duration, or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates a synthetic sequential ID column for the submission file instead of extracting and preserving the actual identifier column from the test set. This will cause evaluation to fail if the grading platform expects specific ID values to match.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test)), TARGET: test_pred})"
+  }
+ ],
+ "summary": "The solution implements a robust LightGBM pipeline with proper K-Fold validation and target log-transformation. However, it ignores the temporal ordering of contract awards, lacks meaningful feature engineering beyond basic type coercion, and critically hardcodes a synthetic ID column for the submission file instead of using the test set's identifiers.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

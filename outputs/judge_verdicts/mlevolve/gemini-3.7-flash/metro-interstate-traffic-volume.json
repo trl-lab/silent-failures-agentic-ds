@@ -1,0 +1,146 @@
+{
+ "task": "metro-interstate-traffic-volume",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during exploratory analysis or feature engineering design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles anomalies (e.g., clipping rain/snow outliers, clearing invalid temperatures) and imputes missing data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fit only on the training split, and then used to transform the validation and test splits.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_temp_median = train_df[\"temp\"].median()\n    train_df[\"temp\"] = train_df[\"temp\"].fillna(train_temp_median)",
+   "reasoning": "The median temperature is computed and imputed on the full train_df before it is chronologically split into train_split and val_split, leaking validation statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a chronological split (sorting by date_time and taking the last 20% as validation) to respect the temporal nature of the dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a ResNet with continuous output) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The tabular ResNet uses multiple regularisation strategies, including Dropout, LayerNorm, and weight_decay in AdamW.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A chronological holdout validation set is strictly isolated and used to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_params = get_lightgbm_params(seed=42)\n    lgb_model = lgb.LGBMRegressor(**lgb_params)\n    lgb_model.fit(...)",
+   "reasoning": "Stochastic models (LightGBM, XGBoost, CatBoost, and a PyTorch neural network) are trained and evaluated exactly once without multiple random seeds to measure variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses RMSE, which is the prescribed and appropriate metric for this specific task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a standard time-aware regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates an extensive set of well-considered features, including cyclical time features, weather severity indices, out-of-fold target encoding, and compound interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the best blending weights rather than a naive equal-weight average.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Blending on early-stopping validation set",
+   "description": "The agent uses the same validation set to perform early stopping for the base models and to optimize the ensemble blending weights. This causes the base models' validation predictions to be biased (optimistically overfitted to that specific validation set), which leads to suboptimal or overfitted blending weights. A separate hold-out set or out-of-fold predictions should be used for blending.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(..., eval_set=[(X_val, y_val)], ...) ... val_matrix = np.column_stack([lgb_val_preds, ...]) ... res = minimize(blend_objective, ...)"
+  }
+ ],
+ "summary": "The data science solution is highly sophisticated, featuring robust chronological splitting, out-of-fold target encoding, and a well-architected Tabular ResNet alongside gradient boosting models. However, it contains a minor data leakage issue by imputing missing values before the validation split, and a moderate ensembling flaw where the early-stopping validation set is reused to optimize blending weights, which biases the ensemble.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

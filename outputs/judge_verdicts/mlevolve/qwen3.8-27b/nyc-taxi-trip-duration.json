@@ -1,0 +1,102 @@
+{
+ "task": "nyc-taxi-trip-duration",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_part, val_part = train_test_split(train_raw, test_size=VAL_FRACTION, random_state=RANDOM_STATE, stratify=strat)",
+   "reasoning": "The dataset contains temporal information (pickup_datetime), but the agent uses a random split instead of a time-based split, which can introduce look-ahead bias by training on future events.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(params, train_ds, ...)\nval_pred_log = model.predict(X_val, num_iteration=best_iter)",
+   "reasoning": "The agent trains a single stochastic LightGBM model with a fixed seed and evaluates it exactly once without cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmsle(y_true: np.ndarray, y_pred: np.ndarray) -> float:\n...",
+   "reasoning": "The agent only evaluates and reports the official RMSLE metric without computing other standard regression metrics like MAE or R-squared to provide a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-sample Target Encoding Leakage",
+   "description": "Target encoding is applied to the training set using the entire training set's targets without out-of-fold (OOF) encoding. This causes the target of each row to leak into its own features, leading to severe overfitting, particularly for high-cardinality categorical variables.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_encoders = fit_target_encoders(train_part, train_target_log)\n    train_part = apply_target_encoders(train_part, target_encoders)"
+  }
+ ],
+ "summary": "The agent creates a well-structured pipeline with solid spatial/temporal feature engineering and appropriately log-transforms the target for RMSLE optimization. However, it introduces critical target leakage by applying target encoding directly to the training set without out-of-fold splitting. It also ignores the temporal nature of the dataset by using a random train/validation split and only evaluates the stochastic model once.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

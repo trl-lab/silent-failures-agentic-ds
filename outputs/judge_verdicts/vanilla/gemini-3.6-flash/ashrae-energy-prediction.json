@@ -1,0 +1,133 @@
+{
+ "task": "ashrae-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "all_vals = pd.concat([train[col].astype(str), test[col].astype(str)]).unique()\n    le.fit(all_vals)",
+   "reasoning": "The agent fits the LabelEncoder on the combined training and test sets, incorporating test data into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train.drop(columns=[col], inplace=True)",
+   "reasoning": "The agent makes no explicit effort to handle missing values (e.g., via imputation), instead relying entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No continuous scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on the dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=3, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series, but the agent uses a random, shuffled K-Fold split, introducing severe look-ahead bias by allowing the model to train on future data to predict past data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation, satisfying the requirement for an internal validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model across 3 cross-validation folds, which inherently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent transforms the target using log1p and evaluates using RMSE, which mathematically optimizes for the required RMSLE metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on the provided target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extracts multiple temporal features (hour, dayofweek, month, day) from the timestamp.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds[i : i + chunk_size] += (\n        model.predict(test.iloc[i : i + chunk_size]) / kf.n_splits\n    )",
+   "reasoning": "The agent blends the fold models using a naive unweighted average without attempting any combination tuning or weight search.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent successfully implements a LightGBM regression pipeline with basic temporal feature engineering and memory-efficient test prediction chunking. However, there is a critical failure mode: using a randomized K-Fold split on time-series data (FM05), which creates massive look-ahead bias and invalidates internal validation scores. Additionally, the agent fails to explicitly handle missing values (FM03), fits the LabelEncoder on the test set (FM02), and performs naive ensembling by simply averaging fold predictions (FM12).",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

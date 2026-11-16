@@ -1,0 +1,142 @@
+{
+ "task": "occupancy-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including processing the date column, handling numerical conversions, and imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are correctly calculated only on the training set (X_train) and then applied to X_test, preventing test data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains sequential room occupancy data with timestamps, but the agent uses shuffled cross-validation instead of a time-based split, causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models (LGBMClassifier, CatBoostClassifier, XGBClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train.iloc[val_idx], y_train.iloc[val_idx]",
+   "reasoning": "The agent creates validation folds during cross-validation but never uses them to evaluate the models or compute a validation score.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate or report any scores at all, so this specific failure mode is superseded by FM06.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics, so it cannot be penalised for using only one.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates several derived features from the date column and light features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_preds = (\n        lgb.predict_proba(X_test)[:, 1] * 0.4 +\n        cat.predict_proba(X_test)[:, 1] * 0.3 +\n        xgb.predict_proba(X_test)[:, 1] * 0.3\n    )",
+   "reasoning": "The agent manually assigns hardcoded weights (0.4, 0.3, 0.3) to combine the model predictions without performing any tuning or weight search.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputation before CV splitting",
+   "description": "Imputing missing values on the full training set before performing cross-validation splits causes data leakage across folds, as the validation folds influence the imputation statistics used for the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in X_train.columns:\n    med = X_train[col].median()\n    X_train[col] = X_train[col].fillna(med)\n...\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)"
+  }
+ ],
+ "summary": "The agent correctly preprocesses the data and uses appropriate models for the task, but critically fails to account for the temporal nature of the occupancy data by using a shuffled cross-validation approach. Furthermore, the agent sets up cross-validation but completely forgets to calculate any validation metrics, and relies on an arbitrary, untuned weighted average for ensembling.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,133 @@
+{
+ "task": "champs-scalar-coupling",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used for exploratory data analysis.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not contain significant missing values, and the agent safely pads non-existent mappings and safeguards divisions by zero.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly prevents leakage by calculating global distance statistics strictly on the training split before mapping them to validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit before the train/test split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regressor is highly appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses GroupKFold to split the data by molecule_name, preventing data leakage across atoms of the same molecule.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_idx, val_idx = next(\n    gkf.split(train_processed, groups=train_processed[\"molecule_name\"])\n)",
+   "reasoning": "The agent configures a 5-fold split but only trains and evaluates on the first fold exactly once, without performing full cross-validation or averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent reports both standard MAE and Log MAE per coupling type.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive and highly sophisticated 3D geometric feature engineering (e.g., nearest-neighbor angles, spatial proximity).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect Overall Metric Aggregation",
+   "description": "The overall validation score is calculated as a global MAE across all predictions, rather than the competition's official metric (the unweighted mean of the log MAE for each individual coupling type). This makes the overall score heavily dominated by coupling types with larger absolute scales, hiding poor performance on smaller-scale types.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "overall_mae = float(mean_absolute_error(val_split[target_col].values, val_preds))\n... print(f\"Final Validation Score: {overall_mae}\")"
+  }
+ ],
+ "summary": "The solution is exceptionally strong, featuring deep 3D spatial feature engineering and careful avoidance of target leakage by computing group statistics purely on the training split. The primary flaws are minor: relying on a single validation fold rather than full cross-validation, and aggregating the final validation score as a global MAE instead of the task's proper group-wise Log MAE metric.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

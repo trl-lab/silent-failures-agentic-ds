@@ -1,0 +1,164 @@
+{
+ "task": "disbursements-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans data by handling missing values with SimpleImputer and replacing infinities.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Numeric scaling (StandardScaler) is correctly applied within the cross-validation folds, fitting only on the training indices.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_svd, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "The agent fits TF-IDF and TruncatedSVD (PCA) on the combined dataset containing both train and test samples, leaking test set distributions into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The imputer is fitted on train_df, not on the combined dataset, so it does not leak test missing-value statistics (though it does leak across CV folds).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "Despite identifying date columns and generating temporal features for this disbursements dataset, the agent uses a randomized cross-validation split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models and objectives for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network includes Dropout, LayerNorm, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is used for final predictions, not for model selection or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates models using 5-fold cross-validation, implicitly averaging out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def compute_rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:",
+   "reasoning": "The agent solely tracks and optimizes RMSE without calculating supplementary metrics like MAE to ensure robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date parts, financial ratios, and group statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal blending weights for the ensemble.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test data leakage via frequency encoding",
+   "description": "The agent computes categorical frequency encodings on the combined dataset (train and test together) before splitting, which leaks the test set's categorical distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq_map = combined_df[col].value_counts(normalize=True).to_dict()\ncombined_df[f\"freq_{col}\"] = combined_df[col].map(freq_map).astype(np.float32)"
+  },
+  {
+   "name": "Validation leakage during imputation",
+   "description": "The agent fits a SimpleImputer on the entire training dataset before splitting it into cross-validation folds. This leaks median values from the validation folds into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "imputer = SimpleImputer(strategy=\"median\")\nX_train_imputed = imputer.fit_transform(train_df[feature_cols].fillna(0))"
+  },
+  {
+   "name": "Validation leakage via global feature aggregation",
+   "description": "The agent computes group-level aggregations (mean, median, etc.) on the entire training dataset and merges them back before cross-validation. This leaks the validation fold's feature statistics into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_group = combined_df[train_mask].groupby(cat)[num]\ngroup_stats = train_group.agg(...)"
+  }
+ ],
+ "summary": "The agent delivers a highly sophisticated solution with advanced feature engineering and a well-optimized ensemble of diverse models. However, it suffers from significant data leakage by fitting TF-IDF and TruncatedSVD on the combined train/test dataset, and by ignoring the temporal nature of the data with a randomized K-Fold split. Additionally, minor leakage occurs across cross-validation folds due to global imputation and feature aggregation prior to splitting.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

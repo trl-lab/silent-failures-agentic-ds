@@ -1,0 +1,142 @@
+{
+ "task": "us-school-bus-fleet",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "all_cats = list(train_cats.union(test_cats))\n    X[c] = pd.Categorical(X[c], categories=all_cats)",
+   "reasoning": "The agent peeks at the test set to define the complete set of categorical levels, leaking test distribution information into the training preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and cleans data explicitly through custom functions (e.g. imputing model year).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is performed using row-wise logic (e.g., fallback to VIN inferred year) rather than aggregate statistics, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Predicting bus age is a cross-sectional regression task rather than a strict time-series forecasting task, so random splitting is acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses K-Fold cross-validation to split the data into training and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any single evaluation score, so this failure mode strictly does not apply.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any metrics at all, so it does not evaluate using only one metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive domain-specific feature engineering, such as extracting the 10th VIN character to infer the model year.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.6 * lgb_preds + 0.4 * cb_preds",
+   "reasoning": "The agent combines LightGBM and CatBoost predictions using an arbitrary, hardcoded weighted average without utilizing out-of-fold predictions to optimize the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing evaluation metric computation",
+   "description": "The agent sets up a cross-validation loop and imports an evaluation metric (e.g., mean_squared_error), but never actually calculates or reports the validation score, making it impossible to assess model performance internally.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import mean_squared_error\n... [but never used in the script]"
+  }
+ ],
+ "summary": "The agent builds a robust feature engineering pipeline, creatively utilizing VIN information to infer missing model years. However, it leaks information by unioning categorical levels between the train and test sets, relies on an unoptimized naive ensemble, and completely fails to calculate or output a validation metric to verify model performance.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

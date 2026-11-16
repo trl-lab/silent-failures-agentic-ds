@@ -1,0 +1,142 @@
+{
+ "task": "electricity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explore or inspect the test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categorical_cols = X.select_dtypes(include=['category', 'object']).columns.tolist()\nfor col in categorical_cols:",
+   "reasoning": "The agent makes no effort to handle missing values, duplicates, or outliers, relying entirely on the gradient boosting models to handle potential issues.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The electricity dataset is a time series, but the agent uses random shuffling for cross-validation, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent separates the data into training and validation sets via cross-validation folds.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation (5 folds), which trains multiple models with different random seeds, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any evaluation metrics at all, so they do not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in categorical_cols:\n    X[col] = X[col].astype('category')",
+   "reasoning": "The agent uses raw columns as-is and performs no feature engineering, despite the presence of time/date information in the dataset that could be decomposed into useful features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_probs = 0.5 * test_preds_lgb + 0.5 * test_preds_cat",
+   "reasoning": "The agent uses a naive, hardcoded 50/50 blend of model predictions without any tuning or optimization of the combination weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric calculated",
+   "description": "The agent performs cross-validation but never calculates or prints a validation score for the folds. This makes it impossible to assess the model's performance without external evaluation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_va)],\n        callbacks=[]\n    )\n    test_preds_lgb += lgb_model.predict_proba(X_test) / skf.n_splits"
+  }
+ ],
+ "summary": "The agent successfully creates a cross-validated ensemble of LightGBM and CatBoost models but misses critical steps in the data science process. Most notably, it ignores the temporal nature of the dataset by using a shuffled cross-validation split, introducing look-ahead bias. Additionally, it performs no data cleaning, no feature engineering, uses a naive 50/50 blend for ensembling, and entirely fails to compute or report any validation metrics during training.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

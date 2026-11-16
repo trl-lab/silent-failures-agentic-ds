@@ -1,0 +1,159 @@
+{
+ "task": "airbnb-recruiting-new-user-bookings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to impute missing values using SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No train/validation split is made, so imputation is not applied across splits.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No train/validation split is made, so temporal leakage via random splitting is not applicable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a multiclass classification model (LGBMClassifier) for a multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "# Split and Fit Model (Optional cross-validation could be added, but straight fit is faster for single run script)",
+   "reasoning": "The agent trains on the entire training set and predicts on the test set without any internal validation or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so this failure mode is not strictly applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "predictions_encoded = model.predict(X_test_processed)",
+   "reasoning": "The task is evaluated using NDCG, which implies predicting multiple top-k destinations, but the agent only extracts the top-1 prediction using model.predict().",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(transformers=[\n    ('num', num_imputer, final_numeric),\n    ('cat', cat_imputer, final_categorical)\n], remainder='passthrough')",
+   "reasoning": "The agent uses raw features directly with basic imputation and no derived features, ignoring obvious date features like 'date_account_created'.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Undefined variable",
+   "description": "The script references a variable that has not been defined, causing a NameError during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_processed = pipe.transform(X_train)"
+  },
+  {
+   "name": "Invalid imputer strategy",
+   "description": "The agent specifies an invalid strategy for SimpleImputer, which will cause a ValueError. The correct strategy for the mode is 'most_frequent'.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cat_imputer = SimpleImputer(strategy='mode')"
+  },
+  {
+   "name": "Pipeline transform on classifier",
+   "description": "The agent attempts to call `.transform()` on a Pipeline that ends with an estimator (classifier), which raises an AttributeError because classifiers typically only implement `.predict()` or `.predict_proba()`.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_processed = pipe.transform(X_train)"
+  },
+  {
+   "name": "Missing categorical encoding",
+   "description": "Categorical variables are imputed but not encoded (OneHotEncoder is defined but never added to the ColumnTransformer). Passing string features directly to LightGBM without converting them to 'category' dtype or encoding them will result in an error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "('cat', cat_imputer, final_categorical)"
+  }
+ ],
+ "summary": "The agent completely fails to evaluate the model locally by neglecting a train/validation split, and skips essential feature engineering. The script is also plagued by multiple critical execution errors, including undefined variables, invalid scikit-learn parameters, incorrect Pipeline usage, and missing categorical encoding.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

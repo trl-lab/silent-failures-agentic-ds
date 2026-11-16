@@ -1,0 +1,138 @@
+{
+ "task": "phoneme",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data for EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n...\nX = engineer_features(train_df, feature_cols)",
+   "reasoning": "The agent proceeds directly from loading the data to feature engineering and modelling without any explicit checks or handling for missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is explicitly performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification objective in LightGBM for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a proper Stratified 5-Fold Cross Validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently averages performance across multiple runs (folds) to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y, (oof_preds >= th).astype(int))",
+   "reasoning": "The agent only evaluates and optimises the model using accuracy, without checking supplementary metrics (like precision, recall, or AUC) to verify robust performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers several derived features including statistical aggregates and pairwise interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += clf.predict(X_test, num_iteration=clf.best_iteration) / n_splits",
+   "reasoning": "The agent combines the predictions from the 5 folds using a simple unweighted average, without attempting to tune the combination.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage in Threshold Optimisation",
+   "description": "The classification threshold is tuned on the aggregated out-of-fold validation predictions and the final CV accuracy is reported using this optimal threshold. This causes the reported CV score to be overly optimistic since the threshold is overfit to the validation data itself.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for th in np.linspace(0.3, 0.7, 41):\n    acc = accuracy_score(y, (oof_preds >= th).astype(int))\n...\ncv_accuracy = accuracy_score(y, (oof_preds >= best_th).astype(int))"
+  }
+ ],
+ "summary": "The agent provides a solid baseline solution with good feature engineering and a robust 5-fold cross-validation setup. However, it fails to perform any exploratory data cleaning or basic preprocessing checks. Furthermore, the agent tunes its classification threshold directly on the out-of-fold predictions and uses that same tuned threshold to report validation accuracy, resulting in an overly optimistic evaluation.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

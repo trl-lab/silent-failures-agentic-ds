@@ -1,0 +1,129 @@
+{
+ "task": "istanbul-stock-exchange",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis or inspect the test data prior to defining the preprocessing steps.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "X_train_raw = X_train_raw.fillna(0)",
+   "reasoning": "The agent applies an explicit strategy to handle missing values by filling them with a constant (0).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_tr_scaled = scaler.fit_transform(X_tr)\nX_va_scaled = scaler.transform(X_va)",
+   "reasoning": "The scaler is correctly fit only on the training folds inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection techniques are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_raw = X_train_raw.fillna(0)",
+   "reasoning": "Imputation uses a predefined constant (0) rather than a fitted statistic like mean or median, so no test statistics leak into training.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series (stock market data with dates), but the agent uses standard shuffled K-Fold cross-validation, which introduces severe look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A Ridge regression model is appropriate for this continuous target regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X_train_raw, y_train)):",
+   "reasoning": "The agent correctly implements an outer 5-fold cross-validation loop to evaluate out-of-fold performance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y_train, oof_predictions))\nprint(f\"Validation Metric (OOF RMSE): {oof_rmse:.6f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying robustness using other metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task predicting the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df[\"market_mean\"] = df[index_cols].mean(axis=1)",
+   "reasoning": "The agent engineers multiple useful features, extracting datetime components and computing cross-sectional market statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_predictions += model.predict(X_te_scaled) / kf.n_splits",
+   "reasoning": "The solution only averages predictions across cross-validation folds, which is standard practice, rather than naively ensembling different model classes.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM14": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The solution establishes a solid Ridge regression pipeline with good feature engineering and proper nested cross-validation for hyperparameter tuning. However, it suffers from a critical flaw: it applies randomized cross-validation to time series data, introducing significant look-ahead bias that will likely overestimate the model's true predictive power.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": false
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

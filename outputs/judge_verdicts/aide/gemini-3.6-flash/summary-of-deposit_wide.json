@@ -1,0 +1,137 @@
+{
+ "task": "summary-of-deposit_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined_df = pd.concat([train_df, test_df], ignore_index=True)\n...\nfreq_map = combined_df[col].value_counts().to_dict()\n...\ngrouped = (combined_df.groupby(g)[n].agg([\"mean\", \"std\", \"min\", \"max\"]).reset_index())",
+   "reasoning": "The agent computes frequency encodings and grouped aggregations on the combined train and test dataset, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols_catboost = [c for c in cat_features]\nfor c in cat_cols_catboost:\n    train_catboost[c] = train_catboost[c].astype(str).fillna(\"missing\")",
+   "reasoning": "The agent makes no explicit effort to handle missing values (except basic formatting for CatBoost), remove duplicates, or handle outliers in numeric columns, relying entirely on the tree models to handle them natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed (only a constant fill for strings in CatBoost, which does not leak statistics).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Without deeper inspection of the data, it is unclear if there is a strict temporal order that should dictate the validation split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses a 5-fold cross-validation setup to evaluate models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model tuning or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated using 5-fold cross-validation, and predictions are averaged across folds, mitigating single-run variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_rmse = np.sqrt(mean_squared_error(y_train, blend_oof))\nprint(f\"Validation RMSE: {oof_rmse:.5f}\")",
+   "reasoning": "The agent only computes and relies on RMSE without checking alternative metrics like MAE or R-squared to better understand model behavior, particularly with outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly framed as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent incorporates feature engineering via frequency encodings and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the optimal blending weights for the ensemble, which is a robust technique.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a generally strong solution with a sophisticated SLSQP-weighted ensemble of three gradient boosting models. However, it introduces critical data leakage by calculating frequency encodings and group-based aggregations on the combined train and test dataset before splitting. Additionally, it skips explicit data cleaning and relies entirely on the models' native missing value handling.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

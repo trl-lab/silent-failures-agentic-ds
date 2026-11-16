@@ -1,0 +1,138 @@
+{
+ "task": "awarded-grants",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X[col], test_X[col]], axis=0).astype(str)\n    categories = combined.unique().tolist()",
+   "reasoning": "The agent builds the categorical encoding mapping using unique values from both the training and test sets, leaking test set information into the training preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling numeric columns with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "median_val = X_train[col].median()\n    X_train[col] = X_train[col].fillna(median_val)\n    X_val[col] = X_val[col].fillna(median_val)",
+   "reasoning": "Imputation statistics (median) are correctly calculated only on the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset actually contains temporal data requiring a time-based split, though the agent uses a generic random split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The agent splits the data into training and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated exactly once using a single random train/validation split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = float(np.sqrt(mean_squared_error(y_val, val_pred)))",
+   "reasoning": "The agent only computes RMSE, missing out on other informative regression metrics like MAE or R\u00b2.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly formulated as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[col] = pd.to_datetime(X[col], errors='coerce').astype('int64') / 1e9",
+   "reasoning": "The agent applies only basic conversions (datetime to seconds, categorical encoding) and no domain-specific or interaction features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing target transformation for skewed financial data",
+   "description": "Financial amounts are usually heavily right-skewed. Optimizing RMSE on raw financial data makes the model extremely sensitive to outliers, often necessitating a log transformation (e.g., log1p) on the target variable.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "target = 'Financial Assistance'\ny = train[target].values"
+  }
+ ],
+ "summary": "The agent implements a functional baseline LightGBM model with appropriate train/validation splitting for imputation. However, there is a data leakage issue as the categorical encoder is fitted on the combined train and test sets. Additionally, the solution lacks any meaningful feature engineering, evaluates the stochastic model only once, and fails to apply target transformations typically necessary for financial regression tasks.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

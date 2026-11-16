@@ -1,0 +1,145 @@
+{
+ "task": "miga-issued-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during preprocessing or setup.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is set up within a ColumnTransformer applied after the predefined train/test split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal structure that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an LGBMRegressor, which is appropriate for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(full_pipe.transform(X_train), y_train)\n\n# Process Test Data\nX_test_proc = full_pipe.transform(test_df[test_feature_cols])\n\n# Predict\ny_pred = model.predict(X_test_proc)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without performing any internal validation or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "model = LGBMRegressor(random_state=42, n_estimators=500, learning_rate=0.05, subsample=1.0, colsample_bytree=1.0, verbose=-1, max_depth=-1)",
+   "reasoning": "The agent trains a stochastic model (LightGBM with column/row sampling parameters) exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes no evaluation metrics whatsoever.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is standard regression and is framed correctly by the agent.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numerical_cols = train_df.select_dtypes(include=[np.number]).columns.tolist()\ncategorical_cols = [col for col in feature_cols if col not in numerical_cols]",
+   "reasoning": "The agent uses raw columns as-is with only basic imputation and one-hot encoding, without creating any derived features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid argument causing execution failure",
+   "description": "Passing invalid keyword arguments to standard library or framework classes, which will cause an immediate crash upon execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "ct = ColumnTransformer(\n    transformers=[\n        ('num', Pipeline(steps=[\n            ('imputer', SimpleImputer(strategy='median')),\n            ('encoder', None)\n        ])),\n    ],\n    remapping={},\n)"
+  },
+  {
+   "name": "Calling transform on an unfitted estimator",
+   "description": "Calling the transform() method on a scikit-learn transformer or pipeline before it has been fit, which raises a NotFittedError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "full_pipe = ColumnTransformer([('num', pipe_num, numerical_cols),\n                               ('cat', pipe_cat, categorical_cols)])\n\nmodel.fit(full_pipe.transform(X_train), y_train)"
+  }
+ ],
+ "summary": "The agent attempts to create a standard preprocessing pipeline using scikit-learn and LightGBM but introduces fatal execution errors. Specifically, it passes an invalid argument ('remapping') to ColumnTransformer and attempts to transform the training data using an unfitted pipeline. Furthermore, the solution completely lacks internal validation and performs no feature engineering.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

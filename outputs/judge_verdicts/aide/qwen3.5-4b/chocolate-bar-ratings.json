@@ -1,0 +1,145 @@
+{
+ "task": "chocolate-bar-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]\n...\ntrain_data = lgb.Dataset(X_train_fold, label=y_train_fold)",
+   "reasoning": "The agent makes absolutely no effort to clean the data, passing raw features directly to LightGBM.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no strict temporal ordering requirement specified for this task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification model (LightGBM with 'multiclass' objective) for the m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, satisfying the requirement for internal validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, averaging across the 5 models, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_scores.append(accuracy_score(y_val_fold, y_pred))",
+   "reasoning": "The agent relies entirely on accuracy, which may be inappropriate if the rating distributions are imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent treats the problem as a multiclass classification task, which aligns with the provided task type.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in [\"Rating\", \"id\"]]",
+   "reasoning": "The agent uses raw columns entirely as-is without attempting any feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unencoded target for LightGBM multiclass",
+   "description": "LightGBM's multiclass objective strictly requires target labels to be integers in the range [0, num_classes - 1]. Failing to LabelEncode the target variable when it contains strings, floats, or non-consecutive integers will result in an execution crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = train_df[\"Rating\"]\n...\ntrain_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  },
+  {
+   "name": "Unencoded categorical features",
+   "description": "LightGBM cannot handle string/object columns natively unless they are explicitly cast to the pandas 'category' dtype. Passing raw object columns directly to the model causes an execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols]\n...\ntrain_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  }
+ ],
+ "summary": "The agent sets up a reasonable 5-fold cross-validation pipeline with LightGBM but completely skips data cleaning and feature engineering. Crucially, the script is likely to crash during execution because raw categorical strings and unencoded targets are passed directly to LightGBM, which requires specific dtypes ('category') and 0-indexed integer labels for multiclass tasks.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

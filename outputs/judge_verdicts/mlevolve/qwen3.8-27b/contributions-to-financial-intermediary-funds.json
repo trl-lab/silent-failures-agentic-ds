@@ -1,0 +1,138 @@
+{
+ "task": "contributions-to-financial-intermediary-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data by filling missing numerical values with the median and categorical values with a 'MISSING' placeholder.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is properly fitted only on the training set and then applied to the validation and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(..., test_size=0.2, random_state=42, stratify=train_work[\"target_quantile\"])",
+   "reasoning": "The dataset contains temporal features (datetime columns), but the agent uses a random split instead of a time-based split, potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly chosen for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation set is explicitly created and used for early stopping and evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(**lgb_params)\n\nmodel.fit(...)",
+   "reasoning": "The agent trains the stochastic LightGBM model exactly once and reports a single score, without averaging across multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_rmse = np.sqrt(np.mean((val_pred_original - y_val_original) ** 2))",
+   "reasoning": "The agent evaluates using only RMSE and does not report any other metrics to provide a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly formulated as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent applies extensive feature engineering, including datetime decomposition, cyclical features, and target encoding.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage in Target Encoding",
+   "description": "Target encoding is applied to the training data by directly calculating the median target per category on the full training set and mapping it back, without using out-of-fold encoding or smoothing. This leaks the target variable into the training features, causing tree-based models to severely overfit to the training data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med_per_cat = combined.groupby(\"cat\")[\"target\"].median().to_dict()\n...\nX_train_fe[f\"{col}_target_enc\"] = X_train_fe[col].map(mapping).fillna(global_median)"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with appropriate handling of missing values and extensive feature engineering. However, a critical target leakage is introduced by performing naive target encoding directly on the training set without out-of-fold cross validation. Additionally, the data split is random despite the presence of temporal features, and the stochastic model is only evaluated once using a single metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

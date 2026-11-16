@@ -1,0 +1,134 @@
+{
+ "task": "community-banking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "processor = LeakageSafeFeatureProcessor(target=TARGET).fit(train_split)",
+   "reasoning": "The agent correctly fits its feature processor only on the training split, avoiding peeking at test/validation data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_raw.dropna(subset=[TARGET])",
+   "reasoning": "The agent drops rows with missing targets and relies on LightGBM/XGBoost's native handling of missing feature values, which is an acceptable strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "valid_feature_mask = [X_train[c].notna().any() for c in X_train.columns]",
+   "reasoning": "Feature selection (dropping all-NaN columns) is safely performed using only X_train.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputation is performed before splitting (the agent delegates missing values to the tree models).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tmp = tmp.sort_values([\"_split_date\", \"_orig_idx\"], kind=\"mergesort\")\n        ...\n        val_raw = tmp.iloc[-n_val:]",
+   "reasoning": "The agent actively detects datetime columns and uses a temporal split when one is present.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "objective=\"regression\"",
+   "reasoning": "The agent correctly uses regression models (LightGBM and XGBoost regressors) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_split, val_raw = train_test_split",
+   "reasoning": "The agent explicitly splits the data into training and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "set_seed(SEED)\n...\nfinal_val_score = rmse(y_val, val_pred)",
+   "reasoning": "The models are evaluated only once using a single seed and a single validation split, rather than using cross-validation or multiple seeds to estimate variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_val_score = rmse(y_val, val_pred)",
+   "reasoning": "The agent only computes and reports RMSE, without looking at other metrics like MAE or R-squared for a more complete picture of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "TARGET = \"LOANTOASSET\"",
+   "reasoning": "The task is correctly formulated as a standard regression problem on the target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "class LeakageSafeFeatureProcessor:\n...",
+   "reasoning": "The agent's feature processor merely handles types and encodes categoricals/datetimes; it does not derive any new features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_pred = (val_pred_lgb + val_pred_xgb) / 2.0",
+   "reasoning": "The agent combines LightGBM and XGBoost using a naive unweighted average, instead of tuning the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent wrote a well-structured and mostly correct pipeline that avoids data leakage. It successfully handles temporal splits, categorical encoding, and keeps all data transformations isolated to the post-split training set. However, it misses opportunities to improve model quality by skipping feature engineering, using a naive unweighted ensemble, and evaluating performance using only a single metric and a single random seed.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

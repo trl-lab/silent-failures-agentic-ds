@@ -1,0 +1,142 @@
+{
+ "task": "nomad2018-predict-transparent-conductors",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or use the test data to inform preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles NaNs and infinite values, and sets up a SimpleImputer for both numerical and categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature scaling is applied before splitting; imputation and encoding are correctly encapsulated within a Pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied in the solution.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is handled properly inside the Pipeline, meaning it is fit only on the training split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBM, XGBoost, CatBoost) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set for computing ensemble weights.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X_all, y_all_t, test_size=0.2, random_state=42)",
+   "reasoning": "The agent relies on a single random train/validation split and fixed random seeds for the models, without any cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "errors = np.array([rmsle(y_val_orig, p) for p in val_preds], dtype=float)",
+   "reasoning": "The agent only computes RMSLE to evaluate the models and determine ensemble weights, ignoring other metrics like MAE or RMSE that could provide additional insights into the error distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as standard regression on the provided target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != TARGET]",
+   "reasoning": "The agent relies entirely on raw features and applies no domain-informed feature engineering (such as calculating geometric properties or atomic ratios), which is typically critical in material science datasets.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "inv_errors = 1.0 / (errors + 1e-8)\nweights = inv_errors / inv_errors.sum()",
+   "reasoning": "The agent does not use a simple naive unweighted average; it calculates inverse-error weights based on validation performance, which is an acceptable heuristic.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target transformation fitted on full data before splitting",
+   "description": "Parameters for target transformations (such as computing the minimum value for a log1p shift) are computed on the entire target array before the train/validation split, which can technically leak validation target statistics into the training process.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "transform, inverse, y_min = make_log_transform(y_all)\ny_all_t = transform(y_all)\nif len(X_all) >= 20:\n    X_train, X_val, y_train, y_val = train_test_split(\n        X_all, y_all_t, test_size=0.2, random_state=42\n    )"
+  }
+ ],
+ "summary": "The solution is generally robust with good defensive programming against missing, infinite, or anomalous values. The primary drawbacks are the complete lack of feature engineering (which is highly important for material science tasks) and reliance on a single validation split/single metric for evaluating stochastic models.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

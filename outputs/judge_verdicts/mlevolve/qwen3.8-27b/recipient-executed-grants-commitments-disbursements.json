@@ -1,0 +1,53 @@
+{
+ "task": "recipient-executed-grants-commitments-disbursements",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_indices, val_indices = train_test_split(np.arange(len(train)), test_size=0.15, random_state=42)",
+   "reasoning": "The dataset contains temporal features (e.g., 'Fiscal Year', 'Grant Agreement Date'), but the agent uses a random split instead of a time-based split, which can introduce look-ahead bias when predicting future disbursements.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_val_rmse = root_mean_squared_error(y_val, lgb_val_preds)",
+   "reasoning": "The agent only computes and optimizes the provided RMSE metric without checking other metrics like MAE, which might be more robust to extreme values common in financial disbursement data.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage in Ensembling",
+   "description": "The agent uses the same global validation set for early stopping the MLP models and for tuning the final ensemble weights. This makes the MLP's validation predictions overly optimistic, leading to biased ensemble weights and an unreliable final validation score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_loss = criterion(val_pred, val_target).item() ... if val_loss < best_val_loss: ... best_model_state = {k: v.clone() for k, v in model.state_dict().items()} ... blend_val = w * lgb_val_preds + (1 - w) * mlp_val_preds"
+  },
+  {
+   "name": "Ignored Validation Folds in CV",
+   "description": "The agent implements a K-Fold cross-validation loop for LightGBM but completely ignores the validation indices (va_idx). Instead of generating out-of-fold predictions, it uses the folds merely to subsample the training data and evaluates every model on the global validation set.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "tr_idx, va_idx = splits[fold] ... inner_tr, inner_va = train_test_split(tr_idx, test_size=0.15 ... val_pred_log = model_lgb_final.predict(X_val)"
+  }
+ ],
+ "summary": "The agent demonstrates strong feature engineering and modeling practices, successfully implementing target encoding, deep learning, and gradient boosting. However, it fails to account for the temporal nature of the dataset by using a random train/validation split. Furthermore, the agent introduces validation leakage by early-stopping the MLP on the same holdout set used for optimizing ensemble weights, and it incorrectly implements the LightGBM cross-validation loop by ignoring the validation folds.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 8,
+ "stage_count_max": 8,
+ "no_code": false
+}

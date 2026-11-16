@@ -1,0 +1,138 @@
+{
+ "task": "nyc-taxi-trip-duration",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n\n# Extract datetime features",
+   "reasoning": "The agent makes no effort to clean the data, handle missing values, or remove obvious outliers, which are common in taxi trip duration datasets.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    X_train, y_train, test_size=0.2, random_state=42\n)",
+   "reasoning": "The dataset contains temporal information (pickup and dropoff datetimes), but the agent uses a random split instead of a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the data into train and validation sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    lgb.Dataset(X_train, label=y_train),\n    num_boost_round=500,\n    callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n)",
+   "reasoning": "The LightGBM model is trained and evaluated only once, without any cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmsle = mean_squared_log_error(y_val, val_pred)",
+   "reasoning": "The agent only computes RMSLE on the validation set and does not look at any other metrics to understand model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem on trip duration.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers datetime and distance features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage and execution error due to missing test column",
+   "description": "The agent extracts features from a column that is a direct proxy for the target variable (e.g., 'dropoff_datetime' to predict trip duration), constituting target leakage. Furthermore, because this column is predictably absent from the test set, attempting to access it causes a KeyError and crashes the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_df[\"dropoff_datetime\"] = pd.to_datetime(test_df[\"dropoff_datetime\"])"
+  }
+ ],
+ "summary": "The agent correctly frames the regression task and applies a LightGBM model, but commits a fatal error by attempting to extract features from 'dropoff_datetime'. This column is perfectly correlated with the target variable (target leakage) and is absent from the test set, leading to an immediate execution failure. Additionally, the agent fails to clean the data, splits temporal data randomly, and relies on a single stochastic evaluation.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

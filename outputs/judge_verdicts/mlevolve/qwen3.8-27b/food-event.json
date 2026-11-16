@@ -1,0 +1,138 @@
+{
+ "task": "food-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test statistics during EDA, and the train/test split is already established by the input files.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and drops ID columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation is correctly fitted on the training split only using X_train median.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not strictly clear without explicit dataset metadata whether temporal splitting is required for this specific task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classification model (LGBMClassifier) for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An internal validation split is correctly created and evaluated.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(**params)\nmodel.fit(\n    X_train,\n    y_train,\n    eval_set=[(X_val, y_val)],",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model exactly once using a fixed random seed, without cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_val, val_preds)",
+   "reasoning": "The agent evaluates the model using only accuracy, which may not adequately reflect performance if classes are imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately formulated as multi-class classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cat_cols = X.select_dtypes(include=[\"object\", \"category\"]).columns.tolist()\nfor col in cat_cols:\n    combined = pd.concat([X[col].astype(str), X_test[col].astype(str)], axis=0)\n    vocab = {c: i for i, c in enumerate(sorted(combined.unique()))}\n    X[col] = X[col].astype(str).map(vocab).fillna(-1).astype(int)",
+   "reasoning": "The agent blindly applies label encoding to all string/object columns, destroying the internal structure and signal of complex text or list-like features (e.g., 'reactions', 'products').",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Data Leakage in Encoding",
+   "description": "The agent concatenates the training and test datasets to build a shared vocabulary for categorical encoding. This leaks test set information (the distribution of categories) into the training preprocessing pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X[col].astype(str), X_test[col].astype(str)], axis=0)\nvocab = {c: i for i, c in enumerate(sorted(combined.unique()))}"
+  }
+ ],
+ "summary": "The agent's solution primarily fails due to a complete lack of meaningful feature engineering, blindly label-encoding complex text and list columns which destroys their predictive signal. Additionally, it introduces test data leakage by building categorical vocabularies using both the train and test sets, and relies on a single evaluation run with only accuracy as the metric.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

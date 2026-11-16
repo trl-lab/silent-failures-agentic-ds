@@ -1,0 +1,148 @@
+{
+ "task": "drug-enforcement",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or peeking at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_raw[col] = X_train_raw[col].fillna(\"\").astype(str)",
+   "reasoning": "The agent explicitly handles missing values by imputing with empty strings for text and medians for numeric columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler.fit_transform(X_train_raw[numeric_cols])\n    X_num_te = scaler.transform(X_test_raw[numeric_cols])",
+   "reasoning": "The scaler is correctly fit only on the training dataset and then used to transform the test dataset, avoiding train-test leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_svd_tr = svd.fit_transform(X_sparse_tr)\nX_svd_te = svd.transform(X_sparse_te)",
+   "reasoning": "Feature selection/dimensionality reduction (SVD) is fit only on the training set and applied to the test set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "med = X_train_raw[col].median() ... X_test_raw[col] = X_test_raw[col].fillna(med)",
+   "reasoning": "Imputation statistics are calculated exclusively on the training set and applied to the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "No temporal columns are identifiable in the generic preprocessing, so it cannot be determined if temporal order is ignored.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "LogisticRegression(C=1.0, max_iter=1000, random_state=42, n_jobs=-1)",
+   "reasoning": "The agent uses appropriate classification models for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code is truncated before any evaluation occurs, so it is impossible to know if they would have evaluated multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code ends abruptly before computing or reporting any evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y = le.fit_transform(y_raw)\nnum_classes = len(le.classes_)",
+   "reasoning": "The task is formulated correctly as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "vec_word = TfidfVectorizer(ngram_range=(1, 3), max_features=25000, sublinear_tf=True)",
+   "reasoning": "The agent engineers features by concatenating string columns and extracting word/character TF-IDF representations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "dense_tr_components = [X_svd_tr] + oof_preds_list\n...\nX_dense_tr = np.hstack(dense_tr_components)",
+   "reasoning": "The agent is building a stacking ensemble using out-of-fold predictions, which is a sophisticated ensembling technique.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incomplete code / Syntax error",
+   "description": "The generated code is truncated at the end, resulting in a SyntaxError. It will fail to execute completely and cannot produce any predictions or evaluation output.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_test = np.zeros((X_dense_te.shape[0], num_classes))\n\ncat_oof = np"
+  },
+  {
+   "name": "Cross-validation leakage",
+   "description": "Transformers (such as TF-IDF, StandardScaler, and TruncatedSVD) and imputation medians are computed on the entire training set before the cross-validation split. This leaks information from the validation folds into the training folds, making the out-of-fold (OOF) predictions overly optimistic and potentially causing the meta-model to overfit.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_word_tr = vec_word.fit_transform(text_train)\n...\nfor train_idx, val_idx in skf.split(X_sparse_full_tr, y):"
+  }
+ ],
+ "summary": "The agent sets up a strong foundation for a stacking ensemble, correctly handling text vectorisation, scaling, and out-of-fold prediction generation for multiple base models. However, the solution suffers from a critical execution failure because the code is truncated and will throw a SyntaxError. Furthermore, there is data leakage within the cross-validation loop because all feature transformations are applied to the entire training set prior to splitting into folds.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

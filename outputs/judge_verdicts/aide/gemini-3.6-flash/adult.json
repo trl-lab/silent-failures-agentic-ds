@@ -1,0 +1,141 @@
+{
+ "task": "adult",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed, so test data was not inspected.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[col] = pd.factorize(df[col])[0]",
+   "reasoning": "The agent strips string whitespace but makes no explicit effort to handle missing values (like '?' in the Adult dataset), relying entirely on categorical factorization and the tree models to handle them.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaler is used in the pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The adult dataset does not have a temporal component, so random splitting is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models (LGBM, HistGradientBoosting, etc.) are used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold StratifiedKFold cross-validation strategy is implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation, which evaluates the model architecture over multiple splits, effectively averaging out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "acc = accuracy_score(y, (oof_blend > t).astype(int))\n    if acc > best_acc:",
+   "reasoning": "The agent optimizes the classification threshold and evaluates the model using only accuracy, failing to verify performance with metrics like AUC or F1-score which are important for the imbalanced Adult dataset.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates multiple derived features, including ratios, logs, and categorical interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_blend = (\n    0.35 * oof_preds_lgb1\n    + 0.25 * oof_preds_lgb2\n    + 0.20 * oof_preds_hgb\n    + 0.20 * oof_preds_other\n)",
+   "reasoning": "The agent uses a weighted average with custom weights rather than an unweighted average or simple majority vote, although the weights are hardcoded and not optimized.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage through frequency encoding before splitting",
+   "description": "Frequency encoding or target encoding is calculated on the combined train and test dataset before splitting, which leaks the test set's distribution statistics into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train_features, test_features], ignore_index=True)\n...\nfor col in cat_cols:\n    freq = df[col].value_counts(normalize=True)\n    df[f\"{col}_freq\"] = df[col].map(freq)"
+  }
+ ],
+ "summary": "The agent builds a robust machine learning pipeline with 5-fold cross-validation, feature engineering, and a weighted ensemble of gradient boosting models. However, it introduces critical data leakage by calculating frequency encodings on the combined train and test sets, and it evaluates the model exclusively on accuracy despite the dataset's class imbalance.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

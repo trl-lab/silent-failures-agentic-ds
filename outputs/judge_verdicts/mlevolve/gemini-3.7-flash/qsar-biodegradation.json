@@ -1,0 +1,142 @@
+{
+ "task": "qsar-biodegradation",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or use test data statistics to inform the pipeline design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by standardising column names, replacing infinite values, and imputing missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within the cross-validation loops (e.g., RobustScaler, StandardScaler) rather than globally before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med_values = X_train_eng.median()\nX_train_eng = X_train_eng.fillna(med_values)",
+   "reasoning": "The median for imputation is computed on the entire training set before cross-validation splitting, which leaks validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for this binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm, weight_decay, and early stopping.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a Stratified 10-Fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated across 10 cross-validation folds, which inherently averages over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "v_auc = roc_auc_score(y_val, v_probs)",
+   "reasoning": "The agent relies entirely on ROC AUC for evaluation without reporting secondary metrics, though ROC AUC is an appropriate metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification with appropriate probability predictions.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive domain-specific chemoinformatic feature engineering is performed.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensembling relies on Nelder-Mead optimization to find optimal blend weights over rank-normalized OOF predictions, which is highly advanced.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage via Stitched OOF Features",
+   "description": "The agent generates out-of-fold PCA and ICA features in a cross-validation loop and appends them to the dataset. In a subsequent cross-validation loop using the identical folds, these features are used for training base models. This causes data leakage because the OOF features for the training folds were generated using unsupervised models (PCA/ICA/Scaler) fit on data that included the validation fold of the current loop.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_pca[val_mask] = pca.transform(X_val_sc)\n...\nX_train_eng[col] = train_pca[:, i]\n...\nX_tr = X_train_eng.iloc[train_idx][feature_cols].copy()"
+  }
+ ],
+ "summary": "The solution is highly advanced, utilizing custom chemoinformatic feature engineering, a diverse set of models (including a custom PyTorch Tabular ResNet), and rank-based weighted ensembling. However, there are two moderate data leakage issues: computing the imputation median on the entire training set prior to cross-validation, and an unsupervised feature leakage where out-of-fold PCA/ICA features are incorrectly used as training features in a subsequent CV loop with identical folds.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

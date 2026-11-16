@@ -1,0 +1,106 @@
+{
+ "task": "car-evaluation",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X = train_df[feature_cols].copy()\ny = train_df[target_col].copy()",
+   "reasoning": "The agent makes no effort to check for or handle missing values, duplicates, or anomalies before encoding and modeling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_encoded.iloc[val_idx], y_encoded[val_idx]\n\n    model = LGBMClassifier(",
+   "reasoning": "The agent creates a validation split for each fold but completely fails to use it\u2014no validation metric is ever computed, meaning there is no estimation of model generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_encoded = pd.DataFrame(encoder.fit_transform(X), columns=feature_cols)",
+   "reasoning": "The agent passes the raw features through an OrdinalEncoder directly to the model with no derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_probs += model.predict_proba(X_test_encoded) / n_splits",
+   "reasoning": "The agent uses a naive unweighted average of probabilities across its cross-validation ensemble without any tuning of blend weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper Categorical Handling",
+   "description": "Categorical features are ordinal-encoded into numerical types (float64 by default) but are not explicitly declared as categorical to the tree-based model. This causes the model to treat them as continuous numeric variables with an arbitrary ordering, which is inappropriate for nominal data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)\n...\nmodel.fit(X_tr, y_tr)"
+  }
+ ],
+ "summary": "The agent implements a cross-validated LightGBM pipeline but critically fails to actually evaluate the model, as it creates validation splits but never computes any validation metrics. Furthermore, it treats ordinal-encoded categorical variables as continuous numerical variables (since it fails to specify them as categorical for LightGBM), and it completely omits data cleaning and feature engineering.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

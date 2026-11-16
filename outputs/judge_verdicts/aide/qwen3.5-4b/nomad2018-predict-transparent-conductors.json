@@ -1,0 +1,148 @@
+{
+ "task": "nomad2018-predict-transparent-conductors",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or preprocessing that uses the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n...\nX_train, X_val, y_train, y_val = train_test_split(",
+   "reasoning": "The agent loads the data and passes it directly into the train-test split and model without any explicit handling of missing values, outliers, or duplicates, relying entirely on LightGBM's default behavior.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly performs a train/validation split using train_test_split and evaluates on the validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n...",
+   "reasoning": "The agent trains a LightGBM model with stochastic parameters (feature_fraction, bagging_fraction) a single time and reports a single validation score, without using cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent calculates both RMSE and RMSLE, meaning they do not rely on a single evaluation metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as predicting the specified target variable using regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df.drop(\"formation_energy_ev_natom\", axis=1)",
+   "reasoning": "The agent uses the raw dataset columns as-is for training without deriving any new features, domain-informed transformations, or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Training on identifier column",
+   "description": "The agent fails to drop the 'id' or index column from the training features. This allows the model to use the arbitrary sample identifier as a predictive feature, which can lead to severe overfitting and poor generalization to test data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    train_df.drop(\"formation_energy_ev_natom\", axis=1),"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent generates the 'id' column for the submission file using a sequential integer range instead of extracting the actual identifiers from the test dataset. This will cause misaligned or invalid predictions if the test IDs are not sequentially identical to the generated range.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame(\n    {\"id\": range(len(test_df)), \"formation_energy_ev_natom\": test_predictions}\n)"
+  },
+  {
+   "name": "Mismatch between training objective and evaluation metric",
+   "description": "The model is trained using a standard RMSE objective but evaluated on RMSLE, without applying a log transformation to the target variable prior to training. This leads the model to optimize for a different loss surface than the one it is evaluated against.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\",\n\"metric\": \"rmse\",\n...\nrmse_log = np.sqrt(mean_squared_error(np.log(y_val + 1), np.log(y_val_pred + 1)))"
+  }
+ ],
+ "summary": "The agent implements a basic LightGBM pipeline but misses fundamental data science best practices. It fails to perform any data cleaning or feature engineering, relying entirely on raw features (including the 'id' column, which causes data leakage/overfitting). Additionally, the agent optimizes for the wrong objective metric, evaluates a stochastic model only once, and carelessly hardcodes IDs in the final submission file.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

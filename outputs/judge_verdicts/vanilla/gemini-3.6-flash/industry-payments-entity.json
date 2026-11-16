@@ -1,0 +1,116 @@
+{
+ "task": "industry-payments-entity",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = pd.concat([X[col], X_test[col]]).value_counts()",
+   "reasoning": "The agent computes frequency encodings using the combined training and test datasets, leaking test set distribution statistics into the training features.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes no explicit effort to handle missing values for numerical features, relying entirely on the gradient boosting models to handle them without an explicit strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "Despite extracting date features and the task likely having a temporal component, the agent uses a random K-Fold split instead of a time-based split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "metric='rmse'",
+   "reasoning": "The agent optimizes the models using only RMSE for early stopping and does not report or verify if it is the most appropriate metric for the underlying distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_preds + 0.4 * cb_preds + 0.2 * xgb_preds",
+   "reasoning": "The agent combines the predictions of three models using arbitrary fixed weights without any tuning or optimization of the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Mismatched Categorical Encoding",
+   "description": "The agent applies categorical encoding independently to the training and test sets. This causes the same categorical value to be mapped to different integers in train and test (unless both sets contain the exact same unique categories in the same alphabetical order), destroying the feature's meaning for models that rely on the underlying integer codes (like LightGBM and XGBoost).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype('category')\n    X_test[col] = X_test[col].astype('category')\n...\n    X_xgb[col] = X_xgb[col].cat.codes\n    X_test_xgb[col] = X_test_xgb[col].cat.codes"
+  },
+  {
+   "name": "No Validation Metric Reported",
+   "description": "The agent uses cross-validation for early stopping and prediction blending, but never computes, aggregates, or logs the overall validation performance (e.g., CV score). This makes it impossible to evaluate the model's quality offline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(\n        X_tr, y_tr,\n        eval_set=[(X_va, y_va)],\n        callbacks=[lgb.early_stopping(50, verbose=False)]\n    )"
+  }
+ ],
+ "summary": "The agent successfully implements a 5-fold cross-validation ensemble of LightGBM, CatBoost, and XGBoost models. However, it introduces critical flaws: it leaks test data by computing frequency encodings on the combined dataset, ignores temporal order by using random splitting, and most significantly, introduces a bug by encoding categorical features independently in the train and test sets, which misaligns category codes for XGBoost and LightGBM.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "jigsaw-unintended-bias-in-toxicity-classification",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is only transformed, not used for fitting or EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_text_train = X_text_train.fillna('')",
+   "reasoning": "The agent explicitly handles missing values in the text columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_vec = vectorizer.fit_transform(X_text_train)\nX_test_vec = vectorizer.transform(X_text_test)",
+   "reasoning": "The text vectorizer is correctly fit on the training data only.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No temporal split issues apply as there is no validation split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(",
+   "reasoning": "A classification model is appropriate for a binary classification task, though the target values were not properly preprocessed.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_vec, y_train, eval_set=None)",
+   "reasoning": "The agent trains on the entire training dataset and predicts on the test set without any internal validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LGBMClassifier(\n    objective='binary',\n    num_leaves=31,\n    learning_rate=0.1,\n    n_estimators=500,\n    verbose=-1,\n    random_state=42\n)",
+   "reasoning": "A stochastic LightGBM model is trained exactly once with a fixed random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a text classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=10000, stop_words='english')",
+   "reasoning": "TF-IDF vectorization is applied as a basic form of feature engineering for text.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Failed to binarize continuous target for classification",
+   "description": "The agent attempts to train a classifier on a target column that contains continuous values (e.g., probabilities or fractions) without first binarizing the target (e.g., target >= 0.5). This causes a ValueError during model fitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "ValueError: Unknown label type: continuous. Maybe you are trying to fit a classifier, which expects discrete classes on a regression target with continuous values."
+  },
+  {
+   "name": "Hardcoded test set IDs",
+   "description": "The agent generates dummy output IDs (e.g., a simple range of integers) instead of extracting the actual identifying column from the test dataset. This misaligns predictions with the expected evaluation format.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "output_ids = list(range(len(predictions)))"
+  }
+ ],
+ "summary": "The agent sets up a standard LightGBM classification pipeline with TF-IDF text features but completely fails to execute. The primary critical failure is passing continuous target values to a classifier without binarizing them, causing the script to crash. Additionally, the agent lacks any internal validation and hardcodes the output IDs, which would invalidate the submission even if the model successfully trained.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

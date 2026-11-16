@@ -1,0 +1,157 @@
+{
+ "task": "house-prices-advanced-regression-techniques",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is peeked at during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is thoroughly performed, explicitly handling missing values across both categorical and numerical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fitted correctly inside the cross-validation loop strictly on the training data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation relies strictly on train-only statistics (e.g., median and mode computed on the first n_train rows).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A random K-fold split is appropriate for this competition, as train and test sets cover the exact same time period.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for this continuous target prediction task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The Neural Network incorporates Dropout, LayerNorm, and AdamW weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 10-fold cross-validation strategy is correctly implemented.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The Kaggle test set is used only for blind predictions, while blending is optimized on out-of-fold validation predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated across 10 folds, inherently accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "RMSLE is the official competition metric and is optimized/reported appropriately.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is correctly formulated with log-transformed targets (log1p) and reverse transformations (expm1).",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive domain-specific feature engineering is performed, including real estate metrics and interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses SLSQP optimization to systematically find the optimal blend weights rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage in target encoding",
+   "description": "The agent computes target encoding statistics on the current training fold and maps them directly onto the same fold without an inner out-of-fold loop. This leaks the target value of each sample into its own features, leading to significant model overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "group = pd.DataFrame({'cat': processed_train.iloc[train_idx][col].astype(str), 'target': y_tr_log}).groupby('cat')['target']\n...\nX_tr_tree[mean_col] = processed_train.iloc[train_idx][col].astype(str).map(smooth_mean).fillna(global_mean).values"
+  },
+  {
+   "name": "Data leakage via frequency encoding on combined dataset",
+   "description": "The agent computes frequency encodings for categorical variables using the combined train and test dataset before splitting. This leaks the categorical distribution of the test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = combined_df[col].value_counts(normalize=True).to_dict()\ncombined_df[f'{col}_freq'] = combined_df[col].map(freq).fillna(0.0).astype(float)"
+  }
+ ],
+ "summary": "The solution implements a robust modeling pipeline with extensive feature engineering, a well-structured neural network, and SLSQP-optimized ensembling. However, it suffers from a critical data leakage flaw in its target encoding implementation, where target statistics are computed on the training fold and applied back to it without an inner CV loop, causing severe overfitting. Additionally, frequency encodings are computed on the combined train and test sets, leaking test distribution information.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

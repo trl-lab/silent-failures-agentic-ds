@@ -1,0 +1,148 @@
+{
+ "task": "kc1",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis is performed, so no peeking at test data occurred during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing data by imputing with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not done on the combined dataset before splitting (though it is done incorrectly on the test set independently).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A classification model (CatBoostClassifier) is correctly chosen for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "eval_set=[(test_X.values, test_y)]",
+   "reasoning": "The agent does not create an internal train/validation split from the training data, instead attempting (and failing) to use the test set for validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = cb.CatBoostClassifier(\n    iterations=1000,\n    learning_rate=0.1,\n    depth=6,\n    random_state=42,\n...",
+   "reasoning": "The stochastic CatBoost model is trained exactly once with a fixed random seed, without cross-validation or multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "eval_metric='AUC'",
+   "reasoning": "The agent configures the model to optimize only for AUC and does not evaluate or report any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_X = train_df.drop(columns=[target_col])\ntest_X = test_df.drop(columns=[target_col])",
+   "reasoning": "The agent uses raw columns directly without engineering any derived features, ratios, or interactions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Error (KeyError on Test Set)",
+   "description": "The code assumes the target column is present in the test set. It attempts to extract and drop the target from the test data, which causes a KeyError and crashes the script because the evaluation test set does not contain the target.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_y = test_df[target_col].map({'false': 0, 'true': 1}).values"
+  },
+  {
+   "name": "Hard Class Prediction for AUC Metric",
+   "description": "When the evaluation metric is ROC AUC, models should output continuous probabilities to correctly rank predictions. The agent thresholds the probabilities to output hard binary classes (0 or 1), which severely degrades the AUC score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred = (y_pred_proba >= 0.5).astype(int)"
+  },
+  {
+   "name": "Test-set Statistics Leakage",
+   "description": "The agent computes imputation statistics (such as the median) directly on the test set instead of applying the statistics learned from the training set. This inappropriately leaks information about the test distribution into the features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_X = test_X.fillna(test_X.median())"
+  }
+ ],
+ "summary": "The agent implements a basic CatBoost pipeline but introduces critical execution and conceptual errors. The script crashes because it expects the test dataset to contain the target column. Furthermore, the agent incorrectly outputs thresholded hard binary classes instead of probabilities for an AUC metric, and inappropriately computes the median on the test set for imputation, rather than applying the train set's median.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

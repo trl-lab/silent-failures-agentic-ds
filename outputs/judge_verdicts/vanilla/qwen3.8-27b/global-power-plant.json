@@ -1,0 +1,142 @@
+{
+ "task": "global-power-plant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so there is no opportunity to peek at the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing categorical values and coerces numeric columns to safely handle unparseable entries.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly fits its frequency encoder and category lists purely on the training split (passed as `fit_df`).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is a snapshot dataset without a strict temporal ordering requiring a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs an explicit train/validation split using `train_test_split`.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The final test set is only used for final predictions; model variants are selected using the internal validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr_raw, X_val_raw, y_tr, y_val = train_test_split(X_all, y_all, test_size=0.2, random_state=RANDOM_STATE)\n...\nmodel.fit(X_tr, y_tr_t, categorical_feature=cat_cols if cat_cols else \"auto\")",
+   "reasoning": "The stochastic LightGBM model is evaluated only once on a single train/validation split without using cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = root_mean_squared_error(y_val, pred_val)\n...\nprint(f\"Validation RMSE [{transform}]: {rmse:.6f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying against other metrics like MAE which might be more robust to outliers in capacity.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated correctly.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineering meaningful features such as `plant_age` and `n_other_fuels`.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overfitting without early stopping",
+   "description": "The model uses a large fixed number of estimators without early stopping on a validation set, which is highly prone to overfitting the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "n_estimators=2000,\n...\nmodel.fit(X_tr, y_tr_t, categorical_feature=cat_cols if cat_cols else \"auto\")"
+  }
+ ],
+ "summary": "The agent provides a structurally sound solution with careful feature engineering and strict separation of the training and validation distributions. However, it relies on a single validation split to evaluate a stochastic model, only considers one evaluation metric, and risks overfitting by training a LightGBM model with 2,000 estimators without early stopping.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

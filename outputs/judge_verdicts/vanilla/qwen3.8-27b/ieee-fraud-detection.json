@@ -1,0 +1,138 @@
+{
+ "task": "ieee-fraud-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data for EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles categorical missing values and relies on LightGBM's native handling for numeric NaNs, which is an acceptable strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before or after splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value handling uses constant fill values ('missing') and does not leak test statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y,)",
+   "reasoning": "The dataset contains a temporal component (TransactionDT), but the agent uses a random stratified split, ignoring temporal order and potentially causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classification model (LGBMClassifier) is used, which is appropriate for the task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y,)",
+   "reasoning": "The agent evaluates the stochastic model (LightGBM with subsampling) exactly once on a single validation split without cross-validation or multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for AUC, which is the appropriate and official target metric for this imbalanced classification task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly framed as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = [col for col in X.columns if _is_categorical_dtype(X[col].dtype)]",
+   "reasoning": "The agent uses raw columns as-is and fails to extract any derived features, such as parsing the critical TransactionDT column into date/time components.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fatal Execution Error: Incorrect categorical feature format",
+   "description": "The agent passes a list of string column names to LightGBM's categorical_feature argument, which causes a crash because LightGBM expects integer indices or strings prefixed with 'name:'. The code suppresses this exception and blindly outputs a default fallback prediction (the prior probability), rendering the whole pipeline useless.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = LGBMClassifier(**final_params, categorical_features=cat_cols)\n        final_model.fit(X, y)\n    except Exception:\n        test_df = pd.read_parquet(TEST_PATH)\n        _save_predictions(len(test_df), np.full(len(test_df), prior, dtype=np.float64))"
+  }
+ ],
+ "summary": "The agent's solution establishes a basic modeling pipeline but suffers from fatal flaws in execution and evaluation. Most critically, an incorrect parameter format crashes LightGBM, causing the script to output dummy fallback predictions instead of actual model outputs. Furthermore, the agent ignores the temporal nature of the dataset, missing out on crucial time-based feature engineering and introducing look-ahead bias via a random train-validation split.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

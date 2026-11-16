@@ -1,0 +1,142 @@
+{
+ "task": "rasff_window",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df = pd.concat([train_df, test_df], axis=0).reset_index(drop=True)\n...\nn_unique = df[col].nunique()\nif avg_words > 4 or (avg_words > 2 and n_unique > 200):",
+   "reasoning": "The agent uses the combined train and test dataset to inspect column uniqueness and determine column types, leaking test set statistics into the preprocessing logic.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with constants (-999, '__MISSING__', -1 for dates).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf_all = TfidfVectorizer(...)\ntfidf_all_mat = tfidf_all.fit_transform(combined_text)\n...\nsvd = TruncatedSVD(n_components=n_svd, random_state=42)\nsvd_all_feats = svd.fit_transform(tfidf_all_mat)",
+   "reasoning": "The agent fits TF-IDF and TruncatedSVD on the concatenated train and test data, leaking test distribution information into the feature representations.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation uses constant values rather than fitted statistics, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "Despite the presence of date columns and a task name implying time windows, the agent uses a randomized cross-validation split, ignoring temporal sequence and risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass models (LogisticRegression and LightGBM with multiclass objectives) for a multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using a 5-fold Stratified Cross-Validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated using 5-fold cross-validation, which inherently trains and tests multiple times to account for data variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_accuracy = accuracy_score(y_train, oof_pred_labels)\nprint(f\"Validation Accuracy: {cv_accuracy:.5f}\")",
+   "reasoning": "The agent relies solely on accuracy to evaluate the model, without checking metrics like macro F1 or log loss which might be more informative for multiclass classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multiclass classification task is appropriately framed.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements significant feature engineering, including date parsing, categorical interactions, frequency encoding, and TF-IDF/SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent effectively uses stacking by incorporating out-of-fold Logistic Regression probabilities as features for the LightGBM model.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target/Frequency Encoding Leakage",
+   "description": "The agent calculates frequency encodings on the combined train and test datasets before splitting. This leaks the test set's category distributions into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = s.value_counts(normalize=True)\nfreq_feat = s.map(freq).rename(f\"{col}_freq\")"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline with extensive feature engineering and a stacking strategy. However, it suffers from significant data leakage by concatenating train and test sets to fit TF-IDF, TruncatedSVD, and frequency encodings. Furthermore, it ignores potential temporal structure by using randomized cross-validation on a dataset with date features.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

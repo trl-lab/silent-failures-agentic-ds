@@ -1,0 +1,144 @@
+{
+ "task": "cosmetic-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation and frequency encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tfidf = TfidfVectorizer(max_features=5000, stop_words='english', ngram_range=(1, 2), sublinear_tf=True)\ntfidf_mat = tfidf.fit_transform(s)\n...\nsvd = TruncatedSVD(n_components=n_comp, random_state=42)\nsvd_mat = svd.fit_transform(tfidf_mat).astype(np.float32)",
+   "reasoning": "TF-IDF vectorization and TruncatedSVD are fit on the combined train and test dataset, leaking test set information into the feature transformations.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "all_df = pd.concat([X_train_raw, X_test_raw], axis=0, ignore_index=True)\n...\nmed = np.nanmedian(vals) if not np.all(has_na) else 0.0\nvals[has_na] = med",
+   "reasoning": "The median for numerical columns is calculated over the combined train and test set, leaking test distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset requires temporal splitting, though date features are extracted.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "clf_lgb = lgb.LGBMClassifier(",
+   "reasoning": "A classifier is used, which is appropriate for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nsplits = list(kf.split(X_train, y))",
+   "reasoning": "The agent sets up cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for train_idx, val_idx in splits:",
+   "reasoning": "The agent loops over multiple cross-validation folds, meaning it intended to evaluate the model multiple times.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The code is truncated before any evaluation metric is computed, so it is impossible to determine what metrics would have been reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_raw = train_df[target_col].astype(str)\nle = LabelEncoder()\ny = le.fit_transform(y_raw)",
+   "reasoning": "The multi-class target is correctly label-encoded.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "f_yr = dt.dt.year.fillna(-1).values.reshape(-1, 1)\n...\nfreq = s.map(s.value_counts(normalize=True)).fillna(0).values.astype(np.float32).reshape(-1, 1)\n...\nword_cnt = s.str.split().str.len().values.astype(np.float32).reshape(-1, 1)",
+   "reasoning": "The agent implements several feature engineering steps including date part extraction, frequency encoding, string length, and TF-IDF.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Syntax Error / Incomplete Code",
+   "description": "The final script is cut off abruptly and contains a syntax error, preventing the code from running and the model from being trained.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "clf_lgb.fit(X_"
+  },
+  {
+   "name": "Frequency encoding on full dataset",
+   "description": "Frequency/target encoding is applied to the combined train and test dataset before splitting, which causes data leakage from the test set into the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = s.map(s.value_counts(normalize=True)).fillna(0).values.astype(np.float32).reshape(-1, 1)"
+  }
+ ],
+ "summary": "The agent's solution contains severe data leakage issues because imputation, frequency encoding, TF-IDF, and SVD are all fit on the concatenated train and test sets prior to splitting. Furthermore, the generated code is incomplete and ends with a syntax error, meaning it will not execute.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

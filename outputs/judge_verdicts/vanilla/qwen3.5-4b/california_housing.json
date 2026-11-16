@@ -1,0 +1,134 @@
+{
+ "task": "california_housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_train[col].fillna(median_val, inplace=True)",
+   "reasoning": "The agent explicitly handles missing values by imputing with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "median_val = df_train[col].median()\n... df_test[col].fillna(median_val, inplace=True)",
+   "reasoning": "The agent correctly calculates the median only on the training set and applies it to the test set, preventing leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses a regressor for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n...\nlog_predictions = model.predict(X_test)",
+   "reasoning": "The model is trained on the entire training set without any holdout validation set or cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "model = lgb.LGBMRegressor(... random_state=42 ...)\nmodel.fit(X_train, y_train)",
+   "reasoning": "The agent trains a stochastic LightGBM model once and does not average predictions over multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model at all, so it does not rely on a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "objective='regression'",
+   "reasoning": "The task is framed correctly as a regression problem on the house value.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = df_train_copy[feature_columns].values",
+   "reasoning": "The agent uses the raw columns directly without deriving any new features or applying domain-informed transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Accessing target column in test set",
+   "description": "The code assumes the target column is present in the test set, which is incorrect for a hidden-label test set, resulting in a KeyError during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_target_log = np.log(df_test[target_column] + 1e-6)"
+  }
+ ],
+ "summary": "The agent correctly prevents data leakage by computing imputation statistics strictly on the training set. However, the solution fails critically during execution because it attempts to access and transform the target column in the test set. Additionally, it lacks any feature engineering or internal validation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

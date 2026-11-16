@@ -1,0 +1,152 @@
+{
+ "task": "store-sales-time-series-forecasting",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values in engineered features are explicitly handled by filling with 0.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (fillna) is applied independently on the train, val, and test dataframes, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A time-based split is correctly used to separate the validation set from the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM with regression objective) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation set is explicitly created and evaluated.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_dataset,\n    valid_sets=[train_dataset, val_dataset],",
+   "reasoning": "The stochastic LightGBM model is trained and evaluated only once without averaging over multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmsle_val = np.sqrt(np.mean((y_val - val_pred_log) ** 2))\nprint(f\"Validation RMSLE: {rmsle_val:.6f}\")",
+   "reasoning": "Only RMSLE is calculated and reported; no secondary metrics are used.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a time-series regression task predicting log sales.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including time features, lags, rolling stats, and cyclical encodings.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature scrambling due to incorrect extraction from sorted dataframe",
+   "description": "When computing lag and rolling features for the validation and test sets, the combined dataframe is sorted by store and family, causing the new target rows to be interspersed. The code then incorrectly assumes the new rows are localized at the very end of the dataframe (`combined.iloc[start_idx:]`), leading to completely scrambled, mismatched features being assigned to the validation and test sets.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = combined.sort_values([\"store_nbr\", \"family\", \"date\"]).reset_index(drop=True)\n...\nstart_idx = len(train_df)\nfor lag in [7, 14, 28, 35, 365]:\n    df[f\"lag_{lag}\"] = combined.iloc[start_idx:][f\"lag_{lag}\"].values"
+  },
+  {
+   "name": "Overwriting historical target values with NaN",
+   "description": "When preparing the combined dataframe for test feature engineering, the code explicitly sets the entire target column to NaN (`combined['sales'] = np.nan`), wiping out the historical training data. As a result, all lag and rolling features for the test set become NaN (and are subsequently filled with 0), destroying the predictive signal.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([...])\ncombined[\"sales\"] = np.nan\n...\ncombined[f\"lag_{lag}\"] = combined.groupby([\"store_nbr\", \"family\"])[\"sales\"].shift(lag)"
+  },
+  {
+   "name": "Train-serving skew / Target leakage in validation",
+   "description": "For the validation set, lag and rolling features within the validation period are computed using the actual target values from that same period. However, during real multi-step test inference, these future actuals are unavailable, leading to a severe mismatch between validation and test features and overly optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if \"sales\" in df.columns:\n    combined = pd.concat([\n        train_df[[\"date\", \"store_nbr\", \"family\", \"sales\"]],\n        df[[\"date\", \"store_nbr\", \"family\", \"sales\"]],\n    ],\n    ignore_index=True,\n)"
+  }
+ ],
+ "summary": "The solution employs a valid time-based split and extensive feature engineering with a LightGBM model. However, it contains multiple critical logic bugs in the feature engineering pipeline: it incorrectly extracts features from a sorted dataframe causing scrambled assignments, overwrites all historical test features with NaN, and introduces severe train-serving skew by using actual future target values to build validation features.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,146 @@
+{
+ "task": "financial-management",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_features, test_features], axis=0, ignore_index=True)\n...\nfreq = combined[col].value_counts(dropna=False)\n...\ngrouped = combined.groupby(cat_c)[num_c]\ngrp_mean = grouped.transform(\"mean\").astype(np.float32)",
+   "reasoning": "The agent computes value frequencies and group aggregations (mean, std, min, max, median) on the combined train and test dataset, leaking test feature distributions into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and invalid types systematically.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied after the train/validation split within the fold loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the full dataset before splitting (it is done separately, though incorrectly for the test set).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The neural network uses Dropout, LayerNorm, and weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is correctly used.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 folds with different random seeds, robustly accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "f_lgb_rmse = np.sqrt(mean_squared_error(y_val, lgb_val_pred))",
+   "reasoning": "The agent only computes RMSE for model evaluation and optimization, without verifying its appropriateness against other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is applied, including group stats, differences, ratios, and out-of-fold target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses SLSQP optimization to find the best blend weights, rather than a naive average.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper test set imputation",
+   "description": "The agent imputes missing values in the test set using statistics (like the median) calculated from the test set itself, rather than statistics learned from the training set. This can cause inconsistent predictions in production when test data batch sizes vary or when predicting on single instances.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for df in [X_train, X_test]:\n    df.replace([np.inf, -np.inf], np.nan, inplace=True)\n    for col in df.columns:\n        if df[col].isnull().any():\n            df[col] = df[col].fillna(df[col].median() if not pd.isna(df[col].median()) else 0)"
+  }
+ ],
+ "summary": "The agent implements a robust pipeline with deep learning and GBDT models, 5-fold cross-validation, out-of-fold target encoding, and SLSQP-based ensembling. However, it suffers from unsupervised data leakage by calculating feature frequencies and group aggregations on the combined train and test datasets. Additionally, it incorrectly imputes missing values in the test set using test set statistics rather than training set statistics.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

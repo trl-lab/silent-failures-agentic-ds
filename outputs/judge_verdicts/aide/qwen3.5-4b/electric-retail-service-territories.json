@@ -1,0 +1,145 @@
+{
+ "task": "electric-retail-service-territories",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or exploratory statistics on the test set are performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.mean())",
+   "reasoning": "The agent explicitly handles missing values via mean imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+   "reasoning": "The scaler is correctly fit only on the training set and then applied to the test set, preventing test-to-train leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.mean())\nX_test = X_test.fillna(X_train.mean())",
+   "reasoning": "Imputation statistics are derived strictly from the training data before being applied to the test data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear from the context whether the retail service territories dataset has an inherent temporal ordering.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\",\n    \"metric\": \"rmse\"",
+   "reasoning": "The agent correctly uses a regression model and objective for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold cross-validation to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "mean_cv_rmse = np.mean(cv_scores)",
+   "reasoning": "The agent evaluates the model over 5 distinct cross-validation folds and averages the validation scores, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((y_val_fold - y_pred) ** 2))",
+   "reasoning": "The agent only computes and reports RMSE, without verifying performance with other robust metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately framed as a standard regression task on the target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target]",
+   "reasoning": "The agent uses all raw features without any domain-informed transformations, derived features, or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage during Cross-Validation",
+   "description": "Global transformations (imputation and scaling) are applied to the entire training dataset before splitting it into cross-validation folds. This leaks information from the validation folds into the training folds, making the cross-validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.mean())\n...\nX_train_scaled = scaler.fit_transform(X_train)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X_train_scaled)):"
+  },
+  {
+   "name": "Early Stopping without Validation Set",
+   "description": "The agent passes an early stopping callback to the final training run without providing a validation set. In LightGBM, this will either cause the execution to crash or quietly fail to apply early stopping, leading to suboptimal training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "callbacks = [lgb.early_stopping(50), lgb.log_evaluation(-1)]\n...\nmodel = lgb.train(\n    params, train_data, num_boost_round=1000, callbacks=callbacks, verbose_eval=10\n)"
+  }
+ ],
+ "summary": "The agent establishes a reasonable baseline by appropriately separating train and test data for transformations and applying 5-fold cross-validation. However, it applies scaling and imputation before the cross-validation splits, resulting in fold leakage. Furthermore, the final full-dataset training step utilizes an early stopping callback without passing a validation set, which is an invalid LightGBM configuration that will cause execution failure.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

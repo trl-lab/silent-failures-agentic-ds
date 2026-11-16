@@ -1,0 +1,142 @@
+{
+ "task": "college-deposit-product-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "sample_vals.str.contains(r\"^\\$?[0-9,.]+%?$\", regex=True).mean() > 0.7",
+   "reasoning": "The agent uses the combined train and test dataset to calculate statistics for identifying column types (e.g., currencies or dates), leaking test set properties into the preprocessing logic.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by parsing currencies, extracting dates, and filling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all[col] = df_all[col].fillna(df_all[col].median())",
+   "reasoning": "The agent calculates the median for imputation on the combined train and test dataset, leaking test set distribution statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "Although date columns are present, it is unclear if the task is a time series problem requiring temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoostRegressor, LightGBM) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently evaluates the model multiple times across different data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent evaluates the model using only RMSE and does not compute other metrics like MAE or R2 to comprehensively understand the model's performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features, including date parts, pairwise numerical interactions, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes the ensemble weights using scipy.optimize.minimize on the out-of-fold predictions, which is a sophisticated approach.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage through Feature Engineering",
+   "description": "The agent calculates frequency encoding and group-based aggregations (e.g., mean, std) on the combined train and test dataset before splitting. This leaks information about the test set's feature distributions into the training data, potentially leading to over-optimistic validation scores.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all[f\"{cat}_{num}_mean\"] = grouped.transform(\"mean\")"
+  }
+ ],
+ "summary": "The solution implements a robust gradient boosting pipeline with CatBoost and LightGBM, including optimized ensembling and extensive feature engineering. However, it suffers from critical data leakage because the agent concatenates the training and test sets before performing imputation, frequency encoding, and group-based aggregations. Additionally, the agent uses the combined dataset to determine column types, which constitutes algorithmic peeking.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

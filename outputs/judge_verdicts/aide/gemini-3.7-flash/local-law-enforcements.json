@@ -1,0 +1,134 @@
+{
+ "task": "local-law-enforcements",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categories = sorted(list(set(train_df[col].dropna().astype(str)).union(set(test_df[col].dropna().astype(str)))))",
+   "reasoning": "The agent extracts categorical levels from both the train and test sets, leaking test set information into the preprocessing phase.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(\n        X_train,\n        label=y_train,\n        categorical_feature=categorical_cols,\n        free_raw_data=False,\n    )",
+   "reasoning": "The agent performs no explicit data cleaning for missing values or outliers, relying entirely on LightGBM's native handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent identifies datetime columns and extracts time components, but uses a randomized K-fold split instead of a time-based split, which causes look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regressor is a suitable model type for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent runs a 5-fold cross-validation, which inherently evaluates the modeling process over multiple runs rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = root_mean_squared_error(y_val, val_pred)",
+   "reasoning": "The agent evaluates the model solely on RMSE without complementing it with other metrics like MAE, which could provide insight into outlier effects.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is a standard regression problem and is correctly formulated as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[f\"{col}_year\"] = df[col].dt.year",
+   "reasoning": "The agent extracts meaningful date and time components (year, month, day, dayofweek) from the datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (\n        model.predict(test_df[features], num_iteration=model.best_iteration)\n        / kf.n_splits\n    )",
+   "reasoning": "The agent combines the predictions from cross-validation folds using a naive unweighted average without attempting any tuning or stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent sets up a reasonably solid LightGBM pipeline with proper K-fold cross-validation and basic datetime feature engineering. However, the most critical flaw is ignoring temporal order in the data splits despite explicitly extracting temporal features, likely introducing look-ahead bias. Additionally, the agent relies entirely on the model to handle missing values and leaks test information by using test data to harmonize categorical variables.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

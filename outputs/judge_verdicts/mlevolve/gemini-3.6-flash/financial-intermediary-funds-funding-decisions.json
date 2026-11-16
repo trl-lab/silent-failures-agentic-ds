@@ -1,0 +1,100 @@
+{
+ "task": "financial-intermediary-funds-funding-decisions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal information (funding decisions over time, parsed into date columns), but the agent uses a random shuffled split for cross-validation, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage via Pre-CV Transformations",
+   "description": "Transformations like TF-IDF fitting, SVD dimension reduction, and group-by aggregations are computed on the entire training dataset before cross-validation splitting. This leaks validation fold statistics into the training folds, making out-of-fold evaluations overly optimistic and potentially causing suboptimal early stopping.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_train = tfidf.fit_transform(train_text)\nsvd_train = svd.fit_transform(tfidf_train)\ngrp_means = train_df.groupby(ccol)[ncol].mean()"
+  },
+  {
+   "name": "Incorrect RMSE Aggregation",
+   "description": "The validation loss for the neural network is computed by averaging the RMSE of each mini-batch. Because the square root function is non-linear, the mean of batch RMSEs does not equal the true RMSE over the entire validation set.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_loss += criterion(out, by).item() * len(by)\nval_loss /= val_count"
+  }
+ ],
+ "summary": "The agent implements a comprehensive machine learning pipeline with multiple gradient boosting models, a PyTorch MLP, target encoding, text embeddings, and an optimized SLSQP ensemble. However, it introduces look-ahead bias by ignoring temporal order in the CV splits and causes validation leakage by fitting TF-IDF, SVD, and group aggregations on the full training set prior to splitting. Additionally, there is a minor mathematical error in aggregating batch RMSEs during the neural network's evaluation phase.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

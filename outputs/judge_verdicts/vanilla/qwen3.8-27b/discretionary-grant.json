@@ -1,0 +1,130 @@
+{
+ "task": "discretionary-grant",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_full[col], X_test[col]], axis=0).astype(str)\n    le.fit(combined)",
+   "reasoning": "The LabelEncoder is fit on the combined training and test datasets, which exposes the test set's categorical values to the training pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs data cleaning by handling missing values and dropping uninformative columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X_train_full[col].median()\n    X_train_full[col] = X_train_full[col].fillna(median_val)\n...\nX_tr, X_val, y_tr, y_val = train_test_split(\n    X_train_full, y_train, test_size=0.2, random_state=42\n)",
+   "reasoning": "Missing values are imputed using the median of the entire training dataset before splitting it into training and validation sets, causing data leakage from the validation set into the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no clear temporal structure in the features that the agent ignored in favor of random splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the continuous target 'AwardTotal'.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set and evaluates the model on it.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LGBMRegressor(\n... subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42\n)\nmodel.fit(\n    X_tr, y_tr,\n    eval_set=[(X_val, y_val)],\n    callbacks=[]\n)",
+   "reasoning": "The LightGBM model contains stochastic elements (subsample, colsample_bytree) but is trained and evaluated only once on a single validation split, without cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))\nprint(f\"Validation RMSE: {val_rmse:.4f}\")",
+   "reasoning": "The agent evaluates model performance using only RMSE, without verifying if it is the best metric for grant totals which can often be highly skewed.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_full = X_train_full.drop(columns=[c for c in drop_cols if c in X_train_full.columns])",
+   "reasoning": "The agent relies entirely on raw columns and simple label encoding, with no domain-specific derived features or interactions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent implements a functional baseline pipeline using LightGBM. However, it introduces data leakage by imputing missing values prior to the train/validation split and fitting a LabelEncoder on test data. The solution is also lacking in feature engineering and relies on a single stochastic evaluation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

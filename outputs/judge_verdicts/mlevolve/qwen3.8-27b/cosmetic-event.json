@@ -1,0 +1,152 @@
+{
+ "task": "cosmetic-event",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "EDA only inspects the train and test shapes and train target distribution, without peeking at test data distributions.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is explicitly performed by imputing missing values and encoding categorical/boolean columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is fitted only on the training split (X_full) and then used to transform the validation and test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting the dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value imputation is strictly fitted on the training split (X_fit) and applied to the validation and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "Event datasets typically have timestamps, but without column details, it's impossible to confirm if temporal order was ignored by the random split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multi-class classification model (LGBMClassifier with multiclass objective) for an m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly performs a train/validation split using train_test_split and evaluates on the holdout set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(**lgb_params)\n...\nmodel.fit(\n    X_train,\n    y_train,\n    eval_set=[(X_val, y_val)],",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model exactly once on a single split, without using cross-validation or multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent reports multiple metrics (accuracy and logloss), and accuracy is the specified official metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as predicting the 'outcomes' target using multi-class classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including numerical interactions and row-wise aggregates.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Meaningless numerical operations on categorical features",
+   "description": "The agent encodes categorical features into arbitrary numerical representations and then applies continuous mathematical operations to them (e.g., multiplication for interactions, or row-wise mean/std). This treats nominal or ordinal categories as continuous metrics, which is mathematically invalid and introduces meaningless noise into the model.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "current_numeric = X_fit.select_dtypes(include=[np.number]).columns.tolist()\n...\nX_fit[new_col] = X_fit[col1] * X_fit[col2]\n...\nX_fit[\"row_mean\"] = X_fit[current_numeric].mean(axis=1)"
+  },
+  {
+   "name": "Incomplete missing value imputation logic",
+   "description": "The imputation logic only checks if the training split has missing values for a column. If a column is complete in the training set but contains missing values in the validation or test sets, those values will not be imputed, which can cause downstream transformers (like StandardScaler) to output NaNs.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if X_fit[col].isnull().any():\n    if X_fit[col].dtype in [\"float64\", \"int64\", \"int32\", \"float32\"]:\n        median_val = X_fit[col].median()"
+  },
+  {
+   "name": "Invalid parameter for multiclass objective",
+   "description": "The agent sets `is_unbalance=True` in the LightGBM parameters, but this parameter is only valid for binary classification and is ignored in multiclass tasks. To handle class imbalance in multiclass problems, `class_weight='balanced'` should be used instead.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"objective\": \"multiclass\",\n    \"num_class\": n_classes,\n...\n    \"is_unbalance\": True,"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with proper separation of training and validation sets before feature engineering and scaling. However, it fails to account for variance by evaluating the stochastic model only once. More critically, the feature engineering logic inadvertently captures encoded categorical features into its continuous math operations, leading to mathematically nonsensical interactions and row-wise statistics.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

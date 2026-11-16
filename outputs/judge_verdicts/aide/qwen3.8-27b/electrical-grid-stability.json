@@ -1,0 +1,134 @@
+{
+ "task": "electrical-grid-stability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is only used to determine the intersection of columns, not for exploring distributions or fitting transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = X.replace([np.inf, -np.inf], np.nan)\n    X_test = X_test.replace([np.inf, -np.inf], np.nan)",
+   "reasoning": "The agent explicitly replaces infinite values with NaNs and then relies entirely on LightGBM's native missing value handling for the features, which counts as this failure mode.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Only basic column intersection is performed, no statistical feature selection before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed; missing values are left as NaNs.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM with binary objective is correctly chosen for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold StratifiedKFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model using 5-fold cross-validation, which averages over multiple splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "validation_auc = roc_auc_score(y, oof_preds)",
+   "reasoning": "The agent only computes and reports the ROC AUC score, without validating performance via other metrics like log-loss or balanced accuracy.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train[feature_cols].copy()",
+   "reasoning": "The agent uses the raw columns directly and performs no domain-informed feature engineering (e.g., creating ratios or interactions out of the grid node properties).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unencoded String Target Risk",
+   "description": "The agent casts the target column directly to an integer using `astype(int)`. If the target column is encoded as categorical strings (e.g., 'stable'/'unstable' as is standard for this dataset), this will cause an execution failure.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "y = train[target_col].astype(int).to_numpy()"
+  }
+ ],
+ "summary": "The agent sets up a standard LightGBM model with 5-fold StratifiedKFold and handles target leakage correctly. However, it relies entirely on the model to handle missing values (FM03), performs no feature engineering (FM07), and evaluates using only a single metric (FM15). Additionally, there is a risk of execution failure if the categorical target column is stored as strings, as it attempts to cast it directly to an integer.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

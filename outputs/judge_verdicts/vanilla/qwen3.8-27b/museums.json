@@ -1,0 +1,142 @@
+{
+ "task": "museums",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly applies transformations fitted on the training data to the test data without peeking at test statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs data cleaning by handling infinite values, dropping all-NA columns, and factorizing missing values for categorical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (cardinality filtering) is applied only to the provided training set, not the combined train/test dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation (factorization of categorical variables) relies only on categories present in the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is a cross-sectional snapshot of museums, so a random train/validation split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, CatBoostRegressor) for a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data into train and validation sets to evaluate performance and perform early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE)",
+   "reasoning": "The agent performs a single train/validation split and evaluates the stochastic models only once, without using cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(np.mean((val_pred - y_val) ** 2)))",
+   "reasoning": "The agent computes and relies solely on RMSE for evaluation, ignoring other metrics like MAE which might be more robust to outliers in a skewed target like revenue.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem targeting REVENUE15.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train.drop(columns=[TARGET]).copy()",
+   "reasoning": "The agent uses raw columns directly (after basic type conversion and encoding) and makes no attempt to engineer domain-specific features, interactions, or extract date parts.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "predictions = np.mean([lgb_final.predict(X_test), cat_final.predict(X_test)], axis=0)",
+   "reasoning": "The agent combines LightGBM and CatBoost using a simple unweighted average without attempting to optimize the blend weights or use stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No target transformation for highly skewed target",
+   "description": "The model is trained directly on a highly skewed continuous target (e.g., revenue) without applying a variance-stabilizing transformation like log1p. This often causes models optimized for RMSE to overfit to extreme outliers and perform poorly across the general distribution.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train[TARGET].astype(float).replace([np.inf, -np.inf], np.nan)"
+  }
+ ],
+ "summary": "The agent implements a solid baseline using LightGBM and CatBoost with proper categorical encoding and early stopping. However, the solution lacks feature engineering, uses a naive unweighted ensemble, evaluates the models using a single random split, and critically fails to apply a log transformation to the highly skewed revenue target, which will likely harm RMSE performance.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,146 @@
+{
+ "task": "cpu_act",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is only used to determine valid candidate columns, without analyzing its distribution or fitting any transformers.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data is explicitly cleaned by replacing infinite values, clipping negatives, and imputing missing values with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is appropriately fit only on the training split features after the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting the dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median) are computed strictly on the training partition and then applied to the validation and test sets.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models used (MLP with MSE loss, LightGBMRegressor) are entirely appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The MLP uses Dropout layers and weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 90/10 train-validation split is explicitly created and utilized.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_blend_rmse = official_rmse(y_val, val_blend)\n...\nif val_blend_rmse < best_blend_val_rmse:\n    best_blend_w = w\n...\nscore = official_rmse(y_val, np.clip((1.0 - best_blend_w) * final_val_pred + best_blend_w * lgb_val_pred, 0.0, 100.0))",
+   "reasoning": "The agent optimizes the ensemble blend weights (and MLP early stopping) on the held-out validation set and then reports the final performance on that exact same set, biasing the evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = MLP(X_train.shape[1])\n...\nfor epoch in range(1, max_epochs + 1):",
+   "reasoning": "The agent trains and evaluates the stochastic MLP model exactly once without averaging over multiple random seeds, and relies on a single random train/validation split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def official_rmse(y_true, y_pred) -> float:\n...",
+   "reasoning": "The agent only computes and reports RMSE, without utilizing other metrics like MAE to understand performance comprehensively.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a direct regression predicting 'usr'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including log transformations and meaningful interaction ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble weights are systematically optimized via a grid search rather than using naive unweighted averaging.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent discards the original test set IDs and generates mock submission IDs using an incremental range. This will cause scoring failures if the platform expects specific non-sequential ID values to map predictions correctly.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"id\": np.arange(final_blend_test.shape[0], dtype=int)"
+  }
+ ],
+ "summary": "The data science solution follows many good practices, including rigorous data splitting before imputation/scaling, nested cross-validation for LightGBM hyperparameter tuning, and extensive feature engineering. However, it suffers from evaluation bias because the held-out validation set is reused for MLP early stopping and tuning the ensemble blend weights, making the final reported score optimistic. Furthermore, the submission file is generated with hardcoded sequential IDs instead of preserving the test set's original IDs, which will likely break automated scoring.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 8,
+ "stage_count_max": 8,
+ "no_code": false
+}

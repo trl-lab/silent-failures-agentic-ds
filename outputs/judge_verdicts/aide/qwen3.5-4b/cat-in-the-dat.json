@@ -1,0 +1,166 @@
+{
+ "task": "cat-in-the-dat",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use the test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes no explicit effort to check for or handle missing values, duplicates, or outliers in the training data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no scaling or normalisation applied in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no feature selection applied in the code.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no missing value imputation applied in the code.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset does not have a temporal order that requires a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses LightGBM with a binary objective, which is appropriate for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses KFold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 folds rather than performing a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_val, y_pred)",
+   "reasoning": "The agent evaluates performance using only ROC-AUC and does not report on other metrics like log-loss or accuracy.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = le.fit_transform(train[col])",
+   "reasoning": "The agent only applies basic label encoding to the raw features and fails to implement any derived features, interactions, or domain-informed transforms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage and shape mismatch during encoding",
+   "description": "The LabelEncoder is fit on the entire training dataset (`train[col]`) instead of just the training fold (`X_train[col]`). This leaks validation data into the encoder, and returns an array of the wrong length that will cause a ValueError when assigned back to the smaller `X_train` DataFrame.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[col] = le.fit_transform(train[col])"
+  },
+  {
+   "name": "Unencoded test data execution failure",
+   "description": "Categorical encoding is only applied to the training and validation sets inside the cross-validation loop. The test set remains as raw strings, guaranteeing a runtime error when attempting to cast it to float32 for inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_features = test[feature_cols]\n    test_features = test_features.astype(\"float32\")"
+  },
+  {
+   "name": "Suboptimal categorical feature handling",
+   "description": "After label encoding, the categorical features are cast to 'float32'. LightGBM will subsequently treat them as continuous numerical features rather than categorical splits, degrading tree performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.astype(\"float32\")"
+  },
+  {
+   "name": "Suboptimal model selection (Best Fold vs Ensemble)",
+   "description": "The agent uses only the model from the fold with the highest validation score for test predictions, discarding the others. This introduces selection bias and wastes the opportunity to ensemble fold predictions for better generalisation.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_auc > best_auc:\n        best_auc = fold_auc\n        best_model = model"
+  },
+  {
+   "name": "Redundant conditional logic",
+   "description": "The code contains an if-else statement checking for high cardinality, but executes the exact same LabelEncoding logic in both branches, indicating incomplete implementation.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "if train[col].nunique() > 10:\n                # High cardinality - use label encoding\n                X_train[col] = le.fit_transform(train[col])\n...\n            else:\n                X_train[col] = le.fit_transform(train[col])"
+  }
+ ],
+ "summary": "The agent's solution contains severe execution failures due to shape mismatches when fitting the LabelEncoder on the full training dataset and assigning it to a subset fold. Furthermore, it forgets to apply any categorical encoding to the test set, guaranteeing a crash during test inference. Conceptually, the solution lacks feature engineering, leaks validation data into the encoder, treats categorical variables as floats, and arbitrarily discards all but the single best fold model.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,152 @@
+{
+ "task": "cohort-default-rate",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is completely isolated and not used to inform any EDA or preprocessing logic.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values for both categorical and numerical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation techniques are applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are derived strictly from the training set, so test missing-value statistics do not leak into training.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent appropriately uses classification models (CatBoostClassifier, LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly sets up internal cross-validation using StratifiedKFold to create holdout sets.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated and predictions are averaged across 5 distinct CV folds, effectively accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses AUC for early stopping, which is the correct and requested evaluation metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat_cols = []\nnum_cols = []\n\nfor col in X.columns:\n    if X[col].dtype == 'object' or pd.api.types.is_categorical_dtype(X[col]):",
+   "reasoning": "The agent uses raw columns directly, applying only basic missing value filling and encoding without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_preds = 0.6 * cb_test_preds + 0.4 * lgb_test_preds",
+   "reasoning": "The agent uses a weighted average, so it does not strictly meet the definition of using an unweighted/equal-weight or simple majority vote (though the weights are untuned).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "CV leakage during preprocessing",
+   "description": "Imputation statistics (median) and ordinal encodings are fitted on the entire training set before the cross-validation split, causing target and distribution statistics from the validation folds to leak into the training folds during CV.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fill_val = X[col].median()\n...\nX_encoded[cat_cols] = encoder.fit_transform(X[cat_cols])\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):"
+  },
+  {
+   "name": "No validation score computed or reported",
+   "description": "Despite implementing cross-validation and using it for early stopping, the agent never calculates or reports an out-of-fold validation metric. This makes it impossible to assess the model's actual performance or compare it to other approaches.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cb_test_preds += cb_model.predict_proba(X_test)[:, 1] / n_splits"
+  },
+  {
+   "name": "Untuned hardcoded ensemble weights",
+   "description": "The agent combines model predictions using a hardcoded weighted average without conducting any search, optimisation, or out-of-fold evaluation to justify the chosen weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.6 * cb_test_preds + 0.4 * lgb_test_preds"
+  }
+ ],
+ "summary": "The agent implements a solid foundational pipeline leveraging CatBoost and LightGBM with 5-fold cross-validation. However, it misses opportunities for feature engineering, leaks validation statistics into training folds during CV by preprocessing before the split, and fails to report any out-of-fold validation scores to justify its hardcoded ensemble weights.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

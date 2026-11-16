@@ -1,0 +1,149 @@
+{
+ "task": "industry-payments-project",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly splits the combined dataset back into train and test before computing any aggregations or statistics, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by filling them with a specific string for categoricals and the median for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly performed inside the cross-validation loop on the training folds only.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No improper feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The median for imputation is computed strictly on the training set (train_proc), so test statistics are not leaked (though validation statistics are leaked during CV).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent extracts datetime features and uses random K-Fold, but it is not strictly specified if this task relies on temporal ordering for its predictions (e.g., forecasting future payments vs cross-sectional regression).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm, and uses AdamW with weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold cross-validation strategy to evaluate models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not used for model selection or validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains models over a 5-fold cross-validation process, which inherently averages over multiple runs and accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is exactly the metric specified in the task context.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including datetime extraction, frequency encoding, target encoding, and numerical ratios.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a sophisticated SLSQP optimization to find the best blending weights for the models.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "cv_leakage_global_stats",
+   "description": "The agent computes dataset-wide statistics (such as median imputation, frequency encoding, and group aggregations) on the entire training set before performing cross-validation. This leaks information from the validation folds into the training folds, making out-of-fold predictions overly optimistic and potentially biasing any downstream stacking or blending.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med = train_proc[c].median(); train_proc[c] = train_proc[c].fillna(med) ... freq_map = train_proc[c].value_counts(normalize=True).to_dict() ... stats = train_proc.groupby(cat_c)[num_c].agg([\"mean\", \"std\", \"min\", \"max\"])"
+  }
+ ],
+ "summary": "The agent's solution is generally well-structured, employing advanced techniques such as leak-free out-of-fold target encoding, a custom PyTorch architecture, and SLSQP-optimized blending. However, it suffers from cross-validation leakage because several statistical transformations (median imputation, frequency encoding, and category-group aggregations) are calculated globally on the entire training set before the K-Fold split. Most predefined failure modes, including test-set leakage, are successfully avoided.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

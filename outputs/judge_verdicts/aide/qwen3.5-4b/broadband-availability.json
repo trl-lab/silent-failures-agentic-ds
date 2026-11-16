@@ -1,0 +1,145 @@
+{
+ "task": "broadband-availability",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or preprocessing steps that peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def create_features(df):\n    df = df.copy()\n    # Create numeric features from categorical columns if any\n    # Add some simple transformations",
+   "reasoning": "The agent makes no effort to clean the data (e.g., handling missing values, duplicates, or outliers) and relies entirely on LightGBM's default missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is limited to excluding non-numeric columns and the target, which does not leak test information.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset represents a snapshot in 2019 and does not contain a temporal order that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBM regressor) is appropriately used for predicting a continuous percentage target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains and evaluates the stochastic model across 5 cross-validation folds rather than a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = np.sqrt(mean_squared_error(y_val_fold, y_pred))\n\n    print(f\"Fold {fold+1} RMSE: {fold_rmse:.4f}\")",
+   "reasoning": "The agent only computes and reports RMSE, failing to evaluate other metrics like MAE or R-squared that could provide a more robust view of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task on the target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"log_population\"] = np.log1p(df[\"Population\"])\n    df[\"population_squared\"] = df[\"Population\"] ** 2",
+   "reasoning": "The agent derives new features such as log-population, squared population, and population per area.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing validation set for early stopping",
+   "description": "The agent specifies an early stopping callback in the LightGBM training function but fails to provide a validation set via the 'valid_sets' parameter. This will cause a runtime error, as LightGBM cannot calculate early stopping without evaluation data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n        params,\n        train_data,\n        num_boost_round=1000,\n        callbacks=[lgb.early_stopping(100), lgb.log_evaluation(-1)],\n    )"
+  },
+  {
+   "name": "Reporting best fold instead of average",
+   "description": "The agent records the lowest error among all cross-validation folds and reports it as the overall validation performance. Selecting the best fold rather than averaging across all folds yields an overly optimistic estimate of model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if fold_rmse < best_score:\n        best_score = fold_rmse\n...\nprint(f\"\\nBest validation RMSE: {best_score:.4f}\")"
+  }
+ ],
+ "summary": "The agent implements a LightGBM regression pipeline with basic feature engineering and 5-fold cross-validation. However, it fails to perform explicit data cleaning (FM03) and relies solely on a single metric (FM15). More critically, the code contains a fatal execution bug: it invokes LightGBM's early stopping callbacks without passing a validation dataset, which will crash during training. Furthermore, reporting the best CV fold score instead of the average introduces an optimistic bias to the reported performance.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

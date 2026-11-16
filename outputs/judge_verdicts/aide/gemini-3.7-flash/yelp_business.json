@@ -1,0 +1,138 @@
+{
+ "task": "yelp_business",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or peek at the test data interactively.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "df_num.fillna(-999)",
+   "reasoning": "The agent explicitly handles missing values by filling them with constants and 'missing' strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Standard numerical scalers like StandardScaler or MinMaxScaler are not used, though test data statistics are leaked through text/categorical encodings (captured elsewhere).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=svd_comp, random_state=42)\nsvd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (a form of PCA/dimensionality reduction) is fit on the combined train and test dataset before splitting, which leaks test set variance information into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with constants (-999, 'missing'), which does not leak test statistics like a fitted statistical imputer would.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multi-class classification objective (LightGBM with 'multiclass') for the m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a 5-fold stratified cross-validation strategy, properly validating the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):",
+   "reasoning": "The agent evaluates the stochastic LightGBM model over 5 distinct CV folds, effectively averaging performance over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_acc = accuracy_score(y_val, np.argmax(val_pred, axis=1))",
+   "reasoning": "The agent evaluates and reports only accuracy, without checking for class imbalance which is common in Yelp star ratings, meaning the metric could be misleading.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent formulates the task as multiclass classification, which matches the provided task description ('m-classification').",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "length_df = pd.DataFrame({ f\"{c}_char_len\": s.str.len(), ...",
+   "reasoning": "The agent implements several derived features, including text length, word counts, log transforms, and TF-IDF SVD components.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += (model.predict(X_test, num_iteration=model.best_iteration) / skf.n_splits)",
+   "reasoning": "The agent computes test set predictions by taking a simple, unweighted average of the 5 cross-validation models without any weighting optimization.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Global Encodings",
+   "description": "Fitting frequency encoders, target encoders, or text vectorizers (like TF-IDF) on the combined train and test dataset before splitting leaks test set statistics and vocabulary into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "freq = s.value_counts(normalize=True)\n...\ntfidf = TfidfVectorizer(max_features=5000...)\ntfidf_mat = tfidf.fit_transform(s)"
+  }
+ ],
+ "summary": "The agent establishes a robust machine learning pipeline with proper cross-validation, feature engineering, and a suitable multiclass LightGBM model. However, it critically fails by combining train and test data prior to applying TF-IDF, TruncatedSVD, and frequency encoding, causing significant data leakage. Additionally, it relies solely on accuracy for evaluation without verifying if it is appropriate for potentially imbalanced rating distributions.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

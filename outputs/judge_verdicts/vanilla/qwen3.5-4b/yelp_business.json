@@ -1,0 +1,141 @@
+{
+ "task": "yelp_business",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly uses SimpleImputer for both numerical and categorical data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on a combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses LGBMClassifier with a multiclass objective, which is appropriate for predicting 'stars'.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "clf.fit(train_df, train_df[target_col])",
+   "reasoning": "The agent trains directly on the full training set and predicts on the test set without establishing an internal train/validation split or calculating a validation score.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metric is reported at all, so this specific failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metric is computed or reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames predicting the 'stars' column as a multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_data = train_df[feature_cols].select_dtypes(include=['float', 'int'])\ncategorical_data = train_df[feature_cols].select_dtypes(include=['object', 'category'])",
+   "reasoning": "The agent feeds raw numeric and categorical columns directly into the model with basic imputation and encoding, performing no domain-specific feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fitting transformers on test data",
+   "description": "The agent incorrectly calls `fit_transform` on the test set instead of `transform`. This causes data leakage by fitting preprocessing steps (like imputation and encoding) on test data statistics, and typically leads to fatal schema mismatch errors when passed to the model for prediction.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "processed_test = clf.named_steps['preprocessing'].fit_transform(test_df)"
+  },
+  {
+   "name": "Execution failure due to invalid argument",
+   "description": "The code crashes because it passes an invalid argument to a scikit-learn constructor.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "categorical_encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore', output_mode='numpy')"
+  }
+ ],
+ "summary": "The agent fails to perform any internal validation or evaluation, opting to blindly train on the entire training set. The solution is also critically flawed due to a hallucinated argument in the `OneHotEncoder` resulting in a TypeError, as well as a severe logical error where `fit_transform` is called on the test dataset prior to prediction, causing data leakage and breaking the pipeline.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

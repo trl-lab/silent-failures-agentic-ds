@@ -1,0 +1,141 @@
+{
+ "task": "journal-ranking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only uses test columns to identify feature names, and correctly checks data types on the training set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly placed inside a scikit-learn Pipeline, ensuring it is fit only on the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(train_features, y_train)\n\n# Generate Predictions\npred_values = model.predict(test)",
+   "reasoning": "The agent trains on the full training set and generates test predictions without using any internal holdout set or cross-validation to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform internal evaluation, so it does not report a single score for a stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any evaluation, so it does not rely on a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as predicting the 'H index' using standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ct = ColumnTransformer(transformers=[\n    ('num', numeric_imputer, numerical_cols),\n    ('cat', one_hot_encoder, categorical_cols)\n])",
+   "reasoning": "The agent applies basic imputation and one-hot encoding but does not attempt to create any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper handling of ID column",
+   "description": "The agent generates a mock 'id' column for the test predictions using `range(len(test))` rather than preserving the actual identifiers from the test dataset. Additionally, if the dataset contains an 'id' column, it is not dropped and is incorrectly used as a training feature.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "results = pd.DataFrame({\n    'id': range(len(test)),\n    'H index': pred_values\n})"
+  },
+  {
+   "name": "Potential memory explosion from dense one-hot encoding",
+   "description": "The agent uses OneHotEncoder with `sparse_output=False` on categorical columns. In datasets with many or high-cardinality categorical variables (like a 'wide' dataset), this can create a massive dense array that causes out-of-memory errors.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "one_hot_encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)"
+  }
+ ],
+ "summary": "The agent implements a LightGBM regression pipeline with basic imputation and categorical encoding. However, it completely bypasses internal validation (FM06) and fails to perform any feature engineering (FM07). Critically, it incorrectly generates the output ID column using a simple range instead of retaining test IDs, which will likely invalidate the submission by misaligning identifiers and using the actual IDs as training features.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

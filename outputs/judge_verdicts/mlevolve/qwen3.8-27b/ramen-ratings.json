@@ -1,0 +1,134 @@
+{
+ "task": "ramen-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing; it handles unseen test categories defensively.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by imputing 'missing' for categoricals and the median for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[c] = pd.to_numeric(X[c], errors='coerce').fillna(X[c].median())",
+   "reasoning": "The median used for imputation is calculated on the entire training set before splitting, leaking validation statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass objective for the LightGBM model, matching the classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold to create a proper train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "tr_idx, val_idx = next(skf.split(X, y))",
+   "reasoning": "The agent evaluates the stochastic LightGBM model on a single validation fold without averaging over multiple runs or folds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_acc = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent evaluates the model using only accuracy, without checking other metrics like F1-score to verify performance across potentially imbalanced rating classes.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is appropriately framed as a standard multiclass classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X[c] = le.fit_transform(X[c])",
+   "reasoning": "The agent merely label-encodes categorical columns without attempting to extract derived features from text or complex fields (e.g., ramen varieties).",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Label encoding before splitting",
+   "description": "Categorical encoders are fit on the entire training dataset before the train/validation split. This can leak information about the validation set's category distribution into the training process.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X[c] = le.fit_transform(X[c])"
+  }
+ ],
+ "summary": "The agent correctly identifies the task as multiclass classification and sets up a functional LightGBM model pipeline. However, it applies median imputation and label encoding on the entire training dataset before the train/validation split, leading to data leakage. Additionally, the solution lacks meaningful feature engineering and relies on a single fold and a single metric (accuracy) to evaluate a stochastic model.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

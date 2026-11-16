@@ -1,0 +1,145 @@
+{
+ "task": "petfinder-adoption-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "le.fit(pd.concat([train_df[col], test_df[col]]))",
+   "reasoning": "The agent fits the LabelEncoder on the combined training and test sets, leaking test set category information into the training pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].copy()",
+   "reasoning": "The agent makes no explicit attempt to clean the data or handle missing values, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\",",
+   "reasoning": "The agent uses a regression objective for a multiclass classification task (AdoptionSpeed).",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates multiple folds using cross-validation rather than relying on a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains using RMSE but explicitly computes and evaluates the task-appropriate Quadratic Weighted Kappa (QWK).",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Aside from using a regression objective (covered in FM10), the task is not fundamentally misformulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_final = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses raw features and performs absolutely no feature engineering or extraction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "predictions += model.predict(X_test_final) / 5",
+   "reasoning": "The agent uses a naive equal-weight average to combine fold predictions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unrounded continuous test predictions",
+   "description": "The agent uses a regression model for a classification task and correctly rounds the validation predictions to integers to calculate QWK, but forgets to round the final test set predictions. Submitting continuous float values for a classification task will likely cause evaluation to fail or score zero.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "predictions += model.predict(X_test_final) / 5\n...\nsubmission = pd.DataFrame({'id': range(len(X_test_final)), 'AdoptionSpeed': predictions})"
+  },
+  {
+   "name": "Categorical features treated as continuous",
+   "description": "The agent encodes categorical variables into integers using LabelEncoder but does not cast them to the 'category' dtype or specify them as categorical features when creating the LightGBM dataset. Consequently, LightGBM will incorrectly treat unordered categories (like Breed and Color) as continuous numerical features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_fold, label=y_train_fold)"
+  }
+ ],
+ "summary": "The agent implements a 5-fold cross-validated LightGBM model but makes several critical errors. It improperly uses test data to fit a LabelEncoder (data leakage), treats categorical features as continuous variables, and formulates the classification task as a regression problem. Most critically, while the agent rounds the regression outputs to accurately evaluate the validation set, it completely fails to round the final test set predictions, leading to an invalid submission format.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

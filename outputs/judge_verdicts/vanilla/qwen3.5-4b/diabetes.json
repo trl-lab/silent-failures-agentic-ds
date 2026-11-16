@@ -1,0 +1,141 @@
+{
+ "task": "diabetes",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly fit on the training data only and then applied to the test data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classifier (LGBMClassifier) is appropriately chosen for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_imputed, y_train)",
+   "reasoning": "The agent trains on the full training set without creating a validation set or using cross-validation to estimate model generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(objective='binary', eval_metric='auc', n_estimators=1000, random_state=42, verbose=-1)",
+   "reasoning": "The model is trained exactly once with a fixed random seed without averaging predictions over multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate or report any metrics internally.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_columns]",
+   "reasoning": "The agent relies entirely on raw features and does not attempt any feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hard class predictions for AUC metric",
+   "description": "The agent saves hard class labels (0/1) instead of predicted probabilities. The ROC AUC metric requires continuous probability scores to calculate correctly, and thresholding probabilities to hard classes will severely degrade the score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred_class = y_pred_proba.round().astype(int)"
+  },
+  {
+   "name": "High risk of overfitting without early stopping",
+   "description": "Training a gradient boosting model with a high number of estimators (e.g., 1000) without using a validation set for early stopping is very likely to cause severe overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(..., n_estimators=1000, ...); model.fit(X_train_imputed, y_train)"
+  }
+ ],
+ "summary": "The agent constructs a basic binary classification pipeline using LightGBM and properly applies imputation by fitting only on the training set. However, it fails to perform any internal validation or feature engineering, risks severe overfitting by using 1000 trees without early stopping, and critically outputs hard class labels instead of probabilities, which will ruin the target ROC AUC metric.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

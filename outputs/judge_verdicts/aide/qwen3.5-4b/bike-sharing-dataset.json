@@ -1,0 +1,145 @@
+{
+ "task": "bike-sharing-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not accessed during EDA or preprocessing setup.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\n...\npreprocessor = ColumnTransformer(...)",
+   "reasoning": "The agent proceeds directly from loading the data to preprocessing and modelling without any explicit data cleaning or outlier handling steps.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Preprocessing (one-hot encoding) is properly fit only on the training fold within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses random shuffling for cross-validation on a dataset with temporal features (season, year, month, hour), ignoring temporal order and causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is appropriate for the regression task of predicting continuous bike counts.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation loop to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated across 5 cross-validation folds and the mean score is aggregated, avoiding single-evaluation variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((y_val - y_pred_val) ** 2))\n    scores.append(rmse)",
+   "reasoning": "The agent only computes RMSE and does not verify performance with any other regression metric like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [\n    \"season\",\n    \"yr\",\n    \"mnth\",\n...",
+   "reasoning": "Raw columns are used directly with no derived features, time-based interactions, or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid Pipeline Fit Arguments (API Mismatch)",
+   "description": "The agent attempts to call fit() on a scikit-learn Pipeline by passing a native LightGBM Dataset object and LightGBM-specific kwargs. This will crash because scikit-learn Pipelines expect standard array-like objects for X and y.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(train_set, callbacks=callbacks, eval_set=[val_set], num_boost_round=1000)"
+  },
+  {
+   "name": "Double Preprocessing during Inference",
+   "description": "The agent manually transforms the test features using the preprocessor, and then passes those already-transformed features to the Pipeline's predict method. The Pipeline will attempt to apply the preprocessor a second time on the one-hot encoded array, causing an execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test_processed = preprocessor.transform(X_test)\n\ntest_predictions = model.predict(X_test_processed)"
+  }
+ ],
+ "summary": "The agent's solution contains severe API misuse errors that will cause execution crashes, specifically passing native LightGBM datasets to a scikit-learn Pipeline and double-preprocessing test data. Conceptually, the agent introduces look-ahead bias by randomly splitting a sequential time series dataset and skips basic feature engineering and data cleaning.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

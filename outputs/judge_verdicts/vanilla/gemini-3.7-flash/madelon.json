@@ -1,0 +1,138 @@
+{
+ "task": "madelon",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent checks for missing values and imputes them with the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The scaler is fit only on the training set (X) and then used to transform the test set, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is fit exclusively on the training set before transforming the test set.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median) are computed only on the training data and then applied to the test data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate classification models (ExtraTrees, CatBoost, LightGBM) are used for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_sel, y)):\n    X_tr, y_tr = X_sel[train_idx], y[train_idx]",
+   "reasoning": "The agent creates cross-validation folds but completely ignores the validation sets (val_idx), predicting only on the test set and computing no internal validation score to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report any single evaluation score because it performs no evaluation at all.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No evaluation metrics are reported.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df.drop(columns=[target_col]).copy()",
+   "reasoning": "The agent uses raw columns as-is (with basic scaling and selection) but attempts no feature engineering such as interaction terms or non-linear transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_pred = 0.45 * p_et + 0.30 * p_cb + 0.25 * p_lgb",
+   "reasoning": "The agent combines models using arbitrary hardcoded weights without any data-driven tuning of the blend ratio.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overwriting test IDs",
+   "description": "The agent drops the 'id' column from the test set (if present) without saving it, and constructs the submission file using a new sequence of IDs starting from 0. If the original test set IDs are not simply 0 to N-1, the submission will be misaligned with the expected format.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(final_preds))"
+  }
+ ],
+ "summary": "The agent builds a technically functional pipeline using scaling, feature selection, and a weighted ensemble of tree-based models, but it critically fails to establish any validation framework. It iterates through cross-validation folds but ignores the validation indices, producing test predictions blindly with no internal metric to gauge success. Additionally, the submission generation blindly overwrites potential test IDs with a simple range, which risks complete submission failure if the actual IDs are non-sequential.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

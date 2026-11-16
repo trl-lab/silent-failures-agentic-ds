@@ -1,0 +1,142 @@
+{
+ "task": "home-data-for-ml-course",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "median_val = combined[combined[\"_is_train\"] == 1][col].median()",
+   "reasoning": "The agent explicitly computes imputation statistics only on the training subset, avoiding test data peeking.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined[col] = combined[col].fillna(\"None\").astype(str)",
+   "reasoning": "The agent performs extensive missing value imputation using domain knowledge, medians, and modes.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "Pipeline([\n            (\"variance_thresh\", VarianceThreshold(threshold=1e-4)),\n            (\"scaler\", RobustScaler()),\n            (\"model\", RidgeCV(alphas=alphas, cv=5)),\n        ])",
+   "reasoning": "Scaling is correctly placed inside a scikit-learn Pipeline to prevent data leakage during cross-validation.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "(\"variance_thresh\", VarianceThreshold(threshold=1e-4))",
+   "reasoning": "Feature selection is correctly encapsulated within a Pipeline.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lot_frontage_medians = (\n    combined[combined[\"_is_train\"] == 1].groupby(\"Neighborhood\")[\"LotFrontage\"].median()\n)",
+   "reasoning": "The agent deliberately computes imputation statistics exclusively on the training partition, preventing test missing-value statistics from leaking.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The Ames Housing dataset is typically treated as a cross-sectional regression task where random K-Fold splitting is standard.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor(**params)",
+   "reasoning": "The agent correctly uses regression models for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(train_processed, target)):",
+   "reasoning": "The agent implements a 5-fold cross-validation strategy to evaluate models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds_lgb += lgb_model.predict(X_test_tree) / n_folds",
+   "reasoning": "The stochastic models are evaluated across 5 cross-validation folds, and the final predictions are averaged, which mitigates variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "root_mean_squared_error(y_true, blended_price)",
+   "reasoning": "The agent optimizes for RMSE, which is the exact and appropriate metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_log = np.log1p(target)",
+   "reasoning": "The agent correctly formulates the task as a regression problem and appropriately applies a log transformation to the target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[\"TotalLivingSF\"] = combined[\"GrLivArea\"] + combined[\"TotalBsmtSF\"]",
+   "reasoning": "The agent implements extensive domain-informed feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_res = minimize(\n    blend_objective,\n    initial_weights,\n    method=\"SLSQP\",",
+   "reasoning": "The agent uses SLSQP optimization to find optimal non-negative blending weights based on out-of-fold predictions.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target leakage during cross-validation",
+   "description": "The agent constructs target-encoded features (e.g., aggregations of the target variable by categories) using the entire training dataset before splitting it into cross-validation folds. This leaks the validation set targets into the training features during cross-validation, leading to artificially inflated validation scores and suboptimal model/ensemble tuning.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "neigh_price_median = train_df.groupby(\"Neighborhood\")[\"SalePrice\"].median()\n...\ncombined[\"Neigh_Median_Price\"] = (\n    combined[\"Neighborhood\"].map(neigh_price_median).fillna(global_price_median)\n)"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution with robust domain-specific feature engineering, proper test-set isolation for imputations, and an optimized out-of-fold blending ensemble. However, the solution contains a critical target leakage flaw: neighborhood-level target aggregations (like median sale price) are calculated on the entire training set before cross-validation, leaking validation targets into the training folds and artificially inflating cross-validation performance.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

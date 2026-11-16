@@ -1,0 +1,151 @@
+{
+ "task": "financial-management",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by parsing numeric strings and dates, and handling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputer is fit on the full dataset before splitting (only constant filling with 'Missing' is used before split).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (CatBoost/HistGradientBoosting) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model multiple times across 5 CV folds with different random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y_train, oof_preds))\nprint(f\"Validation RMSE: {cv_rmse:.5f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, without verifying if it's the most appropriate metric or evaluating secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features such as date parts, frequency encodings, and group statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across CV folds, which is a standard bagging technique rather than a naive ensemble of different model types.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage",
+   "description": "Target encoding is applied to the training fold without leave-one-out or out-of-fold smoothing. This means a row's encoded feature includes its own target value in the category mean, leading to severe overfitting for rare categories.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "target_map = (\n    pd.DataFrame({c: X_tr[c], \"target\": y_tr})\n    .groupby(c)[\"target\"]\n    .mean()\n    .to_dict()\n)\nglobal_mean = y_tr.mean()\nX_tr[f\"{c}_te\"] = X_tr[c].map(target_map).fillna(global_mean)"
+  },
+  {
+   "name": "Encoding before splitting",
+   "description": "Frequency encoding for categorical columns is computed on the combined train and test dataset before splitting, leaking the test set's categorical distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_raw, X_test_raw], axis=0, ignore_index=True)\n...\nfor c in cat_cols:\n    freq = processed_data[c].value_counts(normalize=True).to_dict()\n    processed_data[f\"{c}_freq\"] = processed_data[c].map(freq).fillna(0).values"
+  },
+  {
+   "name": "Cross-validation Feature Leakage",
+   "description": "Group-based feature engineering (calculating means of numerical columns grouped by categorical columns) is performed on the entire training set prior to cross-validation splitting. This leaks feature distribution information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "group_mean = X_train.groupby(cat)[num].mean().to_dict()\nX_train[f\"{cat}_{num}_mean\"] = (\n    X_train[cat].map(group_mean).fillna(X_train[num].mean())\n)"
+  }
+ ],
+ "summary": "The agent implements a solid end-to-end pipeline with data cleaning, feature engineering, and cross-validation. However, the solution introduces critical target leakage by performing naive target encoding without out-of-fold smoothing, and leaks test and validation set distributions by applying frequency encoding and group aggregations before the respective splits.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

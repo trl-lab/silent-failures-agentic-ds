@@ -1,0 +1,141 @@
+{
+ "task": "wine-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is only used for final predictions, not during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[train_features].values",
+   "reasoning": "The agent makes no explicit effort to clean the data or handle missing values, relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with 'objective': 'regression') for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model across 5 cross-validation folds rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_rmse = mean_squared_error(y_val_fold, val_pred, squared=False)",
+   "reasoning": "The agent only calculates and reports RMSE, without evaluating other metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem targeting 'Price'.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[train_features].values",
+   "reasoning": "The agent uses raw feature columns directly without deriving any new features or applying domain-informed transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Predicting with last fold's model",
+   "description": "When using cross-validation, the agent uses only the model trained on the final fold to generate predictions for the test set. It fails to either retrain the model on the full training dataset or ensemble the predictions from all the fold models.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "predictions = model.predict(X_test)"
+  },
+  {
+   "name": "Incorrect cross-validation metric aggregation",
+   "description": "The agent incorrectly concatenates validation predictions and zips them directly with the unshuffled training targets, causing predictions to be evaluated against the wrong targets. It also attempts to calculate the sklearn metric on individual scalars in a list comprehension, which will crash or produce mathematically nonsensical results.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "zip(y_train, np.concatenate(fold_predictions))"
+  }
+ ],
+ "summary": "The agent successfully sets up a 5-fold cross-validation loop and trains a LightGBM regressor but completely skips data cleaning and feature engineering. Furthermore, the solution suffers from critical execution flaws: it attempts to calculate the final CV score by misaligning shuffled predictions with unshuffled targets using a broken list comprehension, and generates test predictions using only the model from the final fold rather than an ensemble or retrained model.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

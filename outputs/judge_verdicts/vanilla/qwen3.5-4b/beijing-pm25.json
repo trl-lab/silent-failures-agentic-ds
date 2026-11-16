@@ -1,0 +1,145 @@
+{
+ "task": "beijing-pm25",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data; it calculates a test median value but never actually uses it, relying on the train median for imputation.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values by filling them with the median, and handles infinity values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is imported but never actually used in the code.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (median) are correctly calculated solely on the training set and then applied to both train and test.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any internal splitting at all, so it does not split randomly.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses LGBMRegressor for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Predict on Test Set\npredictions = model.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts directly on the test set without any internal validation or holdout scoring.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report any scores, so it does not report a single stochastic score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report or optimize using any evaluation metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem on the provided features.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = df_train[available_features_in_test]",
+   "reasoning": "The agent uses the raw columns as-is without engineering any derived features, despite the presence of temporal data (year, month, day, hour) which typically benefits from feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incomplete test set imputation",
+   "description": "The imputation logic is gated behind checking if the training set has missing values for a column. If a column is fully observed in training but has missing values in the test set, the test set missing values will remain unhandled.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if missing_mask.any():\n        train_fill_val = X_train[col][~missing_mask].median()\n...\n        X_test[col] = X_test[col].fillna(train_fill_val)"
+  },
+  {
+   "name": "Unhandled missing values in target",
+   "description": "The agent extracts the target variable without checking for or removing rows where the target itself is missing, which can cause model training to crash if the underlying library (like LightGBM) does not support missing labels.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "y_train = df_train[TARGET_COL]\n...\nmodel.fit(X_train, y_train)"
+  }
+ ],
+ "summary": "The agent successfully builds an end-to-end inference script using LightGBM but skips internal model validation entirely, meaning generalization performance is unknown. Additionally, it applies no feature engineering to the time-series attributes and contains a logical flaw in its imputation loop that could leave missing values in the test set unhandled.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

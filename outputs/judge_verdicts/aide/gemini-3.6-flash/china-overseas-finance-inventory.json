@@ -1,0 +1,141 @@
+{
+ "task": "china-overseas-finance-inventory",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or use test data statistics during EDA or manual preprocessing steps prior to the pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "features_df[col] = col_data",
+   "reasoning": "The agent relies entirely on XGBoost and LightGBM to handle missing values natively, without implementing any explicit imputation or data cleaning strategy for features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the combined dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied to the combined dataset (or at all).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset contains dates, but it is unclear if temporal splitting is strictly required or if a random split is acceptable for this cross-sectional task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (XGBRegressor, LGBMRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent runs a 5-fold cross-validation, implicitly evaluating the stochastic models multiple times across different data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = np.sqrt(mean_squared_error(y_train, oof_preds))\nprint(f\"Validation RMSE: {cv_rmse:.5f}\")",
+   "reasoning": "The agent only computes and reports RMSE, without verifying if it is robust to potential outliers in the installed capacity data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including datetime extraction, frequency encoding, and grouped aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_preds = 0.5 * oof_xgb + 0.5 * oof_lgb\ntest_preds = 0.5 * test_xgb + 0.5 * test_lgb",
+   "reasoning": "The agent uses a naive unweighted average for ensembling without tuning the blend weights (e.g. using Ridge or Nelder-Mead optimization).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Leakage through aggregated features on combined data",
+   "description": "Group-by aggregations (mean, std, min, max) and frequency encodings are computed on the concatenated train and test sets before splitting. This leaks test set distributions and numeric values into the training features, leading to overly optimistic validation scores and overfitting to the test set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train_raw, X_test_raw], axis=0, ignore_index=True)\n...\ngrouped = features_df.groupby(str_cat)[num]\nfeatures_df[f\"{cat}_{num}_mean\"] = grouped.transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent sets up a standard ML pipeline with LightGBM and XGBoost, utilizing 5-fold cross-validation and engineering several useful features. However, there is a critical data leakage flaw because grouped aggregations and frequency encodings are computed on the concatenated train and test sets prior to splitting. Additionally, the agent uses a naive equal-weights ensemble and relies entirely on tree models to handle missing data without any explicit strategy.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

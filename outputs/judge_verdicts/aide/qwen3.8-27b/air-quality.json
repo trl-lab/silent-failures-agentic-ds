@@ -1,0 +1,138 @@
+{
+ "task": "air-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or compute statistics on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes efforts to clean data by replacing infinities with NaNs, coercing the target to numeric, and dropping missing target rows.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping entirely missing columns) is safely applied only based on the training data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit imputation is performed; the agent relies on LightGBM's native handling of missing values.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly respects temporal order by using TimeSeriesSplit for cross-validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold TimeSeriesSplit to validate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic model is evaluated over 5 folds, implicitly averaging out some variance, rather than a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_scores.append(np.sqrt(mean_squared_error(y_va, preds)))",
+   "reasoning": "The agent strictly evaluates the model using RMSE without verifying if it is appropriate, which is highly sensitive to the outliers present in this dataset.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly models the problem as a time-series regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineered multiple date/time features and cyclical encodings.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unhandled_special_missing_values",
+   "description": "The agent fails to identify and handle dataset-specific missing value indicators (such as -200 in the Air Quality dataset). Treating these placeholders as valid numeric values introduces extreme outliers that severely corrupt model training and evaluation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train[TARGET] = pd.to_numeric(train[TARGET], errors=\"coerce\")"
+  }
+ ],
+ "summary": "The agent correctly formulated the time-series regression problem, engineered valid temporal features, and safely used TimeSeriesSplit for validation. However, it critically failed to recognize that the Air Quality dataset uses '-200' as a placeholder for missing values, treating them as valid numeric inputs and targets, which completely invalidates the model.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

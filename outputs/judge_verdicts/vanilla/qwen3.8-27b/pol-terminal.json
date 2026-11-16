@@ -1,0 +1,142 @@
+{
+ "task": "pol-terminal",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent checks test data dtypes to decide on numeric coercion, which is a very minor leak, but does not inspect distributions or fit transformers on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans numeric data and handles missing values via categorical encoding and LGBM's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection is applied to the full training set before the validation split, but it does not leak the actual holdout test data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The CategoryMapper is correctly fit on X_train and then applied to X_val.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset contains date columns (SOURCEDATE, VAL_DATE) but it is unclear if predicting capacity requires a temporal split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LGBMRegressor) is correctly used for a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly performed when the dataset size is sufficient.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only evaluated once at the very end to generate predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = rmse(y_val, pred_val)\nif np.isfinite(score) and score < best_rmse:",
+   "reasoning": "The LGBMRegressor employs random subsampling, but the agent evaluates each setting exactly once without multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = rmse(y_val, pred_val)",
+   "reasoning": "The agent evaluates the model using only RMSE, without verifying if it is the most robust metric for the target distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task on the CAPACITY target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "DROP_COLS = {\n    \"OBJECTID\",\n    \"TERM_ID\",\n    \"NAME\",\n    \"ADDRESS\",\n    \"CITY\",\n    \"ZIP\",\n    \"ZIP4\",\n    \"TELEPHONE\",\n    \"WEBSITE\",\n    \"GlobalID\",\n    \"EXSTARS_I\",\n    \"OWNER\",\n    \"OPERATOR\",\n    \"NAICS_DESC\",\n    \"SOURCEDATE\",\n    \"VAL_DATE\",\n}",
+   "reasoning": "The agent proactively discards all categorical, geographical, and temporal columns (like CITY, ZIP, OWNER, NAICS_DESC) that could have been engineered into highly predictive features, instead of processing them.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Validation Leakage in Feature Selection",
+   "description": "Feature selection steps (such as dropping columns based on high cardinality or missingness thresholds) are applied to the full training dataset before splitting it into train and validation sets. This leaks validation data statistics into the training pipeline, leading to slightly optimistic validation performance.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "n_train = len(train_df)\nhigh_card_threshold = max(50, min(1000, int(0.2 * n_train)))\n...\nif n_unique > high_card_threshold:\n    continue"
+  }
+ ],
+ "summary": "The agent implements a generally solid and robust LightGBM regression pipeline with proper target transformations and categorical handling. However, it severely limits the model's potential by blindly dropping potentially rich geographical and categorical features (FM07) instead of engineering them. Minor failures include a lack of multiple runs to account for stochastic variance (FM14) and relying exclusively on a single metric (FM15).",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

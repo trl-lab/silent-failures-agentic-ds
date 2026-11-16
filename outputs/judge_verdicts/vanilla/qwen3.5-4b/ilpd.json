@@ -1,0 +1,141 @@
+{
+ "task": "ilpd",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# CatBoost can handle missing and categorical automatically",
+   "reasoning": "The agent makes no effort to clean the data, explicitly choosing to rely entirely on CatBoost to handle missing values automatically.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classification model (CatBoostClassifier) for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)",
+   "reasoning": "The agent trains directly on the full training set without creating an internal validation split or using cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model = cb.CatBoostClassifier(\n    iterations=100,\n    depth=5,\n    loss_function=\"Logloss\",\n    verbose=False,\n    random_state=42\n)",
+   "reasoning": "The agent trains and generates predictions from a stochastic model (CatBoost) exactly once, without averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally at all, so it does not fail by reporting only a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col])",
+   "reasoning": "The agent uses the raw features as-is and makes no attempt to derive new features or transformations.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Blindly dropping target column from test set",
+   "description": "The agent assumes the test dataset contains the target column and attempts to drop it. This causes a KeyError and crashes the script, as the test set typically only contains features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = test_df.drop(columns=[target_col])"
+  },
+  {
+   "name": "Outputting discrete classes for a probability-based metric",
+   "description": "The task metric is ROC AUC, which evaluates the ranking quality of predicted probabilities. The agent thresholds the probabilities to output binary class labels, which discards the continuous ranking signal and severely harms the ROC AUC score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred_classes = (y_pred_prob >= 0.5).astype(int).astype(str)\n...\noutput_df = pd.DataFrame({'id': id_series, 'Class': y_pred_classes})"
+  }
+ ],
+ "summary": "The agent's solution contains a fatal execution error caused by attempting to drop a non-existent target column from the test set. Additionally, the agent fails to perform any data cleaning, feature engineering, or internal validation, and it severely misaligns its output format with the ROC AUC metric by converting predicted probabilities into hard binary classes.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 1,
+ "stage_count_max": 8,
+ "no_code": false
+}

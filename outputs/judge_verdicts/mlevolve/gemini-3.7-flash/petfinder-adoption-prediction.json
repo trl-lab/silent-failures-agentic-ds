@@ -1,0 +1,152 @@
+{
+ "task": "petfinder-adoption-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values using fillna and clipping.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature transformations are fitted on the training set only, so no test data leaks into feature choice.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Test data is not used to fit any imputers.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Although the task is classification, framing this ordinal target as regression with optimized thresholding is the correct and standard approach for maximizing QWK.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic models across 5 CV folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses QWK, which is the official and appropriate metric for this ordinal task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as regression followed by threshold optimization to maximize QWK, capturing the ordinal nature of the target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including text meta-features, target encoding, SVD on TF-IDF, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a weighted average (0.4, 0.35, 0.25) rather than a naive unweighted average or simple majority vote.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Threshold Optimization Leakage",
+   "description": "The decision thresholds for mapping continuous predictions to discrete classes are optimized on the entire Out-Of-Fold (OOF) predictions array, and then the model is evaluated on these exact same predictions. This leaks validation information into the thresholding process and artificially inflates the reported validation score.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "global_rounder.fit(oof_continuous, y_train)\n\n    oof_discrete = global_rounder.predict(oof_continuous)\n    final_validation_score = compute_qwk(y_train, oof_discrete)"
+  },
+  {
+   "name": "CV Feature Engineering Leakage",
+   "description": "Several feature engineering steps (TF-IDF, TruncatedSVD, and group aggregations like mean/std/min/max) are fitted or computed on the entire training dataset before the cross-validation split. This leaks information from the validation folds into the training folds, making the cross-validation score unreliable.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_word = word_tfidf.fit_transform(train_desc_raw) ... grouped = train_df.groupby(g)[val_col].agg([\"mean\", \"std\", \"min\", \"max\"])"
+  },
+  {
+   "name": "Dead Code / Unused Blend Optimizer",
+   "description": "The agent defines a function to mathematically optimize ensemble weights based on OOF predictions, but never actually calls it in the execution pipeline, falling back to hardcoded arbitrary weights.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def optimize_blend_weights(oof_matrix, y_true): ... val_preds_blend = (\n            0.40 * val_preds_lgb + 0.35 * val_preds_xgb + 0.25 * val_preds_cb\n        )"
+  }
+ ],
+ "summary": "The agent provides a strong solution leveraging regression with optimized threshold rounding, which is ideal for the QWK metric. However, it introduces data leakage by applying TF-IDF, SVD, and group aggregations on the entire training set before cross-validation. Additionally, it overfits its validation score by optimizing the rounding thresholds on the full OOF predictions and then evaluating on those same predictions.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

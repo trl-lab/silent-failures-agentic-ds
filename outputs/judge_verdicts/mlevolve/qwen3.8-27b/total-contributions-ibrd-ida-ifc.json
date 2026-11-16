@@ -1,0 +1,146 @@
+{
+ "task": "total-contributions-ibrd-ida-ifc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly fits preprocessors and imputation statistics exclusively on the training split.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values via median imputation for numericals and a 'missing' category for categoricals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Z-scaling is computed using reference statistics fitted strictly on the training set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is performed after splitting, using the median of the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.15, random_state=42)",
+   "reasoning": "The agent uses random splitting; without inspecting the dataset directly, it is unclear if temporal ordering (e.g., by fiscal year) exists and should have been respected.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly creates a validation split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "best_lgb_model.fit(X_tr, y_tr_log)\nbest_xgb_model.fit(X_tr, y_tr_log)\n...\nscore = np.sqrt(mean_squared_error(y_val_orig, val_pred_final))",
+   "reasoning": "The final models are trained and evaluated exactly once on the validation set, rather than averaging over multiple random seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = np.sqrt(mean_squared_error(y_val_orig, val_pred_final))",
+   "reasoning": "The agent only uses RMSE for evaluation and does not consider other metrics like MAE or R-squared to get a comprehensive view of performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a regression task on the target variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements multiple feature engineering steps including ratio features, categorical interactions, and log transforms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "best_w = 0.5\nblend_log_val = best_w * lgb_val_pred_log + (1 - best_w) * xgb_val_pred_log",
+   "reasoning": "The agent combines LightGBM and XGBoost using a naive equal-weight average without tuning the blend ratio based on out-of-fold or validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "execution_failure_unsafe_type_casting",
+   "description": "The script forcibly casts the ID column to integer during submission generation. If the test IDs contain alphanumeric strings, this will raise a ValueError/TypeError and cause execution to fail before the submission is saved.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "submission = pd.DataFrame({\"id\": test_ids.astype(int), \"Total Contribution (USD)\": test_pred})"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with solid data cleaning, feature engineering, and a robust cross-validation strategy that avoids data leakage. However, it relies on naive equal-weight ensembling, evaluates the stochastic models only once, and uses only a single evaluation metric. Additionally, there is a likely execution failure risk due to unsafe integer casting on the ID column.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

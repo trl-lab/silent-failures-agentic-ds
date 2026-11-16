@@ -1,0 +1,115 @@
+{
+ "task": "us-school-bus-fleet",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_cols.append(col)",
+   "reasoning": "The agent does not implement any explicit imputation strategy for numeric columns, relying entirely on the tree-based models to handle missing values natively.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "eval_metric='RMSE'",
+   "reasoning": "The agent optimizes exclusively for RMSE (the competition metric) and does not compute any alternative metrics like MAE to verify robustness to outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_preds + 0.4 * cat_preds + 0.2 * xgb_preds",
+   "reasoning": "The agent blends predictions using arbitrary, hardcoded weights (0.4, 0.4, 0.2) without performing any weight search, cross-validated tuning, or stacking.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding test IDs",
+   "description": "The agent drops identifier columns (like 'id') from the test set and generates a simple integer sequence for the submission file. If the original test dataset contained non-sequential or string IDs, this will cause the submission to be misaligned or rejected.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "sub = pd.DataFrame({\n    'id': np.arange(len(final_preds)),\n    'Bus age': final_preds\n})"
+  },
+  {
+   "name": "Treating categoricals as continuous",
+   "description": "The agent encodes categorical variables as integer codes using `.cat.codes` and feeds them into XGBoost without enabling categorical support. This causes the model to treat categorical features as continuous numerical variables with an arbitrary order.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_encoded[col] = X[col].astype(cat_type).cat.codes\n...\nxgb_model = xgb.XGBRegressor("
+  },
+  {
+   "name": "No validation score reported",
+   "description": "The agent sets up K-Fold cross-validation and passes the validation sets to the models for early stopping, but it never calculates or logs the out-of-fold validation scores, making it impossible to evaluate generalisation performance without submitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):"
+  }
+ ],
+ "summary": "The agent implements a reasonable K-Fold cross-validation setup with LightGBM, CatBoost, and XGBoost, but exhibits several methodological flaws. Crucially, the agent overwrites the test set IDs with a generic integer sequence, which is highly likely to break the submission format. Methodologically, the agent fails to handle missing numeric values explicitly, feeds categoricals into XGBoost improperly as continuous integers, uses naive hardcoded weights for ensembling, and never calculates or prints a validation score to estimate performance.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

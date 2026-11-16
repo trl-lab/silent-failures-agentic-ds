@@ -1,0 +1,164 @@
+{
+ "task": "device-pma",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed that inspects the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values for categorical, text, and numerical columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler for the neural network is correctly fit only on the training folds inside the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature extraction (TF-IDF, SVD) is fit on the training data only, not the full train+test dataset.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation medians are calculated on the training set only (iloc[:n_train]), not the full train+test dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "date_patterns = re.compile(r\"date|time|year|created|received|decision\", re.IGNORECASE)\n...\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains date features (indicating a temporal component for applications), but the agent uses a random StratifiedKFold instead of a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classification models and objectives (LGBMClassifier, XGBClassifier, BCEWithLogitsLoss).",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The TabularResNet model includes LayerNorm, Dropout, and weight decay in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final inference; ensemble weights are optimized on out-of-fold validation predictions.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated across 5 cross-validation folds, accounting for data variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses ROC-AUC, which is the specified and appropriate metric for this binary classification task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date extraction, text SVD, categorical frequencies, and target encodings.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses Nelder-Mead optimization to find optimal blending weights for the ensemble.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage via Improper OOF Target Encoding",
+   "description": "The agent computes out-of-fold target encodings and assigns them to a static column before the cross-validation loop. During CV, training rows from one fold contain encodings calculated using targets from the current validation fold, causing severe target leakage.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_processed[f\"{cat}_target_enc\"] = oof_te_train\n...\nX_tr, y_tr = X_train_full[train_mask], y_train_full[train_mask]"
+  },
+  {
+   "name": "Test Data Leakage via Frequency Encoding",
+   "description": "The agent calculates categorical frequency encodings on the concatenated train and test dataset before splitting, which leaks the test set's distribution into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "str_series = features_df[col].fillna(\"MISSING\").astype(str)\nfreq_map = str_series.value_counts(normalize=True).to_dict()"
+  },
+  {
+   "name": "Validation Leakage in Feature Engineering",
+   "description": "The agent fits feature extractors (TF-IDF, TruncatedSVD) and calculates groupby aggregations and imputations on the entire training set before the cross-validation loop. This leaks validation fold information into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_tfidf = tfidf.fit_transform(train_text)\n...\ngroup_stats = engineered_features.iloc[:n_train].groupby(f\"{cat}_le\")[num_col].agg([\"mean\", \"std\"])"
+  }
+ ],
+ "summary": "The agent constructs a sophisticated pipeline with extensive feature engineering and an optimized ensemble of LightGBM, XGBoost, and a custom ResNet. However, the solution suffers from severe target leakage because out-of-fold target encodings are computed globally before the CV loop, meaning training folds see features derived from the validation fold's targets. Additionally, there is leakage from computing frequency encodings on the combined train/test set and applying TF-IDF/aggregations on the full training set before cross-validation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

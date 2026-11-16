@@ -1,0 +1,106 @@
+{
+ "task": "house_prices_ames",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "categories = sorted(list(set(X_train[col].unique()).union(set(X_test[col].unique()))))",
+   "reasoning": "The agent looks at the test dataset to define the global categorical vocabulary before training, which is a mild form of data leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train[col] = pd.to_numeric(X_train[col], errors='coerce')",
+   "reasoning": "The agent coerces invalid numericals to NaNs but makes no explicit effort to impute missing values, relying entirely on the models' internal handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df.drop(columns=[target_col]).copy()",
+   "reasoning": "The agent uses the raw features as-is and fails to engineer any derived features (such as total square footage or house age) which are standard and highly informative for the Ames dataset.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.5 * lgb_test_preds + 0.5 * cat_test_preds",
+   "reasoning": "The agent combines the two models using a hardcoded, unweighted average instead of tuning the blend weights based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Improper Categorical Encoding for LightGBM",
+   "description": "Converting pandas category columns to integer codes without explicitly specifying them as categorical features to the model causes tree-based models like LightGBM to treat unordered categories as continuous numerical features, leading to mathematically unsound splits.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_lgb[col] = X_train_lgb[col].cat.codes"
+  }
+ ],
+ "summary": "The solution implements a valid K-Fold cross-validation setup with LightGBM and CatBoost, but it falls short in data preprocessing and feature engineering. It relies entirely on the models to handle missing values, performs no feature engineering on a dataset where derived features are highly beneficial, and uses a naive unweighted average for ensembling. Additionally, it incorrectly passes categorical codes as continuous integers to LightGBM.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

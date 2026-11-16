@@ -1,0 +1,149 @@
+{
+ "task": "GiveMeSomeCredit",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[feature_cols].copy()\ny = train_df[target_col].copy()",
+   "reasoning": "The agent makes no explicit effort to handle missing values or outliers, relying entirely on the gradient boosting models to handle them internally.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task does not have a temporal component requiring time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classifier models for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X.iloc[val_idx], y.iloc[val_idx]",
+   "reasoning": "The agent creates validation folds but never evaluates the models on them or computes a validation score to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not report a single score; in fact, it reports no internal evaluation score at all (covered by FM06).",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model, so it does not rely on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in drop_cols]",
+   "reasoning": "The agent uses the raw columns as features without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_pred = 0.5 * lgb_test_pred + 0.5 * cat_test_pred",
+   "reasoning": "The agent uses a naive, unweighted 50/50 average to combine the models without any tuning or optimization of the blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission ID format",
+   "description": "The agent generates the submission ID column using a 0-indexed sequence instead of extracting the correct identifier column from the test dataset, which will result in an invalid submission file.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\n    'id': np.arange(len(test_preds)),\n    'SeriousDlqin2yrs': test_preds\n})"
+  },
+  {
+   "name": "No early stopping for gradient boosting",
+   "description": "The agent trains gradient boosting models with a fixed, high number of iterations without passing the validation set for early stopping, which can easily lead to overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(X_tr, y_tr)\n...\ncat_model.fit(X_tr, y_tr)"
+  }
+ ],
+ "summary": "The agent sets up a K-Fold cross-validation loop to generate test predictions but entirely fails to evaluate model performance on the validation folds, making it impossible to gauge generalization. Furthermore, the agent applies no data cleaning, relies on a naive ensemble, completely skips feature engineering, and incorrectly generates the submission ID column, which will cause the evaluation to fail.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

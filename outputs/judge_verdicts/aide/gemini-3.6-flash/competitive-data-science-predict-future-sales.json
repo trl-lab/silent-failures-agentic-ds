@@ -1,0 +1,137 @@
+{
+ "task": "competitive-data-science-predict-future-sales",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during any EDA or to determine preprocessing logic.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by clipping outliers, filling missing values in lag features, and properly constructing a cartesian grid to handle implicit zeroes.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no scaling or normalisation applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection techniques are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not fit any global imputers on the dataset; missing lag features are simply filled with constant zeros.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly respects temporal order by splitting on `date_block_num` (train 12-32, val 33, test 34).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A LightGBM Regressor is an appropriate model choice for predicting continuous monthly sales.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent sets aside block 33 specifically to be used as a validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n    n_estimators=1000,\n    learning_rate=0.03,\n    num_leaves=63,\n    max_depth=8,\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n    n_jobs=-1,\n)",
+   "reasoning": "The LightGBM model, which involves random subsampling, is evaluated only once on a single random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(np.mean((val_preds - y_val.values) ** 2))\nprint(f\"Validation RMSE: {val_rmse:.5f}\")",
+   "reasoning": "The agent calculates and reports only a single metric (RMSE) without assessing any secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as predicting monthly aggregated sales, matching the competition requirements.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering including lag features, rolling windows, and target dynamics.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via global aggregation",
+   "description": "Global statistics are calculated using the entire provided dataset (which includes the validation time period) prior to the train/validation split, allowing future information to leak into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "item_global_price = train.groupby(\"item_id\")[\"item_price\"].mean().reset_index()"
+  }
+ ],
+ "summary": "The agent provides a robust solution featuring comprehensive time-series feature engineering, proper temporal data splitting, and effective mitigation of outliers via target clipping. However, a moderate data leakage issue occurs when computing global average item prices across the entire training dataframe (which includes the validation month). Additionally, the stochastic LightGBM model is evaluated only once on a single metric.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

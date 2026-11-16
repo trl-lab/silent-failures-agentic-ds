@@ -1,0 +1,64 @@
+{
+ "task": "financial-intermediary-funds-cash-transfers",
+ "failure_modes": {
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "target_bins = pd.qcut(y_train, q=5, labels=False, duplicates=\"drop\")\nsss = StratifiedShuffleSplit(n_splits=1, test_size=0.15, random_state=42)\ntrain_idx, val_idx = next(sss.split(train_features, target_bins))",
+   "reasoning": "The dataset contains cash transfers with a temporal component (date/time columns are parsed), but the agent uses a random stratified split rather than a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "rmse = root_mean_squared_error(y_full, blend)",
+   "reasoning": "The agent explicitly assumes the target is log-scaled without verification, optimizing and evaluating solely on RMSE, which is highly sensitive to outliers on raw, skewed monetary amounts.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage during Cross-Validation",
+   "description": "The agent concatenates the train and validation splits to perform 5-fold OOF cross-validation. Because the validation split's target-encoded features were generated using the full training split's targets as a reference, rows from the validation split leak target information when they are used in the training folds of the OOF process.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_split, _, _ = engineer_features(..., train_ref=train_split, target=y_train_split)\n...\nX_full = pd.concat([train_split, val_split], axis=0, ignore_index=True)\n...\nfor fold, (tr_idx, va_idx) in enumerate(kf_oof.split(X_full)):"
+  },
+  {
+   "name": "Inappropriate Preprocessing for Linear Models",
+   "description": "The agent trains a Ridge regression model using features that contain arbitrary categorical integer codes and missing values filled with -999. While acceptable for tree-based models, this preprocessing severely violates linear model assumptions and distorts the Ridge model's predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_split = train_split.fillna(-999)\n...\nfinal_ridge = Ridge(alpha=1.0, fit_intercept=True)\nfinal_ridge.fit(X_full, y_full)"
+  },
+  {
+   "name": "False Assumption of Log-Scaled Target",
+   "description": "The agent incorrectly assumes the target variable 'Amount in USD' is already log-scaled and uses it directly. Training on raw, highly skewed monetary values without applying a log transformation degrades model performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "# 5. TARGET (already in log-scale, use directly)\ny_train_target = y_train_split.values"
+  }
+ ],
+ "summary": "The agent's solution contains severe structural flaws in its validation and modeling pipeline. Most critically, it introduces target leakage by performing cross-validation on a combined dataset that includes validation rows whose features were target-encoded using the training labels. Furthermore, the agent applies tree-specific preprocessing (imputing with -999 and integer encoding) to a Ridge regression model, and falsely assumes the highly skewed target is already log-scaled.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,141 @@
+{
+ "task": "breast-cancer-wisconsin",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set before the modeling pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing data using a SimpleImputer within the cross-validation loop.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler and QuantileTransformer are correctly fit only on the training folds and applied to validation/test folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is strictly applied within the cross-validation loop, avoiding leakage.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for this binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes dropout, layer normalization, and weight decay.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "meta_learner.fit(X_meta_oof, y_train)\noof_preds = meta_learner.predict_proba(X_meta_oof)[:, 1]\nfinal_auc = roc_auc_score(y_train, oof_preds)",
+   "reasoning": "Although the base models use CV, the final meta-learner is trained on the full out-of-fold prediction set and evaluated on that exact same set, meaning the reported final score is an in-sample training score, not a valid generalization estimate.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models using 10-fold cross-validation repeated 3 times, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent reports ROC AUC, which is the specified metric for this task and appropriate for evaluating binary classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive domain-specific and statistical feature engineering is implemented.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses stacking (LogisticRegressionCV) to combine models, which is a sophisticated ensembling technique.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Batch-dependent test predictions (Transduction)",
+   "description": "The agent applies rank normalization to the test set predictions by dividing the rank by the total number of test samples. This makes the prediction for any single test instance dependent on the size and distribution of the entire test batch, breaking the assumption of independent predictions and making the model unusable for single-instance inference in production.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "def rank_normalize(arr: np.ndarray) -> np.ndarray:\n    ... res[:, col] = rankdata(arr[:, col]) / arr.shape[0]\n...\nX_meta_test = rank_normalize(test_model_preds)"
+  }
+ ],
+ "summary": "The agent implements a sophisticated pipeline with robust cross-validation, proper imputation/scaling inside the folds, and multiple strong base models. However, the solution contains critical flaws in its evaluation and ensembling logic: it evaluates the final meta-learner on its own training set (reporting an in-sample score) and introduces batch-dependent test predictions via rank normalization, which would break single-instance inference in production.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": true,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

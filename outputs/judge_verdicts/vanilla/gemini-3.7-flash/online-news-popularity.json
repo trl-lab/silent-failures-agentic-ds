@@ -1,0 +1,109 @@
+{
+ "task": "online-news-popularity",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train.iloc[val_idx], y_train[val_idx]\n\n    # LightGBM",
+   "reasoning": "The agent splits the data into training and validation folds but never evaluates the models on the validation set or computes any validation metric to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "drop_cols = [c for c in ['url', target_col] if c in train_df.columns]\nX_train = train_df.drop(columns=drop_cols)",
+   "reasoning": "The agent only drops non-predictive columns and applies basic imputation, but does not create any derived features, interactions, or domain-informed transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_predictions = 0.4 * lgb_test_preds + 0.3 * xgb_test_preds + 0.3 * cat_test_preds",
+   "reasoning": "The agent combines predictions from three models using arbitrary, hardcoded weights without performing any tuning or validation-based weight optimization.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Independent Categorical Encoding",
+   "description": "Encoding categorical variables independently on train and test sets (e.g., using `pd.factorize` or `LabelEncoder` separately on each) causes the same underlying category to potentially map to different integers in train vs. test, ruining the feature alignment and model generalisation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[col] = pd.factorize(X_train[col])[0]\n        X_test[col] = pd.factorize(X_test[col])[0]"
+  },
+  {
+   "name": "Imputation before Cross-Validation Splitting",
+   "description": "Applying imputation (e.g., filling missing values with the median) on the entire training dataset before performing cross-validation splits leaks validation fold statistics into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())\n...\nkf = KFold(n_splits=n_splits, shuffle=True, random_state=42)"
+  }
+ ],
+ "summary": "The agent correctly identifies the task as regression and sets up a K-Fold ensemble of LightGBM, XGBoost, and CatBoost. However, it fails to evaluate the validation folds or compute any metric, making it impossible to gauge the models' performance or tune the hardcoded ensemble weights. Additionally, categorical features are factorized independently on the train and test sets, which would misalign categories and severely impact predictive quality.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

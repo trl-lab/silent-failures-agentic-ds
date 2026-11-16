@@ -1,0 +1,138 @@
+{
+ "task": "transmission-lines",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA; it only uses training data to define categories and medians.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive data cleaning, including standardising missing value representations and imputing missing data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median = train_df[col].median() ... train_df[col] = train_df[col].replace([np.inf, -np.inf], np.nan).fillna(median)",
+   "reasoning": "The agent computes the median on the full training dataframe and imputes missing values before performing the train/validation split, leaking validation statistics into the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is not a time-series forecasting problem (transmission lines voltage classification), so a random stratified split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs an internal train/validation split using train_test_split and evaluates on the validation set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y)",
+   "reasoning": "The stochastic LightGBM model is evaluated on a single random train/validation split without cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y_val, val_pred)",
+   "reasoning": "The agent evaluates model performance using only accuracy, without checking other metrics like F1-score which could be important for imbalanced classes.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation correctly addresses predicting the VOLT_CLASS target as a standard classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features, including extracting date components, computing differences between dates, and applying a log transform to the shape length.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding original test IDs",
+   "description": "The agent drops the original ID columns from the test dataset and generates a synthetic sequential ID (e.g. np.arange) for the submission file. This will cause submission evaluation to fail or mismatch if the platform requires predictions to be mapped back to the original identifiers.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({'id': np.arange(len(test_df), dtype=int), 'VOLT_CLASS': prediction})"
+  }
+ ],
+ "summary": "The agent implements a generally sound solution with good data cleaning, date-based feature engineering, and a retrain-on-full-data strategy using optimal iterations. However, it suffers from minor data leakage by imputing missing values before the internal train/validation split, and relies on a single validation split with only accuracy as the metric. Additionally, it makes a critical error in generating the submission file by discarding the original test IDs and replacing them with a synthetic sequence, which will likely break automated evaluation.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "magic-gamma-telescope",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly attempts to handle missing values with a SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_combined = pd.concat([X_train_raw, X_test_raw], axis=0, ignore_index=True)\n...\nimputer = SimpleImputer(strategy='median')\nX_combined_imputed = imputer.fit_transform(X_combined)",
+   "reasoning": "The agent fits the SimpleImputer on the combined train and test datasets, leaking test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A binary classifier (LGBMClassifier) is correctly used for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_imputed, y_train)\n\n# Generate predictions for the test set",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without any internal validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any internal evaluation or report any scores, so this failure mode does not strictly apply.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model or report metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_raw = df_train[feature_cols].dropna(axis=1, how='all').copy()",
+   "reasoning": "The agent uses the raw numerical columns directly without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target encoding failure",
+   "description": "The agent attempts to cast the target column directly to integers without encoding string labels, causing a ValueError during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_train = df_train[target_col].values.astype(int)"
+  },
+  {
+   "name": "Hard label predictions for AUC metric",
+   "description": "The agent outputs hard binary predictions (0/1) instead of probabilities. For a metric like ROC AUC, continuous probabilities are required to correctly evaluate the model's ranking ability.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "predicted_class = (probas >= 0.5).astype(int)\n\n# Create output dataframe\nresults_df = pd.DataFrame({\n    'id': np.arange(len(df_test)),\n    'class': predicted_class\n})"
+  }
+ ],
+ "summary": "The agent's solution contains a critical execution error because it attempts to cast string target labels directly to integers without proper encoding. Additionally, it leaks test data by fitting an imputer on the combined train and test sets, and fails to output probabilities which are necessary for the ROC AUC evaluation metric.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

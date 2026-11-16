@@ -1,0 +1,145 @@
+{
+ "task": "lending-club-loan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform exploratory data analysis on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent extensively cleans the data, handling missing values and parsing numerical/text strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the combined dataset before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined[\"annual_inc\"].fillna(combined[\"annual_inc\"].median())",
+   "reasoning": "Missing values for several financial features are imputed using the median of the combined train and test dataset, leaking test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The Lending Club dataset is temporal (loans issued over time), but the agent uses a random stratified split instead of a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses binary classifiers (LightGBM, XGBoost, CatBoost) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating the final submission and is not used to evaluate or select models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The stochastic models are evaluated across 5 cross-validation folds, which inherently averages over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "roc_auc_score(y_va, oof_lgb[val_idx])",
+   "reasoning": "The agent only calculates and reports the requested ROC AUC metric, without checking other metrics like PR AUC that are often necessary for evaluating imbalanced loan default data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification with appropriate target extraction mapping bad loan statuses to 1.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, generating financial ratios, date parts, and group-level aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble weights are optimized using the Nelder-Mead method rather than relying on naive averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage",
+   "description": "Target encoding is applied to the training fold using the target statistics of the entire fold directly, without using out-of-fold mapping or leave-one-out techniques. This causes severe target leakage, allowing models to overfit by memorizing the target for categorical variables.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "stats = pd.Series(y_tr, index=X_tr_num.index).groupby(X_tr_num[col], observed=False).agg([\"count\", \"mean\"])\nsmooth_te = (stats[\"count\"] * stats[\"mean\"] + m_smooth * global_mean) / (stats[\"count\"] + m_smooth)\nX_tr_num[f\"{col}_te\"] = X_tr_num[col].map(smooth_te)"
+  }
+ ],
+ "summary": "The agent demonstrates strong capabilities in feature engineering, robust modeling with gradient boosting, and ensemble weight optimization. However, the solution contains critical data leakage: financial features are imputed using the test set median, and more severely, in-fold target encoding is performed without out-of-fold mapping, which will cause the models to severely overfit the training folds. The agent also ignores the temporal structure of the loan data by using a random CV split.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

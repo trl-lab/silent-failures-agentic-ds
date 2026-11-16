@@ -1,0 +1,142 @@
+{
+ "task": "mobile-home-parks",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data peeking during EDA is observed as no EDA is explicitly performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df_all[lat_col].fillna(lat_median).values",
+   "reasoning": "Data cleaning is performed, including missing value imputation for coordinates and handling of infinite values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No explicit global scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lat_median = df_all[lat_col].median()\n    lon_median = df_all[lon_col].median()\n    lat_clean = df_all[lat_col].fillna(lat_median).values",
+   "reasoning": "Missing spatial coordinates are imputed using the median calculated over the combined train and test datasets, leaking test set statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "This is not a temporal task; StratifiedKFold is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for the multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated using 5-fold cross-validation, which averages over multiple subsets to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for multi-class logloss during model training and evaluates using accuracy, utilizing multiple appropriate metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df_all[\"coord_dist_center\"] = np.sqrt(...)\n    ... df_all[\"coord_x\"] = np.cos(lat_rad) * np.cos(lon_rad)",
+   "reasoning": "The agent implements extensive domain-informed feature engineering, including spatial distance, multi-scale density, and coordinate projections.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, [0.0, 0.0, 0.0], method=\"Nelder-Mead\")",
+   "reasoning": "The agent optimizes blending weights using Nelder-Mead rather than relying on a naive simple average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering before splitting (Data Leakage)",
+   "description": "Derived features based on relationships or aggregate statistics are computed on the combined train and test dataset before splitting. This allows information about the test set to leak into the training features (e.g. test samples acting as nearest neighbors to train samples, or test categories shifting frequency counts).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "nn = NearestNeighbors(n_neighbors=k + 1, metric=\"euclidean\").fit(coords)\n        dists, _ = nn.kneighbors(coords)\n...\nfreq = df_all[col].value_counts(dropna=False)\n...\ngrp_lat_mean = df_all.groupby(col)[lat_col].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent demonstrates a sophisticated methodology, employing strong out-of-fold target encoding, robust cross-validation, and an optimized blending ensemble. However, the solution suffers from critical data leakage during feature engineering and imputation, as operations like spatial K-Nearest Neighbors, frequency encoding, and grouped means are applied to the combined train and test dataset before splitting.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

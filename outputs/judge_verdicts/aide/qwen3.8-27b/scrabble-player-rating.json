@@ -1,0 +1,141 @@
+{
+ "task": "scrabble-player-rating",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is peeked at during EDA or used to fit any transformers prior to modeling.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data is cleaned by dropping missing values and coercing invalid numeric types to NaN before dropping them.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied to the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fitted on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LightGBM regression is used, which correctly matches the regression task formulation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a time-series cross-validation strategy to estimate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The validation process averages predictions over multiple folds, rather than performing a single evaluation of the stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mae = time_series_validation(train, n_folds=5)\nprint(f\"Validation MAE: {val_mae:.6f}\")",
+   "reasoning": "The agent relies entirely on a single metric (MAE) without reporting secondary metrics like RMSE to better understand variance and outlier impact.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly framed as regression to predict the continuous 'rating' variable.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates several derived features, such as player historical aggregates, z-scores, and days since last game.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Future data leakage in time-series features",
+   "description": "When computing historical aggregate features for a time-series task, the agent aggregates over the entire training set (or chunk) rather than using an expanding/rolling window. This gives earlier rows access to future target-correlated information (like future scores).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "agg = train_part.groupby(\"nickname\", as_index=False).agg(\n    player_count=(\"score\", \"size\"),\n    player_mean_score=(\"score\", \"mean\"),\n    ..."
+  },
+  {
+   "name": "Incorrect expanding window implementation",
+   "description": "The cross-validation loop is intended to be an expanding window (training on all previous chunks), but the slice logic only selects the single immediately preceding chunk, resulting in a sliding window of size 1.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_idx = slice(chunk_bounds[i - 1], chunk_bounds[i])"
+  }
+ ],
+ "summary": "The agent correctly structures the task as a regression problem, implements a chronological cross-validation strategy, and engineers logical time-series features. However, the solution contains two major bugs: the feature engineering step aggregates over the entire training segment (leaking future data into past rows), and the intended expanding-window cross-validation incorrectly uses a sliding window of size 1, severely limiting the training data per fold.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

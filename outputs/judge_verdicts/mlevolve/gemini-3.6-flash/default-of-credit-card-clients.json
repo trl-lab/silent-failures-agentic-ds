@@ -1,0 +1,156 @@
+{
+ "task": "default-of-credit-card-clients",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent strictly computes group benchmark statistics and target encodings on the training set and maps them to the test set, avoiding test data peeking.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans known categorical anomalies in the EDUCATION and MARRIAGE columns and fills missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fitted only on the training folds (X_tr_scaled = scaler.fit_transform(X_tr)) inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant (0), which does not learn statistics from the full dataset and thus causes no leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series; random stratified splitting is the correct approach.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for this binary classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch neural network includes Dropout layers and weight decay for regularization.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 10-fold StratifiedKFold cross-validation to rigorously evaluate the models.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model evaluation or selection.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 10 cross-validation folds, naturally averaging out stochastic variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes and reports AUC, which is the explicitly requested and robust metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the problem as a standard binary classification task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive domain-specific feature engineering, including utilization ratios, payment delays, and demographic interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a robust stacking meta-learner (Logistic Regression on rank-normalized OOF predictions) rather than a naive average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "target_encoding_cv_leakage",
+   "description": "The agent performs out-of-fold target encoding before the cross-validation loop and uses the exact same CV folds (same seed and splits) to train and validate models. This causes target leakage into the validation set: the target encoding features for the training folds were computed using the targets of the validation fold, giving the model indirect access to validation targets during training and inflating the CV score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df, test_df = apply_oof_target_encoding(..., n_splits=10, seed=seed)\n...\nskf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)"
+  },
+  {
+   "name": "unremoved_original_id_column",
+   "description": "The agent creates a new lowercase 'id' column and excludes it from the feature set, but does not explicitly check for or drop the original uppercase 'ID' column present in the source dataset. If the source 'ID' is left intact, the model will use row identifiers as a feature, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "train_df[\"id\"] = np.arange(len(train_df))\n...\nfeature_cols = [c for c in train_df.columns if c not in [id_col, target_col]]"
+  }
+ ],
+ "summary": "The agent provides a highly sophisticated solution with excellent feature engineering, rigorous scaling, and a strong stacking ensemble. However, it introduces a subtle but severe target leak by using the exact same cross-validation folds for out-of-fold target encoding and model evaluation, which optimistically biases the validation scores. Additionally, it risks leaving the original uppercase 'ID' column in the feature space by only excluding a newly generated lowercase 'id' column.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

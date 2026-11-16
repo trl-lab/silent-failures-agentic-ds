@@ -1,0 +1,105 @@
+{
+ "task": "schools",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "valid_indices = np.random.RandomState(42).choice(len(X_train_full), size=int(len(X_train_full) * valid_ratio), replace=False)",
+   "reasoning": "The models are trained and evaluated on a single random train/validation split without cross-validation or multiple seed averaging.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_lgbm = np.sqrt(mean_squared_error(y_val_split, val_pred_lgbm))",
+   "reasoning": "The agent evaluates the models solely on RMSE without verifying its robustness or checking secondary metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "train_test_feature_mismatch",
+   "description": "Features are generated conditionally only during training (e.g., group-by aggregations) and missing features in the test set are simply filled with zeros, destroying the feature's meaning during inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "if len(id_like_cols) > 0 and is_train:\n... if col not in X_val_feat.columns:\n        X_val_feat[col] = 0"
+  },
+  {
+   "name": "unfitted_categorical_encoding",
+   "description": "Categorical variables are encoded using independent label encoding (e.g. `.cat.codes`) on train and test sets separately, meaning the same category might receive different integer codes across splits.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X[col] = X[col].astype(\"category\")\n            X[col] = X[col].cat.codes.astype(np.float32)"
+  }
+ ],
+ "summary": "The agent implements a two-stage residual ensemble model with LGBM and an MLP. However, there are critical flaws in the feature engineering pipeline: group-by features are only computed on the training set and imputed as zeros in validation/test, and categorical encoding uses independent `.cat.codes` mapping across splits, which scrambles categorical variables between train and test.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

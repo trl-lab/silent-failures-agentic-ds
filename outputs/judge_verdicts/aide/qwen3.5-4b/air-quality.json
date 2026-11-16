@@ -1,0 +1,145 @@
+{
+ "task": "air-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "le.fit(pd.concat([train_df[col], test_df[col]]))",
+   "reasoning": "The agent fits the LabelEncoder on the combined train and test datasets, leaking test set information (the distribution of categories/values) into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train_df[feature_cols].values",
+   "reasoning": "The agent makes no effort to clean the data or handle missing values (which are often encoded as -200 in this dataset), relying entirely on LightGBM's default handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_final, X_val, y_train_final, y_val = train_test_split(\n    X_train, y_train, test_size=0.2, random_state=42, shuffle=False\n)",
+   "reasoning": "Although a scaler is fit on the full training set before splitting, the agent actually uses the unscaled data (X_train) for the train/validation split and training, so no leakage occurs.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_test_split(\n    X_train, y_train, test_size=0.2, random_state=42, shuffle=False\n)",
+   "reasoning": "The agent correctly uses shuffle=False to preserve the temporal order of the dataset for the validation split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(",
+   "reasoning": "The agent correctly uses a regression model for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_final, X_val, y_train_final, y_val = train_test_split(",
+   "reasoning": "The agent correctly creates a validation split and uses it for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb_model = lgb.LGBMRegressor(..., random_state=42)\nlgb_model.fit(",
+   "reasoning": "The agent trains and evaluates the stochastic LightGBM model exactly once instead of using multiple seeds or cross-validation to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(np.mean((val_pred - y_val) ** 2))",
+   "reasoning": "The agent evaluates the model solely using RMSE without verifying performance with other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "target = \"CO(GT)\"",
+   "reasoning": "The agent correctly formulates the problem as predicting the continuous CO(GT) target.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "categorical_cols = [\"Date\", \"Time\", ...]\nfor col in categorical_cols:\n    le = LabelEncoder()",
+   "reasoning": "The agent fails to extract meaningful features from the Date and Time columns (e.g., hour, day of week, month), simply label encoding them as raw categories.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Train-Test Scaling Mismatch",
+   "description": "The model is trained on unscaled features but makes predictions on the test set using scaled features, leading to a complete distribution mismatch and invalid predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model.fit(X_train_final, y_train_final, ...) \n# Make predictions on test set\ntest_pred = lgb_model.predict(X_test_scaled)"
+  },
+  {
+   "name": "Treating Continuous Variables as Categorical",
+   "description": "The agent incorrectly identifies continuous numerical features as categorical and applies label encoding to them. This destroys their numerical magnitude, ordering, and distance relationships, effectively scrambling the signal.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "categorical_cols = [\n    \"Date\",\n    \"Time\",\n    \"PT08.S1(CO)\",\n    \"PT08.S2(NMHC)\",\n    \"PT08.S3(NOx)\",\n    \"PT08.S4(NO2)\",\n    \"PT08.S5(O3)\",\n]"
+  }
+ ],
+ "summary": "The agent's solution contains critical flaws that will render the test predictions completely invalid. Most notably, a major logic bug causes the model to be trained on unscaled data but tested on scaled data. Furthermore, several continuous numerical sensor features are wrongly treated as categorical and label-encoded, destroying their numerical value, and fitting this encoder on the combined train/test sets introduces data leakage.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

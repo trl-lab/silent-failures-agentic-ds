@@ -1,0 +1,138 @@
+{
+ "task": "health-professional-shortage-areas",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly applies transformations and determines categorical mappings based on the train set, avoiding peeking into test statistics.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by parsing ratios, extracting date components, and removing low-information columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no scaling or normalization applied before splitting (nor after, as tree models don't strictly require it).",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent only drops constant columns (cardinality <= 1) and extremely high cardinality columns, which is a structural filter rather than target-leaking feature selection.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not impute data before splitting; it relies on LightGBM's native handling of missing values.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "While there are date columns present, it is unclear from the task context whether a strict temporal split is required to prevent look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a validation split using train_test_split to determine the optimal number of boosting rounds via early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)",
+   "reasoning": "The agent performs a single random split to tune and evaluate the model, without using cross-validation or multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"metric\": \"rmse\",",
+   "reasoning": "The model is optimized solely on RMSE, and no alternative metrics are evaluated to ensure the robustness of the predictions.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task predicting the HPSA Score.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent applies reasonable feature engineering by decomposing dates into year/month/day and parsing ratio strings into numerical features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overly aggressive feature dropping",
+   "description": "The agent aggressively drops columns based on keywords like 'city', 'zip', 'postal', and 'address'. In a dataset focused on geographic domains (Health Professional Shortage Areas), these spatial indicators likely hold highly predictive signal.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "elif any(token in c for token in [\"name\", \"address\", \"city\", \"postal\", \"zip\"]):\n    drop_cols.append(col)"
+  }
+ ],
+ "summary": "The agent delivers a generally robust LightGBM pipeline featuring good data parsing, missing value handling, and proper handling of unseen categories. However, it fails to perform cross-validation (FM14) and aggressively drops geographic features (like ZIP codes and cities) that are likely critical for spatial predictions such as HPSA scores.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

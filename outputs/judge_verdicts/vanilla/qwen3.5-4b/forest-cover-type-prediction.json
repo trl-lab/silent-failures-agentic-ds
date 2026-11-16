@@ -1,0 +1,141 @@
+{
+ "task": "forest-cover-type-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a preprocessing pipeline with SimpleImputer to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied within a scikit-learn Pipeline, preventing data leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is properly nested inside a scikit-learn Pipeline, which is only fit on the training set.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "clf.fit(X_train, y)\n...\ny_pred = clf.predict(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without setting aside a validation set or using cross-validation to estimate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model internally at all, so it does not report a single evaluation score.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model, so it cannot be faulted for using only a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses raw columns as-is and misses obvious domain-informed derived features (e.g., combinations of distance metrics or elevation features) that are standard for this dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Including ID column as a feature",
+   "description": "The agent fails to exclude the row identifier (Id) column from the feature set. Tree-based models can split on this identifier, leading to severe overfitting and poor generalization, especially when test IDs are disjoint from train IDs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_cols = [col for col in train_df.columns if col != target_col]"
+  },
+  {
+   "name": "Incorrect submission ID generation",
+   "description": "The agent generates submission IDs using a simple zero-indexed range instead of extracting the actual ID column from the test dataset. This will result in misaligned IDs and a scoring failure on the evaluation platform.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(test_df))"
+  }
+ ],
+ "summary": "The agent builds a well-structured preprocessing pipeline but fails structurally on evaluation and feature selection. Notably, the model is trained without any internal validation (FM06), the dataset's 'Id' column is mistakenly retained as a predictive feature, and the final submission file generates incorrect sequential IDs instead of preserving the test set's actual IDs.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

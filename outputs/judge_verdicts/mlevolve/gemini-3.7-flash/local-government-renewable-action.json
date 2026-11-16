@@ -1,0 +1,160 @@
+{
+ "task": "local-government-renewable-action",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA before establishing the split (the split is pre-established by separate files).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is explicitly fit only on the training set, not the combined train/test dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal order mentioned for this dataset, so standard stratified random splitting is acceptable.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for evaluating multiple models or parameter settings.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models over 5 different cross-validation folds, which inherently accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_score = root_mean_squared_error(y, oof_ensemble)\nprint(f\"Final Validation Score: {final_score}\")",
+   "reasoning": "The agent evaluates and reports performance solely using RMSE, without checking if other metrics like MAE might be more robust for the specific data distribution.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering including keyword extraction, frequency encoding, aggregate statistics, and target encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes ensemble weights using scipy.optimize.minimize rather than using a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Data Leakage in Preprocessing",
+   "description": "The agent concatenates the training and test sets to compute frequency encodings and fit LabelEncoders. This leaks the distribution of the supposedly unseen test set into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_counts = pd.concat([ X_train_raw[col] if col in X_train_raw else X_train_fe[col], X_test_raw[col] if col in X_test_raw else X_test_fe[col], ]).value_counts(dropna=False)"
+  },
+  {
+   "name": "Test-Dependent Feature Selection",
+   "description": "The agent conditionally creates features (such as log transforms based on skewness) separately on the train and test sets, and then drops columns not present in both. This makes the final feature set dependent on the test set's data distribution, which is a form of leakage.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "if (df[col] >= 0).all() and (df[col].skew() > 1.5):\n    df_out[f\"{col}_log1p\"] = np.log1p(df[col])\n...\ncommon_cols = [c for c in X_train_fe.columns if c in X_test_fe.columns]"
+  },
+  {
+   "name": "Validation Leakage during Cross-Validation",
+   "description": "The agent computes aggregate statistics (e.g., group means) and performs median imputation on the entire training set before applying cross-validation splits. This leaks information from the validation folds into the training folds, likely leading to overly optimistic out-of-fold validation scores.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "group_means = X_train_fe.groupby(X_train_raw[cat_col].astype(str))[num_col].mean()\n...\nmedian_val = X_train_final[col].median()"
+  }
+ ],
+ "summary": "The agent provides a comprehensive modeling pipeline with proper model selection, cross-validation, out-of-fold target encoding, and ensemble weight optimization. However, it suffers from multiple subtle data leakage issues: computing frequency encodings using combined train and test distributions, conditionally creating features based on the test set's distribution, and computing dataset-wide aggregates before splitting into cross-validation folds. It also relies exclusively on a single evaluation metric without verifying its robustness.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

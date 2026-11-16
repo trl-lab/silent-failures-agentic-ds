@@ -1,0 +1,149 @@
+{
+ "task": "sf-building-permits",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or inspect the test set directly.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing data by imputing numeric columns with medians and categorical columns with placeholder strings.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not apply any global scaling or normalization (like StandardScaler) to the data before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection algorithms are applied to the full dataset before the train/test split.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_df[col].fillna(full_df[col].median()).astype(np.float32)",
+   "reasoning": "The agent computes the imputation median on the combined train and test dataset ('full_df'), which leaks test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "Building permit approval is a temporal process, but the agent uses a random, shuffled K-Fold split instead of a time-based split, introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a continuous duration target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation with out-of-fold predictions to evaluate the model.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models across 5 CV folds and blends them, rather than relying on a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "final_score = np.sqrt(mean_squared_error(y_train, oof_ensemble))",
+   "reasoning": "The agent optimizes and evaluates solely using RMSE, without checking metrics like MAE which are often more robust and informative for highly skewed duration targets.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, text TF-IDF/SVD, and calculating domain-specific interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the best blending weights for the models, avoiding naive unweighted averaging.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Missing Target Transformation",
+   "description": "The target variable is a duration ('time_to_approve') which is typically highly skewed. The agent models it directly without applying a log-transform (e.g. log1p), which can cause models optimizing for RMSE to overly focus on extreme outliers.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y_train = train_df[target_col].values.astype(np.float32)\n... \n# Target is strictly non-negative duration\noof_ensemble = np.maximum(0, oof_ensemble)"
+  },
+  {
+   "name": "Potential Target Leakage through Dates",
+   "description": "The agent blindly uses all date columns to compute features (like pairwise date differences). If the dataset contains the final approval or issue date alongside the creation date, computing their difference will perfectly leak the target duration.",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "date_cols = [c for c in full_df.columns if \"date\" in c.lower()]\n... \ndiff = (parsed_dates[col1] - parsed_dates[col2]).dt.total_seconds()"
+  }
+ ],
+ "summary": "The agent builds a well-structured pipeline with extensive feature engineering and an optimized ensemble. However, it leaks test data by computing imputation medians across the full dataset (FM04) and fails to use a time-based split for a highly temporal task, introducing look-ahead bias (FM05). Furthermore, modeling the heavily skewed duration target without a log-transformation and blindly calculating differences between all date columns risks poor outlier handling and massive target leakage.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

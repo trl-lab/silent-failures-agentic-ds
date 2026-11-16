@@ -1,0 +1,146 @@
+{
+ "task": "device-covid19serology",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_encoded[col], test_encoded[col]], axis=0)\n    le.fit(combined)",
+   "reasoning": "The agent fits the LabelEncoder on the combined train and test sets, incorporating test set information into the preprocessing pipeline.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values using a placeholder.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string, which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if there is a temporal component to this dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation split and evaluates the models on it.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses an internal validation set to evaluate models, not the final test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = roc_auc_score(y_val_split, val_proba)",
+   "reasoning": "The agent trains and evaluates the stochastic models exactly once on a single validation split without cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "score = roc_auc_score(y_val_split, val_proba)",
+   "reasoning": "The agent only uses ROC AUC for evaluation and does not verify its appropriateness against other metrics like PR AUC.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The binary classification task formulation aligns with the problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_encoded = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses all features as-is and applies naive label encoding, without creating any derived or domain-informed features.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "final_proba = np.mean(test_probabilities, axis=0)",
+   "reasoning": "The agent uses a naive, equally-weighted average of model probabilities without tuning blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "string_conversion_of_numerical_features",
+   "description": "Converting numerical features to strings and then applying LabelEncoder sorts the values lexicographically rather than numerically (e.g., '10.0' comes before '2.0'). This severely destroys the ordinal relationship and predictive power of continuous features for tree-based models.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_encoded[col] = train_encoded[col].fillna('__MISSING__').astype(str)\n...\nle.fit(combined)"
+  }
+ ],
+ "summary": "The agent successfully establishes an end-to-end pipeline with model comparison and ensembling, but introduces a critical data corruption issue by converting all features to strings before label encoding, destroying the numerical order of continuous variables. Additionally, it peeks at the test data by fitting the LabelEncoder on the combined dataset and uses a naive ensembling strategy.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

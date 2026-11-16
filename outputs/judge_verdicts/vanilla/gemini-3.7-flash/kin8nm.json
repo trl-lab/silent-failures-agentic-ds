@@ -1,0 +1,138 @@
+{
+ "task": "kin8nm",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA, as no EDA is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent checks for and explicitly handles missing values by imputing the median.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\nX[col] = X[col].fillna(median_val)\nX_test[col] = X_test[col].fillna(median_val)",
+   "reasoning": "The agent computes the median strictly on the training set (X), so it avoids leaking test data statistics into the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X.iloc[val_idx], y.iloc[val_idx]\n    \n    # Model 1: LightGBM",
+   "reasoning": "The agent splits the data into train and validation folds but never actually predicts on the validation sets or calculates any validation metric, completely failing to estimate generalisation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent trains the stochastic models 5 times across the cross-validation loop with different random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate any metrics at all, rather than incorrectly relying on a single inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly frames the problem as standard single-target regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = train_df[feature_cols].copy()",
+   "reasoning": "The agent uses the raw feature columns as-is and performs no derived feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_test_pred = (lgb_pred_test + xgb_pred_test + cb_pred_test) / 3.0",
+   "reasoning": "The agent uses a naive, unweighted average to blend the predictions of the three models rather than tuning the combination.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Imputation before CV Splitting",
+   "description": "Imputation statistics (like the median) are computed on the entire training dataset before cross-validation splits are made. This causes information from the validation folds to leak into the training folds, which would make validation scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\nX[col] = X[col].fillna(median_val)\n...\nfor fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):"
+  }
+ ],
+ "summary": "The agent sets up a cross-validation loop and an ensemble of gradient boosting models, but critically fails to actually evaluate the models on the validation folds, computing no validation metrics whatsoever. Additionally, it relies on naive unweighted averaging for the ensemble, skips feature engineering entirely, and computes imputation statistics before the CV split (causing an internal data leak across folds).",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

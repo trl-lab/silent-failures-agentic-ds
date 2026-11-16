@@ -1,0 +1,150 @@
+{
+ "task": "financial-intermediary-funds-funding-decisions",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or fit any transformers on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values via median imputation and specific categorical fill values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is performed correctly within the cross-validation loop for the MLP model.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=max_comp, random_state=42)\n            svd_tr = svd.fit_transform(tfidf_tr)",
+   "reasoning": "TruncatedSVD and TF-IDF are fit on the entire training dataset's text features before cross-validation splitting, leaking validation set information into the training folds.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "med_val = train_df_raw[col].median()\n        train_eng[col] = train_df_raw[col].fillna(med_val).astype(np.float32)",
+   "reasoning": "Median imputation is applied to the full training dataset before cross-validation splitting, leaking validation fold statistics into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "While the task involves financial decisions with date columns, it's not strictly clear if random splitting introduces look-ahead bias without knowing the exact test set split criteria.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Appropriate regression models and loss functions are used for predicting Amount in USD.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The TabularMLP uses dropout layers and weight decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation scheme is used.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for generating final predictions, not for model selection or early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models are evaluated using 5-fold cross-validation, averaging over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "RMSE is used, which is the correct metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a standard regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including date extraction, target encoding, and text processing.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Ensemble weights are optimized using SLSQP rather than simple averaging.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering leakage before splitting",
+   "description": "Applying feature engineering transformations (like frequency encoding and group-by aggregations) on the full dataset before cross-validation splitting leaks validation set distributions into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "stats_grp = grp_df.groupby(\"cat\")[\"val\"].agg(mean=\"mean\", std=\"std\", min=\"min\", max=\"max\", median=\"median\").reset_index()"
+  }
+ ],
+ "summary": "The agent generally follows good practices with extensive feature engineering, proper target encoding, and optimized ensembling. However, there is moderate leakage because several feature engineering steps (imputation, SVD, group aggregations) are applied to the full training dataset before cross-validation splitting.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

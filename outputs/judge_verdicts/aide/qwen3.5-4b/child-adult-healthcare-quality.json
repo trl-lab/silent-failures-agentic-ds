@@ -1,0 +1,159 @@
+{
+ "task": "child-adult-healthcare-quality",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not use test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent makes an effort to handle missing values using SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly placed inside a pipeline and fitted within the CV loop (in the second script), avoiding leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly contained within the pipeline inside the CV loop.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No temporal order applies to this dataset.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "LGBMRegressor is appropriate for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages performance across 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(np.mean((y_pred - y_val) ** 2))\ncv_rmse_scores.append(rmse)",
+   "reasoning": "The agent only computes RMSE and does not verify model performance across other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task formulation is correct for standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses raw columns as features without generating derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Failure: Invalid ColumnTransformer",
+   "description": "The ColumnTransformer is missing the required third element (the list of columns to apply to) in its transformer tuples, which will cause a ValueError.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "transformers=[\n        (\n            \"num\",\n            Pipeline(\n                steps=[\n                    (\"imputer\", SimpleImputer(strategy=\"median\")),\n                    (\"scaler\", StandardScaler()),\n                ]\n            ),\n        ),"
+  },
+  {
+   "name": "Execution Failure: AttributeError on List Object",
+   "description": "The code attempts to call the `.apply()` method on a standard Python list, which will raise an AttributeError because lists do not have an apply method in Python.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "numeric_features = feature_cols[\n    feature_cols.apply(lambda x: pd.api.types.is_numeric_dtype(train_df[x]))\n]"
+  },
+  {
+   "name": "Unused Preprocessing Pipeline",
+   "description": "In the first script, the agent defines a preprocessor but does not apply it to the training data before model fitting, leading to raw data being passed directly to the model (which may crash on categorical columns).",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(...)\n# Create model\nmodel = lgb.LGBMRegressor(...)\n...\n    # Fit model\n    model.fit(\n        X_train,\n        y_train,"
+  },
+  {
+   "name": "Suboptimal Test Set Transformation",
+   "description": "In the second script, the preprocessing pipeline is fitted inside the cross-validation loop, but the final test set is transformed using only the state of the pipeline from the final fold, rather than refitting on the full training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor.fit(X_train)\n...\nX_test_processed = preprocessor.transform(X_test)"
+  }
+ ],
+ "summary": "The agent establishes a reasonable 5-fold cross-validation strategy with a LightGBM regressor but introduces several critical execution failures. These include improperly defining the ColumnTransformer (missing column selections), calling a pandas method on a Python list, and failing to utilize the preprocessor entirely in the first iteration. Furthermore, the agent implements zero feature engineering and relies solely on a single evaluation metric.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

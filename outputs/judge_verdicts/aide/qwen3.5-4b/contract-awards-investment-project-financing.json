@@ -1,0 +1,152 @@
+{
+ "task": "contract-awards-investment-project-financing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())",
+   "reasoning": "The agent performs basic missing value imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "scaler.fit_transform(X_train)\nscaler.transform(X_test)",
+   "reasoning": "The scaler is correctly fit only on the training data before transforming the test data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())",
+   "reasoning": "Imputation is not fit on the combined train/test dataset (though it is incorrectly fit on the test set separately, which is a different failure mode).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The dataset likely contains temporal information (award dates), but without seeing the schema it is impossible to definitively confirm if a time-based split was required.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "A regression model (LightGBM) is correctly used for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent correctly uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X_train_scaled)):",
+   "reasoning": "The agent trains models across 5 folds and averages the validation scores, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_scores.append(mean_squared_error(y_val_fold, y_pred))",
+   "reasoning": "The agent only calculates and reports RMSE, without considering if another metric like MAE might be more robust given that contract amounts often have heavy-tailed distributions and outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "target_col = \"Supplier Contract Amount (USD)\"",
+   "reasoning": "The task is formulated correctly as predicting the contract amount.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns as-is without any feature engineering, missing out on potentially useful derived features like date parts or text extraction.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Test Set Data Leakage via Imputation",
+   "description": "The agent imputes missing values in the test set using the test set's own median, rather than the training set's median. This uses future/test information to process the test set, which would be unavailable in a real-world production scenario.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = X_test.fillna(X_test.median())"
+  },
+  {
+   "name": "Cross-Validation Leakage",
+   "description": "The agent scales the data and imputes missing values on the entire training dataset before performing cross-validation splits. This leaks information (mean/std and median) from the validation folds into the training folds, making the CV scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)\n...\nfor fold_idx, (train_idx, val_idx) in enumerate(kf.split(X_train_scaled)):"
+  },
+  {
+   "name": "Unhandled Categorical Features",
+   "description": "The agent blindly applies median imputation and standard scaling to all feature columns. If the dataset contains any categorical string columns (which is common in financial records), these operations will result in an execution crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train = X_train.fillna(X_train.median())\nscaler.fit_transform(X_train)"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM model with 5-fold cross-validation but fails to perform any feature engineering. Critical issues include test set data leakage by imputing missing test data with test-set medians, and cross-validation leakage by applying imputation and scaling before the CV split. Furthermore, the naive application of numeric operations to all columns will likely cause the script to crash on categorical features.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "tobacco-problem",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed that inspects test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are explicitly handled via median and mode imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "StandardScaler is correctly fitted only on the training folds inside the CV loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is used.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly computed and applied inside the CV folds without leaking test statistics.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Multiclass classification models are appropriately used for the m-classification task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The deep learning model uses Dropout and Weight Decay for regularisation.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold StratifiedKFold cross-validation strategy is used.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Stochastic models are evaluated across 5 cross-validation folds, providing robustness against variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes logloss and focal loss during training and reports accuracy, which is the correct target metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a multiclass classification problem without discarding signal.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including missingness indicators and aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a custom-weighted ensemble and mathematically optimizes the class multipliers, avoiding naive combinations.",
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent Train/Test Feature Engineering",
+   "description": "Applying data-dependent feature engineering separately on train and test sets can result in inconsistent feature definitions. For example, selecting binary columns based on unique values in the current batch means train and test might aggregate different sets of columns (e.g. into `binary_sum`), or apply transforms like `log1p` inconsistently, leading to misaligned features that break model inference.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "binary_cols = [c for c in num_cols if df[c].dropna().isin([0, 1, 0.0, 1.0]).all() and df[c].nunique() <= 2]\n... applied separately via X_train_fe = engineer_features(X_train_raw) and X_test_fe = engineer_features(X_test_raw)"
+  },
+  {
+   "name": "Optimizing discrete metric with Nelder-Mead",
+   "description": "Using a gradient-free optimizer like Nelder-Mead to directly optimize a discrete metric (such as accuracy) is problematic because the objective landscape is piecewise constant. With zero gradients almost everywhere, the optimizer frequently fails to find a meaningful direction and terminates prematurely.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def obj(c): ... preds = np.argmax(scaled_probs, axis=1)\n        return -accuracy_score(y_true_idx, preds)\n\n    res = minimize(obj, init_c, method='Nelder-Mead'...)"
+  }
+ ],
+ "summary": "The agent provides a robust and well-structured solution, correctly avoiding common pitfalls such as data leakage during scaling/imputation, lack of regularisation, and naive ensembling. However, the feature engineering logic is applied separately to train and test sets, which introduces severe data-dependent inconsistencies (e.g., different columns being identified as binary or non-negative in test vs train). Additionally, using Nelder-Mead to directly optimize a discrete step-function like accuracy is technically flawed.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,137 @@
+{
+ "task": "ashrae-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data; all target statistics and temporal splits are derived strictly from the training set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the target variable (clipping at 0) and explicitly fills missing values in engineered target statistic features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Target statistic imputations are derived exclusively from the training split, preventing leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a time-based holdout validation split, respecting the temporal order.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements a 60-day time-based validation split to evaluate performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(**model_params)\n        model.fit(\n            X_tr,\n            y_tr,\n            eval_set=[(X_va, y_va)],\n            callbacks=callbacks,\n        )",
+   "reasoning": "The LightGBM model uses stochastic parameters (subsample=0.8, colsample_bytree=0.8) but is trained and evaluated only once per meter, without averaging over multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmsle = float(\n        root_mean_squared_error(np.log1p(val_true_meter), np.log1p(val_preds_meter))\n    )",
+   "reasoning": "The agent evaluates the model solely on RMSLE and does not report secondary metrics like MAE to verify robustness against outliers.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem with separate models trained per meter type, which is a standard and effective formulation.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple useful features, including temporal cyclical encodings and building-meter target statistics.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Naive target encoding without cross-validation",
+   "description": "The agent computes target statistics (mean, median, etc.) on the training set and merges them directly back onto the same training set. Without out-of-fold computation, this causes target leakage because each row's target value contributes to its own feature representation, leading to model overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "bm_stats = (\n        train_split.groupby([\"building_id\", \"meter\"])[\"target\"]\n        .agg(\n... df = df.merge(bm_stats, on=[\"building_id\", \"meter\"], how=\"left\")"
+  }
+ ],
+ "summary": "The agent provides a well-structured solution with a proper time-based validation split and sensible per-meter modelling. However, the model suffers from target leakage due to naive target encoding applied directly to the training set without out-of-fold estimation. Additionally, the stochastic LightGBM models are evaluated only once, and model performance is measured using a single metric.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

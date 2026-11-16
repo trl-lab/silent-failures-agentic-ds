@@ -1,0 +1,152 @@
+{
+ "task": "paediatric-investigation-plan",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only drops columns based on missingness and constant values in the training set, not the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly handles missing values for categoricals and relies on LightGBM's native handling for numericals.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Column dropping is based entirely on the training set statistics, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The only imputation is filling NaNs with a constant 'missing' string, which does not leak dataset statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a temporal component, but the agent uses standard stratified splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A multiclass LightGBM model is correctly chosen for the multiclass classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses StratifiedKFold to create proper train and validation splits.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates across 5 cross-validation folds, averaging the results, rather than relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "accuracies.append(accuracy_score(val_true, val_pred))",
+   "reasoning": "The agent only computes and reports accuracy without verifying if it is robust to potential class imbalance in the target variable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train = train[common_cols].copy()",
+   "reasoning": "The agent uses the raw columns directly, applying only basic label encoding and type casting, with no derived features or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Overwriting test IDs with sequential integers",
+   "description": "The agent drops the original ID column and constructs the final submission file using a sequentially generated ID (np.arange(len(test))). If the original test dataset uses non-sequential IDs or strings, this will result in a misaligned or totally invalid submission.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test)), TARGET: test_pred})"
+  },
+  {
+   "name": "Incorrect final boosting rounds calculation",
+   "description": "The agent adds the early stopping rounds to the optimal number of iterations (best_iteration) found during cross-validation when training the final model. This trains the final model for more iterations than optimal, introducing unnecessary trees that didn't improve validation performance and potentially causing overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_boost_rounds = int(np.median(best_iterations)) + EARLY_STOPPING_ROUNDS"
+  },
+  {
+   "name": "Categorical encoding before splitting",
+   "description": "Categorical variables are encoded (Label Encoding) on the entire dataset before splitting into train and validation folds. This leaks information about the presence of rare categories in the validation sets to the training process.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "categories = sorted(train[col].unique())\nmapping = {cat: i for i, cat in enumerate(categories)}"
+  }
+ ],
+ "summary": "The agent provides a structurally robust LightGBM implementation with appropriate cross-validation. However, it completely drops the original test set 'id' columns and forcefully injects sequential integers into the final submission, which will cause evaluation failure for almost all real-world datasets. Additionally, the agent makes a logical error by adding early stopping rounds back into the optimal boosting rounds for final training, guaranteeing a degree of overfitting.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

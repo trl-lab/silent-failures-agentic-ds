@@ -1,0 +1,150 @@
+{
+ "task": "total-contributions-ibrd-ida-ifc",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_features, test_features], axis=0, ignore_index=True)\n...\nunique_ratio = combined[col].nunique() / max(1, len(combined[col].dropna()))",
+   "reasoning": "The agent concatenates the train and test sets and uses the combined dataset's unique value ratio to decide whether a column should be treated as text or categorical, which is a mild form of test data leakage.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively handles missing values through median imputation and by filling NaNs with specific values or global statistics.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly applies StandardScaler exclusively within the cross-validation loop for the neural network, fitting only on the training folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied to the full dataset before splitting that leaks test information (SVD is only fitted on the train text).",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (medians) are calculated on the training data only, not the combined train/test dataset, so no test statistics leak.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "While dates are present, this specific task does not have an explicit time-series forecasting formulation that strictly prohibits random K-Fold splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor, and a PyTorch Regressor) for this regression task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model includes Dropout, LayerNorm/BatchNorm, and weight decay in the optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly implements a 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Models and ensemble weights are evaluated and tuned on the Out-Of-Fold (OOF) validation predictions, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are trained across 5 different folds (using varying random seeds) and their predictions are averaged, properly accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is explicitly requested as the target metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately modeled as a standard tabular regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including date parsing, numeric interactions, frequency encoding, target encoding, and TF-IDF with SVD.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses SLSQP optimization to find the ideal constrained weights for ensembling, rather than a naive unweighted average.",
+   "applicable": true
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Cross-validation data leakage",
+   "description": "Transformations such as TF-IDF, SVD, median imputation, and frequency encoding are fitted on the entire training dataset before cross-validation splitting. This leaks information from the validation folds into the training folds during CV, leading to overly optimistic out-of-fold scores and potentially sub-optimal ensemble weight selection.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_train = tfidf.fit_transform(train_text)\n...\nsvd_train = svd.fit_transform(tfidf_train)\n...\ntrain_medians = X_train_full.median()\nX_train_full = X_train_full.fillna(train_medians)"
+  }
+ ],
+ "summary": "The agent provides a robust and sophisticated solution, correctly implementing advanced feature engineering, target encoding, a deep learning model, and an optimized ensemble. The main flaw is applying several global transformations (TF-IDF, SVD, median imputation) to the full training set prior to K-Fold splitting, which causes internal leakage that invalidates the reliability of the cross-validation scores.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

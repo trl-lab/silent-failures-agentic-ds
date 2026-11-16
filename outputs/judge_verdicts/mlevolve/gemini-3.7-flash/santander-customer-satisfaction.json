@@ -1,0 +1,146 @@
+{
+ "task": "santander-customer-satisfaction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No exploratory data analysis or test set inspection is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[\"var3\"] = df[\"var3\"].replace(-999999, 2)",
+   "reasoning": "The agent explicitly handles missing values (e.g., replacing -999999), fills NaNs for neural networks, and drops constant/duplicate features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_scaled = scaler_svd.fit_transform(X_tr.fillna(0))\n        X_va_scaled = scaler_svd.transform(X_va.fillna(0))",
+   "reasoning": "All scaling operations for SVD and the neural network are strictly performed inside the cross-validation loop.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "constant_features = [col for col in X_train.columns if X_train[col].nunique() <= 1]",
+   "reasoning": "Feature selection (dropping constant and duplicate features) is correctly derived only from the training set, avoiding test data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_tr_nn = nn_scaler.fit_transform(X_tr.fillna(0).values)",
+   "reasoning": "Missing value imputation (fillna) is correctly applied either securely per-row or within the fold splits.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "lgb_model1 = lgb.LGBMClassifier(**lgb_params)",
+   "reasoning": "The agent correctly uses binary classification models and objectives (e.g., BCELoss, LGBMClassifier) for the task.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "self.dropout = nn.Dropout(dropout_rate)",
+   "reasoning": "The PyTorch model includes Dropout layers and uses weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)",
+   "reasoning": "The agent implements a robust 10-fold stratified cross-validation strategy.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is never used for model selection or early stopping; out-of-fold validation sets are correctly utilized.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train, y_train)):",
+   "reasoning": "Models with stochastic elements are trained and evaluated across 10 cross-validation folds, safely averaging out variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "fold_lgb1_auc = roc_auc_score(y_va, lgb1_val_prob)",
+   "reasoning": "The agent optimizes for and reports ROC-AUC, which is the exact metric requested and appropriate for this imbalanced binary classification.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as a binary classification task maximizing ROC-AUC.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"saldo_to_age_ratio\"] = df[\"saldo_sum\"] / age",
+   "reasoning": "The agent performs extensive and domain-relevant feature engineering, including row-level aggregations, ratios, and frequency encoding.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_result = minimize( neg_auc_objective, x0=np.zeros(n_models), method=\"Nelder-Mead\" )",
+   "reasoning": "The ensemble weights are non-naive; they are optimized directly to maximize the ROC-AUC score using the Nelder-Mead algorithm.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Dummy IDs in submission file",
+   "description": "The agent discards the true identifiers from the test set and generates a sequential range (e.g., np.arange) for the submission file. This will cause the submission to fail evaluation or score zero if the grading platform relies on exact ID matching.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame( {\"id\": np.arange(n_test, dtype=np.int64), \"TARGET\": test_final_preds} )"
+  }
+ ],
+ "summary": "The agent's data science solution is highly sophisticated and rigorously avoids standard data leakage pitfalls. It implements advanced feature engineering, target encoding strictly inside the CV loop, and a well-tuned ensemble of tree-based models and a custom PyTorch network. However, a critical execution flaw occurs at the very end: it fails to save and use the actual test IDs for the submission file, opting for dummy sequential IDs instead, which would invalidate the submission.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

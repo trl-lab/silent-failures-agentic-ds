@@ -1,0 +1,148 @@
+{
+ "task": "community-banking_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA, as no manual exploration is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_cols = df_all.select_dtypes(include=[np.number]).columns.tolist()",
+   "reasoning": "The agent makes no explicit effort to clean the data or impute missing values, relying entirely on the gradient boosting models to handle them.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed on the dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset contains a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression algorithms for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly sets up a 5-fold cross-validation scheme.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 folds, which accounts for variance over the dataset.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "overall_rmse = root_mean_squared_error(y, oof_ensemble)",
+   "reasoning": "The agent reports only RMSE and does not verify if it is the most robust metric for the task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including frequency encodings and group-wise aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses Ridge regression as a meta-learner for stacking, avoiding naive ensembling.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature engineering leakage before splitting",
+   "description": "The agent concatenates train and test sets to compute group-wise means and frequency encodings. This leaks the test set feature distributions into the training data before the split.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grp_mean = df_all.groupby(cat, observed=False)[num].transform(\"mean\")"
+  },
+  {
+   "name": "Inconsistent categorical encoding",
+   "description": "Categorical columns are converted to integer codes independently for the train and test sets. If the sets have different unique values for a category, the resulting integer codes will mismatch, corrupting test predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train[col] = X_train[col].astype(\"category\").cat.codes\n    X_test[col] = X_test[col].astype(\"category\").cat.codes"
+  }
+ ],
+ "summary": "The agent builds a robust cross-validated stacking ensemble with multiple gradient boosting models and performs target encoding safely. However, the solution suffers from critical data leakage by performing feature aggregations on the combined train/test dataset, and introduces a bug by independently encoding categorical features in the train and test sets, which will misalign the codes.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

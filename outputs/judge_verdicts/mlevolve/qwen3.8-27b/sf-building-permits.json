@@ -1,0 +1,146 @@
+{
+ "task": "sf-building-permits",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute statistics on the test set for feature engineering or exploration.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning and missing value handling are present and explicitly implemented.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied before splitting the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics are correctly calculated only on the training split via the is_train flag.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data, val_data = train_test_split(train, test_size=0.15, random_state=42)",
+   "reasoning": "The dataset contains temporal information (e.g., Permit Creation Date), but the agent performs a random split instead of a time-based split, causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models for a continuous target.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used for evaluation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection or tuning.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_tweedie.fit(\n    X_train,\n    y_train,\n    eval_set=[(X_val, y_val)],",
+   "reasoning": "The agent trains stochastic models (LightGBM with subsampling and feature fraction) only once per configuration without cross-validation or multiple seed averaging.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "rmse_tweedie = root_mean_squared_error(y_val, val_pred_tweedie)",
+   "reasoning": "The agent relies entirely on RMSE for evaluation without assessing other metrics like MAE, which would be highly relevant given the extreme zero-inflation of the target variable.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent frames the task correctly and even attempts specialized losses (Tweedie and Quantile) for the zero-inflated distribution.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is performed, including datetime expansion, date differences, encodings, and explicit categorical interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_pred_final = np.clip((top2[0][2] + top2[1][2]) / 2.0, 0, None)",
+   "reasoning": "The agent ensembles models using a simple unweighted average rather than optimizing blend weights based on validation performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Encoding Leakage",
+   "description": "Target encodings are computed on the entire training set and mapped directly back onto it without using out-of-fold (K-fold) estimation. This introduces severe target leakage and causes tree-based models to heavily overfit to the encoding features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cat_mean = grouped.mean()\n...\nsmoothed = (cat_count * cat_mean + smoothing * global_mean) / (cat_count + smoothing)\n...\ndf[f\"{c}_target_enc\"] = df[c].map(smoothed).fillna(global_mean)"
+  }
+ ],
+ "summary": "The agent demonstrates strong coding structure, implements specialized losses (Tweedie) for the zero-inflated target, and avoids leaking test data during preprocessing. However, the solution fails critically by ignoring the temporal nature of the data (using a random train/test split) and by introducing severe target leakage via in-sample target encoding. Additionally, the agent uses naive ensembling and does not account for the variance of its stochastic models.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

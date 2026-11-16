@@ -1,0 +1,141 @@
+{
+ "task": "historical-volcanic-locations",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed, so no test data was peeked at during exploration.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values by dropping target NaNs and filling feature NaNs with constants or 'missing'.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No standard scaling or normalization (like StandardScaler) is explicitly applied to the full dataset, though other transformations leak.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\n            svd_feats = svd.fit_transform(tfidf_mat)",
+   "reasoning": "TruncatedSVD (a form of PCA) is fit on the combined train and test sets before splitting, leaking test information into the training data.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No statistical imputer is fit on the full dataset; only constant filling is used.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains historical events with a 'year' column, but the agent uses a random split, ignoring temporal order and potentially causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the models over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses the task-specified metric (accuracy) to evaluate and optimize the models.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The multi-class classification task is correctly formulated.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Extensive feature engineering is applied, including geographical transformations and interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes ensemble weights using Nelder-Mead rather than using a naive averaging method.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via global aggregations and unsupervised fitting",
+   "description": "The agent applies transformations that rely on the distribution of the entire dataset (e.g., group-by mean/std aggregations, frequency encoding, and K-Means clustering) before splitting. This leaks the test set's statistical properties into the training features.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "grp = df_all.groupby(gk)[nt].agg([\"mean\", \"std\"]).reset_index()\n...\nfreq = df_all[col].value_counts(normalize=True).to_dict()\n...\nkmeans = KMeans(n_clusters=8, random_state=42, n_init=10)\ndf_all[\"geo_cluster\"] = kmeans.fit_predict(coords)"
+  }
+ ],
+ "summary": "The agent implements a robust pipeline with extensive feature engineering, target encoding, out-of-fold predictions, and an optimized ensemble. However, it critically fails by applying dimensionality reduction (TruncatedSVD), K-Means clustering, frequency encoding, and statistical aggregations on the combined train and test datasets before splitting, leading to severe data leakage. Additionally, it ignores potential temporal dependencies by using random cross-validation on historical data.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

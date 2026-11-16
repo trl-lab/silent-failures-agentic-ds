@@ -1,0 +1,144 @@
+{
+ "task": "diamonds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by handling missing values and mapping categorical variables.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputer is fit on the combined dataset before splitting (imputation is done separately for train and test).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (XGBRegressor and LGBMRegressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent properly uses a 5-fold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The model is evaluated multiple times across 5 cross-validation folds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent only computes and reports RMSE, without evaluating other metrics like MAE or R-squared to provide a fuller picture of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including dimensional calculations and non-linear transformations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_preds[val_idx] = 0.5 * val_xgb + 0.5 * val_lgb",
+   "reasoning": "The agent combines XGBoost and LightGBM predictions using a naive, unweighted 50/50 split instead of tuning the blending weights or stacking.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Transductive Imputation / Test Leakage",
+   "description": "Imputing missing values in the test set using statistics (like the median) calculated from the test set itself, rather than using the statistics learned from the training set. This makes test predictions batch-dependent.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "data[\"volume\"] = data[\"volume\"].fillna(data[\"volume\"].median())"
+  },
+  {
+   "name": "Incomplete Data Cleaning",
+   "description": "The agent attempts to replace invalid values (e.g., 0s) with NaNs in local variables but fails to update the original dataframe columns, leaving the corrupted values in the features used for modeling.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "x = data[\"x\"].replace(0, np.nan)\n    y = data[\"y\"].replace(0, np.nan)\n    z = data[\"z\"].replace(0, np.nan)"
+  }
+ ],
+ "summary": "The agent successfully applies a 5-fold cross-validation scheme with extensive feature engineering and trains both XGBoost and LightGBM models. However, it combines these models using a naive equal-weight average and only evaluates performance using a single metric (RMSE). Furthermore, the test data's missing values are improperly imputed using its own median, and corrupted 0-values in the dimension columns are not successfully removed from the modeling features due to a scoping oversight.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

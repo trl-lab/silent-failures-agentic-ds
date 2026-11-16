@@ -1,0 +1,140 @@
+{
+ "task": "occupancy-detection",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not explore or extract statistics from the test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df, test_df = preprocess_and_feature_engineering(train_df, test_df)",
+   "reasoning": "The agent makes no explicit effort to clean the raw data (e.g., handling missing values or outliers), relying entirely on LightGBM's native missing value handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset is a time series, but the agent uses a randomized StratifiedKFold for validation, ignoring temporal order and introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions over 5 cross-validation folds, accounting for some variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_score = roc_auc_score(y, oof_preds)\n    print(f\"5-Fold Cross-Validation ROC AUC Score: {cv_score:.6f}\")",
+   "reasoning": "The agent evaluates the model solely using ROC AUC without verifying if other metrics might be necessary to capture the full performance picture.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, including temporal extraction, rolling windows, and differences.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across CV folds, which is standard practice rather than naive ensembling of distinct models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Look-ahead bias in feature engineering",
+   "description": "The agent creates features that incorporate future information in a time-series context, which directly leaks future data into the current prediction and invalidates the model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "df[f\"{col}_diff_next1\"] = df[col].diff(-1).fillna(0)\n            df[f\"{col}_roll_mean3\"] = (\n                df[col].rolling(window=3, min_periods=1, center=True).mean()\n            )"
+  }
+ ],
+ "summary": "The solution implements a reasonable LightGBM pipeline with cross-validation and temporal feature engineering. However, it critically fails to respect the temporal nature of the dataset: it uses randomized cross-validation (ignoring time order) and creates features that explicitly leak future data into current rows via backward differencing (`diff(-1)`) and centered rolling windows (`center=True`). This look-ahead bias completely invalidates the model's performance estimates.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false
+ },
+ "stage_count": 4,
+ "stage_count_max": 7,
+ "no_code": false
+}

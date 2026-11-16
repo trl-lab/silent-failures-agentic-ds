@@ -1,0 +1,152 @@
+{
+ "task": "prepaid-financial-product",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or inspect the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train_df[\"current_status\"]\nX = train_df.drop(\"current_status\", axis=1)",
+   "reasoning": "The agent does not perform any data cleaning, such as handling missing values, duplicates, or outliers, before encoding and modelling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler = StandardScaler()\nX_combined[num_cols] = scaler.fit_transform(X[num_cols])\n\n# 5-fold cross-validation\nkf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The StandardScaler is fit and applied to the entire training dataset before splitting it into cross-validation folds, causing data leakage.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No missing value imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unknown if the dataset contains a temporal component requiring time-based splits.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a binary classification model (LightGBM with objective='binary') for the binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which inherently averages the performance of the stochastic model over multiple runs.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "fold_auc = roc_auc_score(y_val_fold, y_pred)",
+   "reasoning": "The agent only computes and relies on ROC-AUC, without considering other metrics like log-loss, precision, or recall.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a binary classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_cat_encoded = pd.get_dummies(X[cat_cols], columns=cat_cols, drop_first=True)",
+   "reasoning": "The agent only applies basic LabelEncoding and one-hot encoding without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Train/test feature mismatch",
+   "description": "The model is trained on a dataset containing both categorical and numerical features, but the final predictions are generated on a test set that lacks the numerical features. This is due to conditionally concatenating features only to the training set variable.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_combined[num_cols] = scaler.fit_transform(X[num_cols]) ... test_pred = final_model.predict(X_test_encoded)"
+  },
+  {
+   "name": "Early stopping without validation set",
+   "description": "The final model is trained on the full dataset with an early stopping callback, but no validation set is provided. This will cause the gradient boosting library to raise an error during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "final_model = lgb.train(params, final_train_data, num_boost_round=1000, callbacks=[lgb.early_stopping(50, verbose=False)])"
+  },
+  {
+   "name": "Unsafe LabelEncoder transform on test data",
+   "description": "Applying `LabelEncoder.transform()` on the test set will crash with a ValueError if the test set contains categories that were not present in the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_test[col] = le.transform(X_test[col].astype(str))"
+  }
+ ],
+ "summary": "The agent sets up a basic LightGBM model with 5-fold cross-validation but introduces multiple critical execution errors and data leakage. The numerical features are scaled globally before cross-validation (leaking validation data) and are entirely missing from the final test set, which will cause prediction to fail. Additionally, the final training call uses an early stopping callback without providing a validation set, guaranteeing a crash.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

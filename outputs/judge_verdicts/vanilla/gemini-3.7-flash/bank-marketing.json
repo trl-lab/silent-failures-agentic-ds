@@ -1,0 +1,112 @@
+{
+ "task": "bank-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in cat_cols:\n    X[col] = X[col].astype(str).fillna('missing')\n...\nfor col in num_cols:\n    median_val = X[col].median()",
+   "reasoning": "The agent only applies basic imputation and label encoding without engineering any derived features, domain-informed transforms, or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_preds += (0.5 * lgb_test_pred + 0.5 * cb_test_pred) / n_splits",
+   "reasoning": "The agent combines the LightGBM and CatBoost models using a naive equal-weight average without tuning the blend ratio.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation scoring",
+   "description": "The agent performs cross-validation but never calculates or logs any validation metric (such as the target roc_auc metric) for the folds, making it impossible to evaluate model generalisation performance before submission.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X, y_encoded)):"
+  },
+  {
+   "name": "Data leakage in cross-validation",
+   "description": "The agent computes imputation statistics (like the median) on the entire training set before performing cross-validation, which leaks information from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\n    X[col] = X[col].fillna(median_val)\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X, y_encoded)):"
+  },
+  {
+   "name": "Suboptimal categorical feature handling",
+   "description": "The agent manually label-encodes categorical columns and passes them as numerical features to CatBoost, rather than using the model's native categorical handling capabilities which typically yield better performance.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cb_model = CatBoostClassifier(\n        iterations=500,\n        learning_rate=0.03,\n        depth=6,\n        random_seed=42 + fold,\n        verbose=0\n    )"
+  }
+ ],
+ "summary": "The solution implements a 5-fold cross-validation ensemble using LightGBM and CatBoost, correctly formatting the target predictions. However, it fails to engineer any derived features and uses a naive equal-weight ensemble. Furthermore, it neglects to calculate any validation metric during cross-validation and subtly leaks validation fold information into training folds by computing imputation statistics on the entire training set before splitting.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

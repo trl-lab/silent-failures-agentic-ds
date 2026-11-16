@@ -1,0 +1,138 @@
+{
+ "task": "museums",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA on the test data; the preprocessor is only fitted on the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by dropping all-NaN columns, single-value columns, near-unique categoricals, and ID-like columns.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection (dropping uninformative columns) is fitted within the cross-validation loop, avoiding leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing value handling relies on LightGBM's native support and mapping unseen categoricals to -1; no global imputation is fit before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The museums revenue dataset is cross-sectional (predicting 2015 revenue for different museums), so a random KFold split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with objective='regression') for this continuous target prediction task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages performance over 5 cross-validation folds, accounting for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "def rmse(y_true, y_pred):\n    return float(np.sqrt(mean_squared_error(y_true, y_pred)))",
+   "reasoning": "The agent only evaluates the model using RMSE, ignoring other metrics like MAE which might be more robust to outliers in skewed revenue data.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression formulation correctly matches the task of predicting museum revenue.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for col in X.columns:\n            if pd.api.types.is_datetime64_any_dtype(X[col]):\n                X[col] = X[col].dt.year",
+   "reasoning": "The agent does not engineer any significant features; it only attempts a highly basic extraction of the year from datetime columns (which is ultimately lost due to a bug).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Inconsistent preprocessing between fit and transform",
+   "description": "The agent applies a transformation to the data in the `fit` method but fails to include the same transformation in the `transform` method. This causes the model to be trained and evaluated on incorrectly processed data.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "In `fit`: `X[col] = X[col].dt.year`. In `transform`, this loop is entirely missing, and the raw datetime columns are passed directly to `X[col] = pd.to_numeric(X[col], errors=\"coerce\")`, which coerces datetime objects to NaNs."
+  }
+ ],
+ "summary": "The agent correctly structures the training pipeline with KFold cross-validation and LightGBM, avoiding target leakage and applying sensible basic data cleaning. However, it fails to engineer any meaningful features and relies solely on RMSE for evaluation. Most critically, there is a severe bug in the `Preprocessor` where datetime columns are converted to years during `fit` but not during `transform`, causing datetime features to be coerced to NaNs and completely lost during actual training and inference.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

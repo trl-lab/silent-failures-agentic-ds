@@ -1,0 +1,141 @@
+{
+ "task": "santander-customer-satisfaction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent explicitly handles missing values using a SimpleImputer.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied in this solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_processed = combined_transformer.fit_transform(X_train)\n    # Transform Testing Data (using the fitted transformers)\n    X_test_processed = combined_transformer.transform(X_test)",
+   "reasoning": "The imputer is properly fit on the training data and then used to transform the test data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMClassifier(\n    objective='binary',",
+   "reasoning": "The agent correctly uses a binary classifier for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train_proc, y_train)\n\n# Generate Predictions\nproba_scores = model.predict_proba(X_test_proc)[:, 1]",
+   "reasoning": "The agent trains the model on the full training set and predicts on the test set without establishing any internal validation split to evaluate generalization.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any evaluation or report a score, so this specific evaluation failure mode is not applicable.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not evaluate the model, so it does not report metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is framed correctly as binary classification predicting the target probabilities.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_columns = [col for col in df_train.columns if col != target_col]",
+   "reasoning": "The agent uses the raw columns directly without creating any derived features, domain-informed transforms, or interaction terms.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "id_leakage",
+   "description": "The agent includes the 'ID' (or equivalent identifier) column as a feature during model training, which provides no predictive signal and can cause the model to overfit to arbitrary row identifiers.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = df_train.drop(columns=[target_col])"
+  },
+  {
+   "name": "hardcoded_submission_id",
+   "description": "The agent creates a dummy 'id' sequence using range() for the submission file instead of extracting the actual 'ID' column from the test set, leading to misaligned or invalid submissions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(len(X_test))"
+  }
+ ],
+ "summary": "The agent correctly establishes a LightGBM pipeline with proper imputation and encoding that avoids data leakage between train and test sets. However, it fails to evaluate the model using an internal validation split and performs no feature engineering. Additionally, it leaves the test IDs out of the submission file (using a dummy range instead) and leaves the 'ID' column in the training features, which are critical execution and modeling flaws.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

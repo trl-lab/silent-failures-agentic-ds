@@ -1,0 +1,145 @@
+{
+ "task": "us-school-bus-fleet",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not inspected or used to inform the design of preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled using mean imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Scaling is correctly applied after the train/validation split.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X = X.fillna(X.mean())\n\nreturn X\n\n\n# Preprocess train and test\nX_raw_train = preprocess_data(train_data, target_column)",
+   "reasoning": "Mean imputation is applied to the full training dataset before splitting it into train and validation sets, causing data leakage from validation to training.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is unclear if the bus fleet data requires a temporal split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A regression model (LightGBMRegressor) is correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A validation set is explicitly created using train_test_split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = LightGBMRegressor()\nmodel.fit(X_train_scaled, y_train)",
+   "reasoning": "The model is evaluated only once on a single train/validation split without cross-validation or multiple random seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse = np.sqrt(mean_squared_error(y_val, y_val_pred))\n\nprint(f\"Final Validation Score: {rmse:.6f}\")",
+   "reasoning": "Only RMSE is used for evaluation, without any secondary metrics to verify robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem to predict bus age.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "numeric_cols = df.select_dtypes(include=[np.number]).columns\nX = df[numeric_cols]",
+   "reasoning": "The agent drops all non-numeric columns and performs no feature engineering on the remaining numeric ones.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Early stopping evaluated on training data",
+   "description": "The model is configured with early stopping using the training set as the evaluation set. This defeats the purpose of early stopping, as the training error typically continues to decrease, failing to prevent overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "self.model.fit(X, y,\n                      callbacks=[lgb.early_stopping(50, verbose=False)],\n                      eval_set=[(X, y)],\n                      eval_metric='rmse')"
+  },
+  {
+   "name": "Invalid LightGBM callback argument",
+   "description": "The early_stopping callback in LightGBM does not accept a 'verbose' parameter in recent versions (4.0.0+), leading to a TypeError that crashes the execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "callbacks=[lgb.early_stopping(50, verbose=False)]"
+  }
+ ],
+ "summary": "The solution employs a basic LightGBM model but contains execution and logical errors. It fails to run due to an invalid callback argument in LightGBM and improperly uses the training set for early stopping, rendering it useless. Additionally, it leaks validation statistics into the training data by performing mean imputation before splitting, and skips feature engineering entirely by discarding all non-numeric columns.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

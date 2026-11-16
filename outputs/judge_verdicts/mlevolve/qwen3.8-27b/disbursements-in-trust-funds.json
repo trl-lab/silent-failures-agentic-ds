@@ -1,0 +1,146 @@
+{
+ "task": "disbursements-in-trust-funds",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test set during exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df[col] = train_df[col].fillna(train_median)",
+   "reasoning": "The agent explicitly handles missing values by filling them with medians for numeric columns and 'UNKNOWN' for categorical ones.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_df[f\"{col}_norm\"] = ((val_df[col] - train_min) / train_range).clip(0, 1)",
+   "reasoning": "Normalization is correctly calculated on the training split and then applied to the validation and test splits.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No automated feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_median = train_df[col].median()\ntrain_df[col] = train_df[col].fillna(train_median)\nif col in val_df.columns:\n    val_df[col] = val_df[col].fillna(train_median)",
+   "reasoning": "Imputation statistics are appropriately calculated only on the training set and subsequently applied to validation and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_base, val = train_test_split(\n    train, test_size=0.2, random_state=42, stratify=target_quantiles\n)",
+   "reasoning": "The dataset concerns historical financial disbursements, which are temporal in nature, but the agent uses a random stratified split rather than a time-based split, causing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent successfully applies regression models (and a valid sign-classifier heuristic) to the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_base, val = train_test_split(\n    train, test_size=0.2, random_state=42, stratify=target_quantiles\n)",
+   "reasoning": "The agent explicitly creates and evaluates on a validation set.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "best_name = min(results, key=lambda k: results[k][0])",
+   "reasoning": "The agent selects the best model using the held-out validation set, not the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_base, val = train_test_split(\n    train, test_size=0.2, random_state=42, stratify=target_quantiles\n)",
+   "reasoning": "The agent trains models on a single train/validation split with fixed seeds and reports a single score, without using cross-validation or multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_mag_xgb = np.sqrt(mean_squared_error(y_val_orig, val_full_pred_xgb))",
+   "reasoning": "The agent evaluates its performance strictly using RMSE, completely omitting other metrics like MAE which could provide better insights on this highly skewed financial target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dual sign-classification and magnitude-regression approach is a valid and sophisticated formulation for dealing with targets spanning wide ranges and negative values.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_features(",
+   "reasoning": "The agent performs extensive feature engineering including target encoding, categorical interactions, and temporal feature extraction.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "inv_rmses = {k: 1.0 / v for k, v in model_rmses.items()}\nweight_sum = sum(inv_rmses.values())",
+   "reasoning": "The agent uses a metric-weighted ensemble rather than a naive unweighted average.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-sample Target Leakage",
+   "description": "The agent performs target encoding and computes target-based aggregations (e.g., mean, min, max, std) directly on the training set without out-of-fold (OOF) techniques. This causes massive target leakage because the target of a given row is used to compute its own feature, leading to severe overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "agg = train_df.groupby(col)[\"target_signed_log\"].agg([\"mean\", \"count\"])\n...\ntrain_df[f\"{col}_target_enc\"] = (\n    train_df[col].map(smoothed_enc).fillna(global_mean)\n)"
+  }
+ ],
+ "summary": "The agent devises a sophisticated two-stage modeling approach to predict both the sign and magnitude of the trust fund disbursements. However, it introduces critical in-sample target leakage by calculating target encodings directly on the training data without out-of-fold splits, resulting in severe overfitting. Furthermore, it ignores the time-series nature of the financial records by using a random train/validation split rather than a temporal one.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

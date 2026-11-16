@@ -1,0 +1,141 @@
+{
+ "task": "college-creditcard-marketing",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "freq = df[col].value_counts().to_dict()\n    df[f\"{col}_freq\"] = df[col].map(freq).fillna(0)\n... agg = df.groupby(cat_col, observed=False)[num_cols].agg([\"mean\", \"std\"])",
+   "reasoning": "The agent calculates frequency encodings, group-by statistics (mean/std), and skewness on the concatenated train and test dataset, leaking test feature distributions into the training data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Basic cleaning like replacing infinite values is performed, and tree models natively handle the remaining missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the full dataset (NaNs are handled by the tree algorithms or filled with constants).",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "There is no explicit temporal ordering specified for the task that strictly forbids KFold cross-validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (LGBMRegressor, XGBRegressor, CatBoostRegressor) are correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation to evaluate the models.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 5 different cross-validation folds, which accounts for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "RMSE is explicitly required by the task description, so optimizing and reporting only RMSE is correct here.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including date parts, row-wise aggregates, and group-by statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to optimize the ensemble weights rather than using a naive average, although the implementation has a bug.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Flawed ensemble weight normalization",
+   "description": "The agent optimizes ensemble weights without a sum-to-1 constraint, but then forcefully normalizes the resulting optimal weights to sum to 1 after optimization. This arbitrary rescaling breaks the calibration of the predictions, invalidates the optimized loss, and can severely degrade the final metric.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "res = minimize(\n    loss_func, [0.34, 0.33, 0.33], bounds=[(0, 1), (0, 1), (0, 1)], method=\"SLSQP\"\n)\nweights = res.x / np.sum(res.x)"
+  }
+ ],
+ "summary": "The agent implements a solid 5-fold CV pipeline with LightGBM, XGBoost, and CatBoost, but introduces two significant flaws. First, it leaks test set distributions into the training data by computing frequency encodings and group aggregations on the concatenated dataset. Second, the ensemble weight optimization is fundamentally broken because it normalizes the weights to sum to 1 *after* an unconstrained optimization, arbitrarily rescaling the predictions and likely harming the RMSE.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

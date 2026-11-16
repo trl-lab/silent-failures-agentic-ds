@@ -1,0 +1,141 @@
+{
+ "task": "health-professional-shortage-areas",
+ "failure_modes": {
+  "FM02": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "tfidf_mat = tfidf.fit_transform(text_data)",
+   "reasoning": "The TF-IDF vectorizer and TruncatedSVD are fit on the combined train and test text data before splitting, leaking test information.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively cleans the data by parsing datetimes and filling missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "svd = TruncatedSVD(n_components=n_comp, random_state=42)\n        svd_mat = svd.fit_transform(tfidf_mat)",
+   "reasoning": "Dimensionality reduction (TruncatedSVD) is applied to the full combined dataset before the train/test split, causing data leakage.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Only constant value imputation is applied before splitting, which does not leak distribution statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is not a time series, so a random K-Fold split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models (LightGBM and CatBoost) are correctly used for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A 5-fold cross-validation strategy is correctly implemented.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages performance over 5 cross-validation folds rather than relying on a single evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "rmse_score = root_mean_squared_error(y, oof_blend)",
+   "reasoning": "The agent evaluates the models using only RMSE, without checking if other metrics (like MAE) might be relevant.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent engineers multiple features including datetimes, TF-IDF/SVD, target encodings, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_blend = 0.5 * oof_lgb + 0.5 * oof_cb",
+   "reasoning": "The models are combined using a naive unweighted average without attempting to optimize the blending weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via global encodings and aggregations",
+   "description": "Performing frequency encoding or groupby statistical aggregations on the concatenated train and test datasets leaks test set distribution statistics into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "grp_mean = combined.groupby(cat, observed=False)[num].transform(\"mean\")"
+  }
+ ],
+ "summary": "The agent implements a generally solid pipeline with K-Fold cross-validation, OOF target encoding, and an ensemble of LightGBM and CatBoost. However, it introduces data leakage by fitting transformers (TF-IDF, TruncatedSVD) and calculating distribution statistics (frequency encoding, groupby aggregations) on the combined train and test datasets before splitting. Additionally, the ensembling is naive (equal weights) and only a single metric is evaluated.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

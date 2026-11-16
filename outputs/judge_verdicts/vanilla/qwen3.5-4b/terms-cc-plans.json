@@ -1,0 +1,145 @@
+{
+ "task": "terms-cc-plans",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set before processing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "SimpleImputer(strategy='median')",
+   "reasoning": "The agent handles missing values using SimpleImputer for both numerical and categorical features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)",
+   "reasoning": "Imputation is properly encapsulated within a Pipeline and fitted exclusively on the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not clear from the task description if the dataset is a time series requiring temporal splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "LGBMRegressor(random_state=42, verbose=-1, n_estimators=1000)",
+   "reasoning": "The agent correctly chooses a regression model (LGBMRegressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model.fit(X_train, y_train)\n\n# Predict\nX_test_transformed = model.named_steps['preprocessor'].transform(X_test)",
+   "reasoning": "The agent trains on the full training set and predicts on the test set without any internal validation or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "LGBMRegressor(random_state=42",
+   "reasoning": "The stochastic LightGBM model is trained only once, without any averaging over multiple seeds or cross-validation runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent does not compute any evaluation metrics at all, so it does not technically fail by reporting only a single metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The regression task is formulated correctly using the designated target column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "num_transf = Pipeline([...])\n\ncat_transf = Pipeline([...])",
+   "reasoning": "The agent uses the raw columns with only basic imputation and one-hot encoding, completely omitting any derived features or feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Crash due to Missing Target in Test Set",
+   "description": "The agent assumes the test dataset contains the target column and attempts to drop it. Since the test set does not include the target, this raises a KeyError and stops execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_test = df_test.drop(columns=[target_col])"
+  },
+  {
+   "name": "Execution Crash due to Column Mismatch",
+   "description": "The agent iterates over the columns of the original training dataframe (which includes the target column) but tries to look up their dtypes in the modified feature dataframe (where the target was dropped). This causes a KeyError on the target column.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for col in df_train.columns:\n    dtype = X_train[col].dtype"
+  }
+ ],
+ "summary": "The agent builds a correct preprocessing pipeline that avoids data leakage, but fails to implement any internal validation or feature engineering. Crucially, the solution contains fatal execution bugs due to mishandling dataframe columns, specifically trying to access or drop the target column from dataframes where it does not exist.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

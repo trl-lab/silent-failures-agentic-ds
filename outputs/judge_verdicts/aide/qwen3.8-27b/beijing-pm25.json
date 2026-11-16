@@ -1,0 +1,130 @@
+{
+ "task": "beijing-pm25",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform EDA or peek at the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans the data by handling missing values, infinite values, and physically impossible negative values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Category mapping is fit on the training split only for validation, avoiding leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train = train.sort_values(\n        [\"year\", \"month\", \"day\", \"hour\"], na_position=\"last\"\n    ).reset_index(drop=True)\n\n    ...\n\n    train_part = train.iloc[:-val_size].reset_index(drop=True)\n    val_part = train.iloc[-val_size:].reset_index(drop=True)",
+   "reasoning": "The agent correctly sorts by datetime components and uses a time-based split for validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a dedicated validation set using a time-based split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n        params,\n        dtrain,\n        num_boost_round=3000,\n        valid_sets=[dval],\n        callbacks=[lgb.early_stopping(50), lgb.log_evaluation(-1)],\n    )",
+   "reasoning": "The agent trains and evaluates the LightGBM model (which uses stochastic subsampling) exactly once without cross-validation or multiple seeds.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = float(np.sqrt(mean_squared_error(y_val, val_pred)))",
+   "reasoning": "The agent evaluates the model using only RMSE and does not verify performance with other metrics like MAE.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly framed as a regression task.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df[\"dayofweek\"] = dt.dt.dayofweek.fillna(-1)\n    df[\"dayofyear\"] = dt.dt.dayofyear.fillna(-1)\n    df[\"is_weekend\"] = np.where(df[\"dayofweek\"] >= 5, 1, 0)\n\n    hour = pd.to_numeric(df[\"hour\"], errors=\"coerce\")\n    month = pd.to_numeric(df[\"month\"], errors=\"coerce\")\n\n    df[\"hour_sin\"] = np.sin(2 * np.pi * hour / 24)\n    df[\"hour_cos\"] = np.cos(2 * np.pi * hour / 24)",
+   "reasoning": "The agent extracts time-based features, including cyclical encodings for hour and month.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [],
+ "summary": "The agent provides a solid solution overall, properly respecting the temporal order of the data for splitting and avoiding data leakage. The only notable flaws are minor, such as evaluating the stochastic LightGBM model on a single validation split and evaluating it using only a single metric.",
+ "agent": "aide",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

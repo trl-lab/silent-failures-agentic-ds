@@ -1,0 +1,104 @@
+{
+ "task": "ramen-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "val_accuracy = accuracy_score(y, oof_preds)\nprint(f\"Final Validation Score: {val_accuracy}\")",
+   "reasoning": "The agent evaluates the multi-class model solely using accuracy, ignoring other metrics like log-loss or macro F1 that would be more informative for understanding performance across potentially imbalanced rating classes.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "oof_ensemble = (oof_lgb + oof_xgb + oof_cat + oof_deberta) / 4.0\ntest_ensemble = (test_preds_lgb + test_preds_xgb + test_preds_cat + test_preds_deberta) / 4.0",
+   "reasoning": "The agent uses a naive unweighted average to combine four distinct models (three GBDTs and a Transformer) without attempting to optimize the combination weights (e.g. via stacking or blend search) despite having the OOF predictions readily available.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission ID column",
+   "description": "The agent extracts and normalizes the test set IDs at the beginning of the script but fails to use them in the final submission file. Instead, it generates a new sequence of integers (`np.arange`), which will overwrite the true IDs and cause a submission scoring failure if the platform expects the original identifiers.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": np.arange(len(test_df)), \"Stars\": test_pred_stars})"
+  },
+  {
+   "name": "Undeclared categorical features in GBDTs",
+   "description": "The agent maps categorical variables to integer codes but passes them as floats within a numpy array to LightGBM and CatBoost without explicitly declaring them as categorical features, causing the models to treat them suboptimally as continuous numerical variables.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr = train_df.iloc[train_idx][feature_cols].fillna(0.0).values\n...\ncat_model.fit(X_tr, y_tr, eval_set=(X_va, y_va), use_best_model=True)"
+  }
+ ],
+ "summary": "The agent implements a solid multi-model pipeline featuring cross-validation, proper in-fold target encoding, and text embeddings via DeBERTa. However, it relies on a naive unweighted average for its ensemble and only evaluates accuracy. Most critically, a bug in the final submission generation discards the original test IDs in favor of a zero-indexed range, which will invalidate the final predictions.",
+ "agent": "mlevolve",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

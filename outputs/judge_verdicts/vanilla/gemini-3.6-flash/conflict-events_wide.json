@@ -1,0 +1,107 @@
+{
+ "task": "conflict-events_wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.4 * lgb_preds + 0.3 * cb_preds + 0.3 * xgb_preds",
+   "reasoning": "The agent uses a hardcoded, arbitrary weighted average to combine predictions from three models without performing any weight tuning or stacking using validation out-of-fold predictions.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding test IDs for submission",
+   "description": "The agent drops the original ID column from the test set and subsequently generates new sequential IDs using `np.arange` for the submission file. This will cause the submission to fail or predictions to be misaligned if the true test IDs are non-sequential or strings.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({'id': np.arange(len(final_preds)), 'fatalities': final_preds})"
+  },
+  {
+   "name": "Missing validation score computation",
+   "description": "The agent implements K-Fold cross-validation but only uses the validation sets for early stopping, failing to compute or report any validation metric (such as RMSE) for the folds. This leaves the agent completely blind to the model's actual performance.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cb_model.fit(X_tr, y_tr, eval_set=(X_va, y_va))"
+  },
+  {
+   "name": "Data leakage through test set encoding",
+   "description": "The agent concatenates the training and test sets to extract unique categories for label encoding, which technically leaks information about the test set's categorical distribution into the training pipeline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "unique_cats = pd.concat([X[col], X_test[col]]).unique()"
+  }
+ ],
+ "summary": "The agent sets up a K-Fold cross-validation framework with three gradient boosting models but critically fails to preserve the original test IDs for the submission file, replacing them with sequential integers. Additionally, the agent uses a naive, hardcoded weighted average for ensembling and fails to compute or report any validation metric, leaving them blind to the model's performance.",
+ "agent": "vanilla",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,138 @@
+{
+ "task": "dry-bean-dataset",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not inspect or peek at the test data during exploratory data analysis or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly checks for and handles missing values via median imputation.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is performed on the dataset.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\nX[col] = X[col].fillna(median_val)",
+   "reasoning": "The agent computes the median on the entire training set (X) before the StratifiedKFold split, which leaks validation fold information into the training folds during cross-validation.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multiclass classification models (LightGBM, CatBoost) for a classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X.iloc[val_idx], y_encoded[val_idx]",
+   "reasoning": "The agent creates validation folds during cross-validation but never evaluates the models on them or computes any metric to estimate generalisation performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross validation, meaning it trains the models multiple times rather than exactly once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent computes zero metrics (covered by FM06), so it does not rely on a single, potentially inappropriate metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c != target_col]",
+   "reasoning": "The agent uses raw features as-is without creating any derived features, despite the geometric nature of the dataset suggesting potential ratios or interactions.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += lgb.predict_proba(X_test) / (skf.n_splits * 2)",
+   "reasoning": "The agent combines the predictions of LightGBM and CatBoost using a simple unweighted average without any tuning of the combination.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No early stopping for GBDTs",
+   "description": "The agent trains gradient boosting models (LightGBM, CatBoost) for a fixed number of iterations without passing a validation set to an early stopping callback, which can lead to suboptimal performance and overfitting.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb.fit(X_tr, y_tr)\n...\ncat.fit(X_tr, y_tr)"
+  }
+ ],
+ "summary": "The agent successfully sets up a K-Fold ensemble of LightGBM and CatBoost classifiers to generate test predictions, but completely fails to evaluate the models on the validation folds, providing no internal metric of generalisation. Furthermore, the agent misses the opportunity to use early stopping for the GBDTs, performs imputation before the CV split (causing validation leakage), and relies on a naive ensemble average without attempting any feature engineering.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,145 @@
+{
+ "task": "ifc-advisory-services-projects",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "data = data.fillna(0)",
+   "reasoning": "The agent makes an explicit effort to handle missing values by filling them with a constant.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied in the pipeline.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection techniques are applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "data = data.fillna(0)",
+   "reasoning": "The agent fills missing values with a constant (0) rather than fitting an imputer, which avoids leaking test statistics.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is unclear if the dataset has a strict temporal order that must be respected, although project datasets often do.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "The agent correctly uses a regression objective for a budget prediction task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(",
+   "reasoning": "The agent attempts to create a validation split and also uses 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse_scores.append(fold_rmse)",
+   "reasoning": "The agent evaluates the model using 5-fold cross validation, averaging the results to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(y_val, y_val_pred))",
+   "reasoning": "The agent evaluates the model exclusively using RMSE, without computing other potentially informative metrics like MAE or R-squared.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately formulated as a straightforward regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "data = pd.get_dummies(data, columns=categorical_cols, drop_first=True)",
+   "reasoning": "The agent applies only basic imputation and one-hot encoding, without creating any derived features or domain-specific transforms.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "inconsistent_samples_split_crash",
+   "description": "The agent concatenates the train and test sets but tries to pass the combined dataset along with the original train target to `train_test_split`. This will cause a ValueError due to inconsistent sample lengths.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n    data[feature_cols], target, test_size=0.2, random_state=42\n)"
+  },
+  {
+   "name": "missing_dummy_columns_in_test_crash",
+   "description": "The agent attempts to index the original `test` dataframe using the updated `feature_cols` list, which now contains dummy variable names generated from the combined dataset. This will raise a KeyError because the original `test` dataframe was never dummy-encoded.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "test_data = test[feature_cols]"
+  }
+ ],
+ "summary": "The agent's solution contains critical execution flaws that will prevent it from running. It incorrectly concatenates the train and test data for preprocessing but fails to slice them back apart before passing them into `train_test_split`, causing a length mismatch crash. Additionally, it attempts to index the raw test dataset with newly generated dummy column names, which will raise a KeyError. Beyond execution errors, the solution lacks any meaningful feature engineering.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

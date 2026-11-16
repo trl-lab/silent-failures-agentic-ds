@@ -1,0 +1,141 @@
+{
+ "task": "otto-group-product-classification-challenge",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA or peeking at test data is performed.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent explicitly cleans data by imputing missing values and enforcing numeric types.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly applied after splitting, inside a preprocessor fit only on the training data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a classifier (LGBMClassifier) for this multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is created and used for evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_model.fit(X_train, y_train)\n    val_proba = align_proba(val_model.predict_proba(X_val), val_model.classes_, target_classes)\n    _ = log_loss(y_val, val_proba, labels=target_classes)",
+   "reasoning": "The agent trains and evaluates the stochastic LGBMClassifier exactly once on a single validation split.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "_ = log_loss(y_val, val_proba, labels=target_classes)",
+   "reasoning": "The agent only computes log_loss and fails to calculate other informative metrics like accuracy or a confusion matrix.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [c for c in train_df.columns if c not in (ID, TARGET)]",
+   "reasoning": "The agent uses raw features directly and performs no feature engineering.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect submission format",
+   "description": "The agent predicts a single class label instead of outputting probabilities for each class, which is required for log loss metrics in multi-class competitions. This will result in an invalid or terrible score.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pred_idx = np.argmax(test_proba, axis=1)\n\n    class_numbers = np.array([label_to_float(c) for c in classes], dtype='float64')\n    pred_numeric = class_numbers[pred_idx]\n\n    pd.DataFrame(\n        {\n            'id': np.arange(len(test_df), dtype=int),\n            'target': pred_numeric.astype('float64'),\n        }\n    ).to_csv('predictions.csv', index=False)"
+  },
+  {
+   "name": "Hardcoded test IDs",
+   "description": "The agent hardcodes the test IDs using np.arange instead of using the actual ID column from the test dataset, which can lead to mismatched index errors if IDs do not start at 0.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': np.arange(len(test_df), dtype=int)"
+  }
+ ],
+ "summary": "The agent successfully implements a train/validation split and trains an LGBMClassifier without leaking data. However, the evaluation lacks robustness due to single-run validation and reliance on a single metric. Crucially, the final predictions are incorrectly formatted, discarding class probabilities for argmax labels and hardcoding test IDs instead of reading them from the dataset, which will result in an invalid submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,148 @@
+{
+ "task": "appliances-energy-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA is performed using test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "dtrain = lgb.Dataset(X_train, label=y_train)",
+   "reasoning": "The agent relies entirely on LightGBM's native missing value handling and performs no explicit data cleaning or imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed on the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is fit on the data before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=5, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses a randomized cross-validation split for a time-series forecasting task, introducing severe look-ahead bias by training on future data to predict past data.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM regressor) for this regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses cross-validation to evaluate model performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the stochastic model over 5 cross-validation folds rather than relying on a single run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)",
+   "reasoning": "The agent only uses RMSE to evaluate the model without checking other potentially relevant metrics like MAE, which can be more robust to outliers in energy forecasting.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is correctly formulated as a regression problem targeting the Appliances column.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering including temporal components, lags, differences, and rolling statistics.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent averages predictions across CV folds, which is standard bagging rather than a naive ensemble of distinct models.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Look-ahead bias via Lead Features",
+   "description": "The agent creates features using future data (e.g., negative temporal shifts) for a prediction task. This assumes future feature values will be available at inference time, causing look-ahead bias and invalidating the model.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "for shift in [1, 2, 3, 6, -1, -2, -3, -6]:\n        combined[f\"{col}_lag_{shift}\"] = combined[col].shift(shift)"
+  },
+  {
+   "name": "Cross-contamination via Combined Temporal Features",
+   "description": "The agent concatenates train and test sets chronologically before computing temporal features like rolling statistics and lags. This causes information from the test set to leak into the training set near the temporal boundaries.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([train_df, test_df], ignore_index=True)\n...\ncombined[f\"{col}_roll_mean_{win}\"] = combined[col].rolling(win, min_periods=1).mean()"
+  }
+ ],
+ "summary": "The solution correctly identifies the task as regression and implements a thorough feature engineering pipeline alongside a LightGBM model. However, it suffers from critical temporal leakage: it creates lead features using future data, computes rolling statistics across the train-test boundary by concatenating them, and evaluates using a randomized K-Fold split instead of a time-based split. These issues introduce severe look-ahead bias, rendering the cross-validation scores highly unreliable.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

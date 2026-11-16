@@ -1,0 +1,145 @@
+{
+ "task": "prudential-life-insurance-assessment",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df['nan_count'] = df.isnull().sum(axis=1)",
+   "reasoning": "The agent extracts a count of missing values but leaves the NaNs in the dataset, relying entirely on LightGBM/XGBoost's default missing value handling without an explicit imputation strategy.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is applied to the features (only a fillna for one engineered feature).",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "lgb.LGBMRegressor(**lgb_params)",
+   "reasoning": "Although the agent uses regression for a classification task, this is actually the best practice for this specific problem (ordinal target with QWK metric), so it is not a failure mode here.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The agent uses 5-fold Stratified Cross-Validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_proc, y)):",
+   "reasoning": "The agent evaluates the models across 5 folds, avoiding a single stochastic evaluation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "cohen_kappa_score(y, X_p, weights='quadratic')",
+   "reasoning": "The agent correctly uses QWK for threshold optimization and RMSE for training, demonstrating use of multiple appropriate metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as regression followed by threshold optimization, which is ideal for ordinal targets evaluated on QWK.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "df['BMI_Age'] = df['BMI'] * df['Ins_Age']",
+   "reasoning": "The agent engineers multiple features including interaction terms, keyword counts, and categorical decomposition.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "oof_preds = 0.5 * oof_preds_lgb + 0.5 * oof_preds_xgb",
+   "reasoning": "The agent uses a naive, unweighted average to blend the LightGBM and XGBoost predictions rather than tuning the combination weights.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via joint categorical encoding",
+   "description": "The agent concatenates the train and test sets before applying `pd.factorize` and custom mappings. This can leak the categorical distribution of the test set into the training data.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_all_processed[col] = pd.factorize(X_all_processed[col])[0]"
+  },
+  {
+   "name": "Inefficient threshold optimization",
+   "description": "The agent uses a pure Python for-loop to iterate over predictions inside the loss function called by `Nelder-Mead`. For large datasets, this causes severe performance bottlenecks compared to vectorized operations like `np.digitize`.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "for i, pred in enumerate(X_p):"
+  }
+ ],
+ "summary": "The agent successfully implements a strong Kaggle-style pipeline for this ordinal classification task, correctly choosing regression models and optimizing thresholds for the QWK metric. However, it relies entirely on the tree models to handle missing values without explicit imputation (FM03) and uses a naive 50/50 blend for ensembling (FM12). Additionally, there is minor data leakage from encoding categorical variables on the concatenated train and test sets.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

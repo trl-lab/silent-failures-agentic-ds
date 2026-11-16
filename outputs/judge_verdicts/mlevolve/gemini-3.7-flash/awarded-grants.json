@@ -1,0 +1,108 @@
+{
+ "task": "awarded-grants",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset contains temporal features (e.g., grant award dates), but the agent uses a randomized cross-validation split rather than a time-based split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data Leakage via Transductive Feature Engineering",
+   "description": "The agent computes group aggregations (e.g., grouped mean/std) and categorical frequency encodings on the combined training and test dataset. This leaks the distribution of features from the test set into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_df = pd.concat([train_df, test_df], axis=0, ignore_index=True)\n... grp_mean = pd.to_numeric(combined_df.groupby(c_col)[n_col].transform(\"mean\"), errors=\"coerce\")"
+  },
+  {
+   "name": "Data Leakage in Cross-Validation via Global Imputation",
+   "description": "The agent computes statistics (like the median) for missing value imputation on the entire training dataset before entering the cross-validation loop. This leaks information from the validation folds into the training folds, making CV scores overly optimistic.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "col_median = X_train[col].median()\n... X_train[col] = X_train[col].fillna(col_median).astype(np.float32)\n# Done before the CV fold loop"
+  },
+  {
+   "name": "Unscaled Target Variable for Neural Network",
+   "description": "The agent trains a deep learning model (TabularResNet) directly on the raw target variable without any scaling or normalization. For financial amounts, which can have large magnitudes, this can cause extreme gradients and poor model convergence.",
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "y_train = train_df[target_col].values.astype(np.float64)\n# No scaling applied before TensorDataset creation"
+  }
+ ],
+ "summary": "The agent built a highly sophisticated solution featuring extensive feature engineering (TF-IDF, SVD, target encoding, group aggregates) and a well-optimized ensemble of tree models and a ResNet. However, the solution suffers from several forms of data leakage, including transductive feature engineering on the combined train/test set and global median imputation before cross-validation. Additionally, it ignores the temporal nature of the grants data with a randomized split and fails to scale the target variable for the neural network.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

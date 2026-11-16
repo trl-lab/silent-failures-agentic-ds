@@ -1,0 +1,109 @@
+{
+ "task": "aca-federal-upper-limits-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "median_val = X[col].median()\n    X[col] = X[col].fillna(median_val)\n... for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):",
+   "reasoning": "The agent computes the median for numerical imputation on the entire training set before cross-validation splitting, which leaks validation fold information into the training folds.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent only performs basic missing value imputation and ordinal encoding, without creating any derived features or interaction terms.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_preds = 0.5 * lgb_preds + 0.5 * cat_preds",
+   "reasoning": "The agent uses a naive equal-weight average to ensemble the models without any tuning or optimization of the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No validation metric computed",
+   "description": "The agent trains models using cross-validation but fails to collect out-of-fold predictions or compute any validation metric, making it impossible to estimate generalization performance or optimize the ensemble weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgb_preds += lgb.predict(X_test) / n_splits"
+  },
+  {
+   "name": "Categorical features treated as numerical",
+   "description": "Categorical features are integer-encoded for CatBoost, but the `cat_features` argument is not provided to the model. This causes CatBoost to incorrectly treat nominal categories as continuous numerical values.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cat = CatBoostRegressor(\n        iterations=1000,\n        learning_rate=0.05,\n        depth=6,\n        random_seed=42 + fold,\n        verbose=False\n    )"
+  }
+ ],
+ "summary": "The agent sets up a basic cross-validated ensemble of LightGBM and CatBoost, but fails to compute any validation metrics to evaluate its performance. Several data science bad practices are present, including naive ensembling, lack of feature engineering, leakage of validation statistics during imputation before the CV split, and failing to specify categorical features correctly for the CatBoost model.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

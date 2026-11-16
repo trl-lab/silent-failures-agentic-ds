@@ -1,0 +1,111 @@
+{
+ "task": "california_housing",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "train_df = pd.read_parquet(\"./input/train.parquet\")\ntest_df = pd.read_parquet(\"./input/test.parquet\")\n...\nfull_df = pd.concat([train_features, test_features], axis=0).reset_index(drop=True)",
+   "reasoning": "The agent proceeds directly from loading the raw datasets to concatenating them for feature engineering, skipping any explicit data cleaning steps such as handling missing values, duplicates, or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_rmse = root_mean_squared_error(y_true, final_oof_preds)\nprint(f\"Validation RMSE: {val_rmse:.4f}\")",
+   "reasoning": "The agent solely calculates and optimizes for RMSE, failing to report any secondary metrics (such as MAE or R-squared) to provide a broader view of model performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Clustering before splitting",
+   "description": "The agent applies an unsupervised clustering algorithm (KMeans) to the combined train and test datasets before splitting. This causes the test data's spatial distribution to influence the learned cluster centroids, leaking information into the training data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "coords = full_df_feat[[\"latitude\", \"longitude\"]].values\nfor k in [30, 100]:\n    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)\n    full_df_feat[f\"kmeans_cluster_{k}\"] = kmeans.fit_predict(coords)"
+  },
+  {
+   "name": "Treating categorical cluster IDs as numerical",
+   "description": "The KMeans cluster assignments are left as integer columns and are not declared as categorical features. The tree-based models will consequently treat them as continuous numerical features, which incorrectly imposes an ordinal relationship on arbitrary cluster IDs.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "full_df_feat[f\"kmeans_cluster_{k}\"] = kmeans.fit_predict(coords)"
+  },
+  {
+   "name": "Mismatch in neighbor indexing between train and inference",
+   "description": "When extracting the Nth nearest neighbor distance, the code does not account for the fact that the 0th neighbor in the training set is the point itself, whereas for validation/test sets, the 0th neighbor is the 1st nearest training point. This causes an off-by-one shift in the neighbor ranks used as features between train and inference.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_tr[\"dist_knn_5\"] = tr_dists_km[:, 5]\n    X_tr[\"dist_knn_20\"] = tr_dists_km[:, 20]\n    X_va[\"dist_knn_5\"] = va_dists_km[:, 5]"
+  }
+ ],
+ "summary": "The agent implements a highly sophisticated solution with excellent spatial feature engineering, properly implemented KNN target encoding, and a robust optimized ensemble. However, it fails to perform basic data cleaning, evaluates on a single metric, leaks test distribution information by clustering coordinates on the combined dataset, treats cluster IDs as numerical features, and has a subtle off-by-one indexing error in its KNN distance features.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

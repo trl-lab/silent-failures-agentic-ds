@@ -1,0 +1,138 @@
+{
+ "task": "goodreads-books-reviews-290312",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or feature engineering before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values appropriately (e.g., in parse_dates, text length, and encoders).",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is applied before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Target encoding and frequency encoding are strictly applied after splitting or using leave-one-out strategies.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train_full, y_train, test_size=0.2, random_state=RANDOM_STATE)",
+   "reasoning": "The dataset includes temporal features like date_added and read_at, but the agent uses a random split instead of a time-based split, potentially introducing look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LGBMRegressor) for the rating regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent creates a validation set and uses it for early stopping.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(n_estimators=600, learning_rate=0.08... random_state=RANDOM_STATE...)",
+   "reasoning": "The agent trains a stochastic model (LGBM with subsampling) only once on a single random split without cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)]",
+   "reasoning": "The agent only optimizes based on LGBM's default L2 loss metric and does not compute or report any other metrics to verify performance.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering (date decomposition, text features, target encoding).",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Feature mismatch risk from independent column dropping",
+   "description": "The agent applies a cleaning function independently to train and validation/test sets that drops columns if they contain all NaNs. This could result in different sets of columns for train and test sets, causing the model prediction to fail.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_feat = clean_features(X_train_feat[common_cols].astype(np.float32))\nX_test_feat = clean_features(X_test_feat[common_cols].astype(np.float32))"
+  }
+ ],
+ "summary": "The agent implements a solid feature engineering pipeline utilizing leave-one-out target encoding, text metrics, and date parsing. However, the validation strategy relies on a standard random split, introducing subject overlap (user/book IDs) and look-ahead bias due to ignoring temporal order. Furthermore, independent post-processing of features (dropping all-NaN columns) risks misaligning train and test data shapes, potentially triggering the global exception handler and returning a dummy submission.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

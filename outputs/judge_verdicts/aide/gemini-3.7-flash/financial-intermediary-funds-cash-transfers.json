@@ -1,0 +1,149 @@
+{
+ "task": "financial-intermediary-funds-cash-transfers",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any exploratory data analysis or fit any transformers on the test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, y_tr = X.iloc[train_idx], y[train_idx]\n...\ntrain_data = lgb.Dataset(X_tr, label=y_tr, categorical_feature=cat_cols)",
+   "reasoning": "The agent makes no explicit effort to handle missing values, duplicates, or outliers, relying entirely on LightGBM's default handling for missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any scaling or normalization.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "The dataset involves financial cash transfers over time (as evidenced by the date extraction logic), but the agent uses a randomized KFold split, which introduces look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a regression model (LightGBM with 'objective': 'regression') for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, satisfying the requirement for a train/validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent evaluates the model using 5-fold cross-validation, which inherently averages performance over multiple different data splits.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_rmse = root_mean_squared_error(y, oof_preds)\nprint(f\"5-Fold CV RMSE: {cv_rmse:.4f}\")",
+   "reasoning": "The agent only calculates and reports RMSE, failing to use other metrics like MAE which would be more robust to outliers typically found in financial transfer amounts.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly formulates the task as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "The agent does perform basic feature engineering by extracting date components (year, month, day, etc.) from datetime columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": "test_preds += test_pred_fold / n_splits",
+   "reasoning": "The agent combines the predictions of the 5 cross-validation folds using a simple unweighted average without attempting to optimize the fold weights based on OOF performance.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "No hyperparameter tuning",
+   "description": "The agent uses a hardcoded set of hyperparameters for the model without performing any search (e.g., GridSearch, RandomSearch, or Bayesian optimization) to find the optimal configuration for the specific dataset.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "params = {\n    \"objective\": \"regression\",\n    \"metric\": \"rmse\",\n    \"boosting_type\": \"gbdt\",\n    \"learning_rate\": 0.05,\n    ...\n}"
+  },
+  {
+   "name": "Lack of target transformation for financial data",
+   "description": "Financial amounts typically follow a heavily skewed distribution spanning multiple orders of magnitude. Failing to apply a log-transformation (or similar) to the target variable in regression can result in poor model performance and negative predictions.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "y = train_df[target_col].values"
+  }
+ ],
+ "summary": "The agent provides a functional baseline using LightGBM with 5-fold cross-validation, successfully identifying and extracting features from datetime columns. However, it fails to account for the temporal nature of the financial transfer data by using a randomized split, which introduces significant look-ahead bias. Additionally, the agent neglects explicit data cleaning, target variable transformation for skewed financial amounts, and hyperparameter tuning, relying entirely on default model behaviors and hardcoded parameters.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

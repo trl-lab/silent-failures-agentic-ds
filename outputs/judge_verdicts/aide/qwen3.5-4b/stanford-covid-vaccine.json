@@ -1,0 +1,134 @@
+{
+ "task": "stanford-covid-vaccine",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA or test data peeking present in the solution.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(train_df[feature_cols].values, ...)",
+   "reasoning": "The agent proceeds directly from loading the data to splitting and scaling, making no effort to handle missing values, duplicates, or anomalies.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "scaler.fit_transform(X_train)\nscaler.transform(X_val)",
+   "reasoning": "The scaler is correctly fit only on the training split before transforming the validation set.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "\"objective\": \"regression\"",
+   "reasoning": "The agent correctly uses a regression model for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(...)",
+   "reasoning": "The agent correctly creates a 20% validation split.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.train(\n    params,\n    train_data,\n    num_boost_round=500...",
+   "reasoning": "The LightGBM model utilizes stochastic elements (bagging_fraction=0.8) but is trained and evaluated only once.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_mcrmse = np.sqrt(np.mean((y_val - y_val_pred) ** 2))\nprint(f\"Validation mcrmse: {val_mcrmse:.6f}\")",
+   "reasoning": "The agent evaluates the model solely using RMSE (labeled as MCRMSE) and does not verify performance with any other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "medium",
+   "evidence": "target = \"reactivity\"",
+   "reasoning": "The task formulation generally aligns with predicting the specified target, although it neglects the multi-target sequence nature of the original dataset.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col != target]",
+   "reasoning": "The agent passes all non-target columns directly into the model without any feature engineering, which is critical for structured/sequence data like RNA sequences.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Unhandled complex data types",
+   "description": "The agent directly passes raw data into a standard scaler and machine learning model without checking data types. If the dataset contains strings, lists, or arrays (such as RNA sequences or array-based targets), this will immediately result in an execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_scaled = scaler.fit_transform(X_train)"
+  }
+ ],
+ "summary": "The agent sets up a standard LightGBM regression pipeline with a proper train/validation split, avoiding major data leakage. However, it completely bypasses data cleaning and feature engineering, which is fatal for a complex dataset like stanford-covid-vaccine that contains RNA sequences and structures. Consequently, applying StandardScaler directly to the raw feature columns will likely cause an execution failure due to unhandled string or array data types.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,149 @@
+{
+ "task": "osha-accidents",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No test data is used during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning and missing value handling are properly performed within the TabularFeatureProcessor.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The StandardScaler is fit only on X_train during fit_transform, avoiding leakage into the validation or test sets.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is applied before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation statistics (like medians) are computed strictly on the training set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It cannot be determined from the provided context whether the OSHA accidents dataset has a temporal component that strictly requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRanker(**params)",
+   "reasoning": "The agent prioritises and fits a ranking model (LGBMRanker) for a standard binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is explicitly created and used for evaluation.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is not reused across model variants; it is only used for the final submission generation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_val_score = _safe_auc(y_val, val_pred)",
+   "reasoning": "The stochastic LGBM model is trained and evaluated exactly once on a single split, without cross-validation or multiple seed averaging.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "print(f\"Final Validation Score: {final_val_score}\")",
+   "reasoning": "The agent only computes and relies on ROC AUC without reporting other classification metrics (like log loss or PR-AUC) to verify calibration and robustness.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "group_train = np.array([len(y_train)], dtype=np.int32)",
+   "reasoning": "The agent bizarrely frames the binary classification problem as a single-group ranking task, completely discarding the absolute probability signal the task provides.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent actively engineers multiple derived features, including text statistics, date parts, and target encodings.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-sample target encoding",
+   "description": "The agent computes target encoding on the training set using the labels of the samples themselves without applying out-of-fold (OOF) or leave-one-out techniques. This causes severe target leakage into the features and leads to overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "agg = tmp.groupby(\"cat\")[\"y\"].agg([\"count\", \"mean\"])\n... te = (agg[\"count\"] * agg[\"mean\"] + smoothing * self.global_target_mean) / (agg[\"count\"] + smoothing)\n... out[c + \"_target_enc\"] = s.map(te)"
+  },
+  {
+   "name": "Discarding text content",
+   "description": "The agent identifies text columns but only extracts basic surface-level string statistics (like length and word counts), completely discarding the actual semantic textual content instead of utilizing TF-IDF, bag-of-words, or embeddings.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for c in self.text_cols:\n... out[c + \"_len\"] = s.str.len().astype(float)\n... out[c + \"_words\"] = s.str.split().str.len().astype(float)"
+  }
+ ],
+ "summary": "The agent implements a functional baseline pipeline but critically fails by framing the binary classification task as a single-group ranking problem using LGBMRanker, which is fundamentally the wrong model type and formulation. Additionally, it introduces severe data leakage via in-sample target encoding and discards all semantic information from text columns by only extracting basic length statistics.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

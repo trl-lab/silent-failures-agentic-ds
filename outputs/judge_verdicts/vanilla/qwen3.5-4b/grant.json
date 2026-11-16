@@ -1,0 +1,166 @@
+{
+ "task": "grant",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or inspect the test data before splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent includes a SimpleImputer in the pipeline to handle missing values.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalisation is applied to the data.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is correctly placed inside a scikit-learn Pipeline, preventing test data leakage.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 1,
+   "confidence": "medium",
+   "evidence": null,
+   "reasoning": "It is not clear from the code if the grant dataset has a temporal component that requires time-based splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "An XGBRegressor is used, which is appropriate for a regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "pipeline.fit(train_df_clean, train_y)\n    except Exception as e:\n        print(f\"Error fitting model: {e}\")\n        return\n    \n    # Transform and Predict\n    train_pred = pipeline.predict(train_df_clean)\n    test_pred = pipeline.predict(test_df_clean)",
+   "reasoning": "The model is trained on the entire training set and predicts on the test set without any internal validation split or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "pipeline.fit(train_df_clean, train_y)",
+   "reasoning": "The XGBoost model is trained and evaluated exactly once, without multiple runs to account for the variance of the stochastic model.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not compute or report any evaluation metrics, so it cannot be evaluating on only one metric.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is framed correctly as a standard regression problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = ColumnTransformer(\n        transformers=[\n            ('num', SimpleImputer(strategy='median'), numeric_cols),\n            ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), categorical_cols)\n        ],\n        remainder='drop'\n    )",
+   "reasoning": "The agent applies standard imputation and encoding but does not attempt any derived features or domain-specific feature engineering.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Execution Failure - Invalid Import",
+   "description": "The script imports an object from the wrong module, causing an immediate ImportError that prevents the script from running.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "from sklearn.preprocessing import OneHotEncoder, SimpleImputer"
+  },
+  {
+   "name": "Execution Failure - Invalid XGBoost Objective",
+   "description": "The model is initialized with an invalid objective string for XGBoost, which will cause a crash during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "xgb.XGBRegressor(objective='regression', eval_metric='rmse', n_estimators=500, verbosity=0)"
+  },
+  {
+   "name": "Including ID in Features",
+   "description": "The script defines a list of features without the ID column, but then ignores this list and uses all columns (including ID) for training, which can cause spurious correlations.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train_df.columns if col not in ['id']]\n    # Ensure consistent feature columns between train and test\n    common_features = sorted(train_df.columns.tolist())"
+  },
+  {
+   "name": "Overwriting Test IDs",
+   "description": "The script creates a synthetic sequential range for the submission 'id' column instead of using the actual IDs from the test dataset, which will break evaluation if test IDs are not 0-indexed and sequential.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': list(range(len(test_df))), # Row index starting from 0"
+  },
+  {
+   "name": "No Evaluation Performed",
+   "description": "The agent imports evaluation metrics but never calculates or logs them, making it impossible to assess the model's quality.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "from sklearn.metrics import mean_squared_error\n... (mean_squared_error is never used in the script)"
+  }
+ ],
+ "summary": "The solution fails immediately due to an invalid import of SimpleImputer and an incorrect XGBoost objective string. If the code ran, it would suffer from several critical flaws: it lacks a validation split, includes the 'id' column as a feature, overwrites the true test IDs in the output file, and completely fails to evaluate the model's performance.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": false,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}

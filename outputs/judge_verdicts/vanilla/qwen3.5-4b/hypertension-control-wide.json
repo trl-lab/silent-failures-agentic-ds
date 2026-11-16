@@ -1,0 +1,152 @@
+{
+ "task": "hypertension-control-wide",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not perform any EDA or inspect the test data prior to splitting.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent attempts to handle missing values and types, making an explicit effort to clean the data despite execution errors.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Imputation is not fit on the combined dataset; rather, the agent separately imputes train and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No temporal order or time-series component is mentioned in the task.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a classifier for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_data = None # No validation split in simple case, or split if large\n...\ntrain_data, val_data = lgb.Dataset(train_data), val_data",
+   "reasoning": "The validation set variable remains None due to an incorrect tuple assignment, meaning the model is trained without a functional holdout set or cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "clf.fit(train_data, y_train, eval_set=val_data, early_stopping=True)",
+   "reasoning": "The stochastic LightGBM model is trained only once with a fixed random seed.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "'metric': 'auc',",
+   "reasoning": "The model is evaluated using solely AUC, without checking other metrics.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is binary classification and the agent correctly frames it as such.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_clean = X_train.copy()\n    X_test_clean = X_test.copy()",
+   "reasoning": "The agent uses the raw features without performing any feature engineering or deriving new features.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Fatal Execution Error (NameError)",
+   "description": "The code references an undefined variable during a pandas apply operation, causing an immediate crash.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_train_processed = X_train_processed.apply(lambda x: pd.to_numeric(x, errors='coerce') if pd.api.types.is_numeric_dtype(original_column) else x)"
+  },
+  {
+   "name": "Test Set Leakage via Imputation",
+   "description": "The agent imputes missing values in the test set using the mean of the test set itself, leaking test distribution statistics into the predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "result[col] = result[col].fillna(np.mean(result[col].dropna()))"
+  },
+  {
+   "name": "Invalid LightGBM API Usage",
+   "description": "The agent incorrectly passes an lgb.Dataset object as the X feature matrix to the scikit-learn wrapper LGBMClassifier.fit(), which expects array-like inputs.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data = lgb.Dataset(X_train_clean, label=y_train)\n...\nclf = lgb.LGBMClassifier(**params)\nclf.fit(train_data, y_train, eval_set=val_data, early_stopping=True)"
+  }
+ ],
+ "summary": "The agent attempts to build a LightGBM classifier but introduces multiple critical execution errors, including a NameError and incorrect usage of the scikit-learn API. The implementation fails to create a valid holdout set, evaluates the model only once, performs no feature engineering, and leaks test distribution statistics by imputing the test set with its own mean.",
+ "agent": "vanilla",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

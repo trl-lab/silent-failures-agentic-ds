@@ -1,0 +1,104 @@
+{
+ "task": "vehicle",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "OOF Leakage via Early Stopping",
+   "description": "The agent uses the validation fold for early stopping and then uses the predictions from the exact same validation fold as out-of-fold (OOF) predictions for the ensemble. This leaks information because the OOF predictions are optimistically biased, leading to suboptimal ensemble weights.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "xgb_clf.fit(X_tr_augmented, y_tr, eval_set=[(X_va_augmented, y_va)], verbose=False)\noof_xgb[val_idx] = xgb_clf.predict_proba(X_va_augmented)"
+  },
+  {
+   "name": "Test Set Data Leakage via Imputation",
+   "description": "Missing values in the test set are imputed using the test set's own median rather than the training set's median. In a real-world setting, test data should be imputed using statistics learned solely from the training set.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_df = combined_df.fillna(combined_df.median())  # applied independently to test_df in X_test_df = engineer_features(test_df, ...)"
+  },
+  {
+   "name": "Cross-validation Leakage via Pre-CV Imputation",
+   "description": "Missing values in the training set are imputed using the overall training set's median before cross-validation splitting, leaking validation fold statistics into the training folds.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "X_train_df = engineer_features(train_df, raw_feature_cols) ... for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_raw, y_train)):"
+  }
+ ],
+ "summary": "The agent provides an excellent and highly sophisticated solution, including extensive feature engineering, rigorous CV, and a carefully optimized ensemble using Nelder-Mead. However, it exhibits a common Kaggle anti-pattern where out-of-fold predictions are generated on the same validation data used for early stopping, leading to biased meta-features. Additionally, it computes imputation statistics (median) on the test set directly and on the full training set before CV splitting, causing data leakage.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 7,
+ "stage_count_max": 8,
+ "no_code": false
+}

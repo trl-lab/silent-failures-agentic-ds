@@ -1,0 +1,142 @@
+{
+ "task": "petfinder-pawpularity-score",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "There is no EDA performed in the final code, hence no peeking at test data.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset's tabular features are fully populated binary columns with no missing values, but the agent still defensively uses fillna(0.0) when constructing manifold features.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "All scaling (StandardScaler) and manifold projections (PCA, SVD, etc.) are correctly fit only on the training fold (df_tr) and then applied to the validation and test folds.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting; the fillna(0.0) operations occur safely within the cross-validation folds.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses regression models (and bounded regression via BCE objectives) for the continuous Pawpularity target.",
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "nn.Dropout(dropout)",
+   "reasoning": "The PyTorch model PawpularityGatedNet includes Dropout layers and weight decay in the AdamW optimizer.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)",
+   "reasoning": "A 5-fold Stratified K-Fold cross-validation scheme is properly utilized.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The PyTorch model is evaluated across 5 cross-validation folds, safely averaging out variance from initialization and data subsampling.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses and tracks RMSE, which is the official metric for the competition.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is properly framed as regression. The agent's choice to bound the 0-100 target to 0-1 for BCE objectives is mathematically sound and standard for this dataset.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_domain_features(df: pd.DataFrame, binary_cols: list) -> pd.DataFrame:",
+   "reasoning": "The agent engineers extensive domain-specific visual indices, interactions, and complexity scores from the raw binary columns.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "opt_result = minimize(blend_objective, initial_weights, method=\"SLSQP\", bounds=bounds, constraints=constraints)",
+   "reasoning": "The agent uses advanced constrained SLSQP optimization and Ridge Stacking to combine the model predictions, avoiding naive unweighted averaging.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "In-fold Target Encoding Leakage",
+   "description": "Target encoding is applied to the training set using target statistics aggregated from the exact same training set without cross-validation or leave-one-out techniques. This directly leaks the target variable into the training features, causing severe model overfitting.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "tr_enc_dict[col_name] = (train_sig.map(smooth_dict).fillna(global_mean).values.astype(np.float32))"
+  }
+ ],
+ "summary": "The agent built a highly sophisticated solution featuring excellent domain-specific feature engineering, correct cross-validation, diverse model selection, and advanced stacking. However, it introduced a critical data leakage flaw during target encoding: the encoded features for the training folds use statistics derived directly from those exact same folds, leading to severe in-fold target leakage.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

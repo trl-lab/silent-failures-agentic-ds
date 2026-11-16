@@ -1,0 +1,142 @@
+{
+ "task": "heart-failure-clinical",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at or use test data statistics during EDA or feature engineering.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def engineer_features(df):\n    data = df.copy()\n\n    # Skewness corrections",
+   "reasoning": "The agent proceeds directly to feature engineering without any explicit data cleaning, missing value handling, or outlier removal, relying entirely on XGBoost's internal handling.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed in the solution.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputation is performed before splitting.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is clinical survival data, not a sequential time series, so a standard stratified random split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses XGBClassifier for this binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a 5-fold StratifiedKFold cross-validation strategy.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\n...\noverall_auc = roc_auc_score(y, oof_preds)",
+   "reasoning": "The agent evaluates the stochastic XGBoost model using a single cross-validation run with a fixed random seed, without averaging over multiple seeds to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "overall_auc = roc_auc_score(y, oof_preds)\nprint(f\"Validation ROC AUC: {overall_auc:.5f}\")",
+   "reasoning": "The agent only computes and reports the ROC AUC score, ignoring other important clinical metrics like precision, recall, or Brier score.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent formulates the problem as a binary classification task, which aligns with the task description.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent performs extensive feature engineering, creating ratios and clinical risk indices.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "test_preds += model.predict_proba(X_test)[:, 1] / skf.n_splits",
+   "reasoning": "The agent combines the predictions from the 5 cross-validation folds using a naive, unweighted average without attempting to optimize the blend.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage through Survival Time",
+   "description": "Including the follow-up time duration as a feature when predicting an event like death causes target leakage, because the follow-up time is inherently linked to whether and when the event occurred.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "data[\"age_time_ratio\"] = data[\"age\"] / (data[\"time\"] + 1.0)"
+  }
+ ],
+ "summary": "The agent demonstrates good use of domain-specific feature engineering and a proper stratified cross-validation setup. However, it introduces critical target leakage by incorporating the follow-up 'time' column into a feature. Furthermore, the agent skips data cleaning entirely, evaluates the model using only a single metric (ROC AUC) and a single random seed, and utilizes a basic unweighted average for its cross-validation ensemble.",
+ "agent": "aide",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

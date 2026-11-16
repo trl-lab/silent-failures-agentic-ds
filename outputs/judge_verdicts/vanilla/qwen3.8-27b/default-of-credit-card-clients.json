@@ -1,0 +1,146 @@
+{
+ "task": "default-of-credit-card-clients",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at the test data during EDA or preprocessing design.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent cleans the data using a custom FeaturePreprocessor that handles missing values and categorical encoding.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The FeaturePreprocessor is correctly fit on the training data only before transforming validation and test sets.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The dataset is cross-sectional, so a random split is appropriate.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses classification models for a binary classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "A train/validation split is correctly created using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The test set is only used for final predictions, not for model selection or evaluation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train, X_val, y_train, y_val = train_test_split(\n            X, y, test_size=0.2, random_state=42, stratify=y\n        )",
+   "reasoning": "The agent evaluates stochastic models on a single train/validation split without using cross-validation or multiple runs to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "val_scores[name] = safe_auc(y_val, proba)",
+   "reasoning": "The agent only computes ROC AUC for validation, ignoring other metrics like precision, recall, or F1 score that could provide more context.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The problem is correctly formulated as binary classification.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "preprocessor = FeaturePreprocessor().fit(X_train)",
+   "reasoning": "The agent uses raw columns as-is (with basic imputation and categorical mapping) and performs no derived feature engineering.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "ensemble_proba = np.mean(list(val_preds.values()), axis=0)",
+   "reasoning": "The agent uses a naive unweighted average to ensemble the models without attempting to optimize the blend weights.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Discarding original IDs for submission",
+   "description": "The agent drops the original ID column from the test set and generates a new sequence of integers for the submission file. If the evaluation system expects the original IDs, this will cause a submission error or misalignment.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "output = pd.DataFrame(\n        {\n            \"id\": np.arange(len(test_df), dtype=int),\n            TARGET: final_proba,\n        }\n    )"
+  }
+ ],
+ "summary": "The solution employs a solid baseline pipeline with LightGBM, XGBoost, and CatBoost, correctly avoiding data leakage by fitting the preprocessor only on the training split. However, it lacks feature engineering, relies on a naive unweighted ensemble, and evaluates models on a single validation split. Crucially, the agent drops the original ID column from the test set and generates arbitrary IDs for the final submission, which will likely result in evaluation failure.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,153 @@
+{
+ "task": "drug-ndc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA, though they do commit a similar leakage error by fitting the LabelEncoder on the combined train and test sets (captured in other_failure_modes).",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent handles missing values and drops specific high-cardinality ID columns, showing effort to clean the data.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalizing is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed before splitting.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Missing values are filled with a constant string ('MISSING'), which does not leak statistics from the test set.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "It is unclear if the remaining data inherently contains temporal order that must be respected during splitting.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses multi-class classifiers for a multi-class classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent splits the training data into train and validation sets using train_test_split.",
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a proper validation set for evaluating models and does not reuse the test set.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train_encoded, test_size=0.2, random_state=42, stratify=y_train_encoded)",
+   "reasoning": "The agent trains and evaluates the models only once on a single static train/validation split without multiple runs or cross-validation.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lgbm_val_acc = (lgbm_val_pred == y_val).mean()",
+   "reasoning": "The agent reports only accuracy, which is not robust given the apparent class imbalance in the predictions.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is appropriately framed as a multi-class classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent derives new features from the 'active_ingredients' column.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a weighted average based on validation accuracy, which goes beyond a simple unweighted average or majority vote.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "DataLeakage_TestEncoding",
+   "description": "Fitting categorical encoders (e.g. LabelEncoder) on the combined train and test sets, which leaks information about the test set categories into the training pipeline.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined = pd.concat([X_train[col], X_test[col]], axis=0)\n    le.fit(combined)"
+  },
+  {
+   "name": "CatBoost_ShapeMismatch",
+   "description": "CatBoostClassifier's predict method returns a 2D array of shape (N, 1) for multiclass tasks. Comparing this directly to a 1D array of shape (N,) causes numpy to broadcast the comparison to an (N, N) matrix, resulting in a fundamentally flawed accuracy calculation.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "cat_val_pred = cat_model.predict(X_val)\ncat_val_acc = (cat_val_pred == y_val).mean()"
+  }
+ ],
+ "summary": "The agent correctly formulates the task and applies appropriate models and feature engineering. However, they leak test set categorical information by fitting a LabelEncoder on combined train and test data. Additionally, a severe numpy broadcasting bug in the CatBoost evaluation drastically underestimates its accuracy, which subsequently skews the ensemble weights. The evaluation is also limited to a single split and only uses accuracy, ignoring potential class imbalance issues.",
+ "agent": "vanilla",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

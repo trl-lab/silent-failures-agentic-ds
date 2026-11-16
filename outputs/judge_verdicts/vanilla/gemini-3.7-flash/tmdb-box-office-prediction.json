@@ -1,0 +1,109 @@
+{
+ "task": "tmdb-box-office-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "combined_df['runtime'] = combined_df['runtime'].fillna(combined_df['runtime'].median())",
+   "reasoning": "The agent imputes missing values using the median computed over the combined train and test datasets, leaking test set statistics into the training data.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "X_va, y_va = X_train[val_idx], y_train[val_idx]",
+   "reasoning": "The agent creates validation folds during K-Fold cross-validation but never predicts on them or calculates a validation metric, entirely failing to estimate generalization performance.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "final_pred_log = 0.4 * lgb_preds + 0.3 * xgb_preds + 0.3 * cat_preds",
+   "reasoning": "The agent combines model predictions using a hardcoded, arbitrary weighted average without performing any tuning or optimization of the blend ratio.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect Submission IDs",
+   "description": "The agent generates submission IDs using a simple range (e.g., `range(len(test))`) instead of preserving the actual ID column from the test dataset, which will result in an invalid submission format or a score of zero.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "'id': range(n_test)"
+  },
+  {
+   "name": "Data Leakage in Categorical Encoding",
+   "description": "The agent computes frequency encodings and selects top categorical values (like top genres/companies) based on the combined train and test datasets, leaking test set distributions into the training features.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "lang_counts = combined_df['original_language'].value_counts()"
+  }
+ ],
+ "summary": "The agent performs extensive feature engineering but introduces data leakage by imputing missing values and encoding categorical features based on statistics from the combined train and test datasets. Additionally, while it sets up K-Fold cross-validation to ensemble test predictions, it completely fails to calculate a validation score, leaving generalization performance completely unknown. Finally, it uses an unoptimized, hardcoded ensemble blend and creates invalid submission IDs.",
+ "agent": "vanilla",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

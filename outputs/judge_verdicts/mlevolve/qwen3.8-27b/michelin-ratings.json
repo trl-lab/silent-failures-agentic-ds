@@ -1,0 +1,108 @@
+{
+ "task": "michelin-ratings",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "for epoch in range(max_epochs):",
+   "reasoning": "The agent trains the PyTorch neural network exactly once using a single train/validation split and reports the single validation accuracy, without any cross-validation or multiple seed averaging to account for variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Invalid multi-class target encoding",
+   "description": "The agent applies target encoding to a multi-class target by taking the mean of integer-encoded class labels. This is mathematically invalid and creates nonsensical features, as nominal classes should not be averaged as if they were ordinal or continuous.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_encoded = le_te.fit_transform(y_train)\n...\ncat_means = pd.Series(fold_y, index=fold_tr[c]).groupby(level=0).mean()"
+  },
+  {
+   "name": "Hardcoded submission IDs",
+   "description": "The agent discards the original test dataset IDs and hardcodes sequential integers for the submission file. This will cause the submission to fail evaluation if the task expects the original test IDs to match.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission = pd.DataFrame({\"id\": range(len(test_pred_labels)), \"awardFor\": test_pred_labels})"
+  },
+  {
+   "name": "pd.qcut on constant columns",
+   "description": "The agent applies pd.qcut to numerical columns without checking if the column has sufficient variance. If a column is constant, pd.qcut will raise a ValueError even with duplicates='drop', crashing the script.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "bins = pd.qcut(X_train[c], q=5, duplicates=\"drop\")"
+  }
+ ],
+ "summary": "The agent implements a PyTorch neural network with appropriate data splitting and feature engineering. However, it fails to account for variance by only evaluating the stochastic model once (FM14). Additionally, there are severe logical and execution bugs: averaging integer labels for multi-class target encoding is mathematically invalid, hardcoding test IDs will break submission evaluation, and blindly applying `pd.qcut` can crash on constant columns.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.8-27b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": true,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

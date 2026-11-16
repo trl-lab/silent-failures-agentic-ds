@@ -1,0 +1,156 @@
+{
+ "task": "fts-funding",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent does not peek at test data during EDA or preprocessing.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Data cleaning is performed, including missing value handling and dtype correction.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No global scaling is applied to the combined train and test sets before splitting.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Feature selection and dimensionality reduction (SVD) are applied only to the training set, not the combined dataset, so test information is not leaked (though validation info is).",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No imputers are fit on the combined dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "medium",
+   "evidence": "skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=42)\n    split_gen = skf.split(train_eng, strat_bins)",
+   "reasoning": "The agent extracts temporal features from datetime columns, indicating a temporal component, but uses randomized cross-validation instead of a time-based split, risking look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "Regression models are appropriately used for the regression task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses a proper 10-fold cross-validation setup.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The models are evaluated across 10 folds, providing a robust averaged estimate of performance rather than a single stochastic run.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent optimizes for RMSE, which is explicitly the target metric for this task.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is formulated correctly as standard regression.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent implements extensive feature engineering including datetime extraction, text SVD, target encoding, and group aggregations.",
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The ensemble uses SLSQP optimization to find optimal blend weights, which is a sophisticated approach.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Hardcoded Submission IDs",
+   "description": "The agent generates submission IDs using a simple sequence (np.arange) rather than preserving the actual identifiers from the test dataset. If test IDs are non-sequential or distinct strings, the submission will be malformed or misaligned.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "submission_df = pd.DataFrame({\"id\": np.arange(len(test_df)), \"amountUSD\": final_test_preds})"
+  },
+  {
+   "name": "Validation Leakage during Feature Engineering",
+   "description": "The agent computes group statistics (e.g., mean/median of numerical columns grouped by categorical columns) and text embeddings (TF-IDF/SVD) over the entire training set before the cross-validation loop. This leaks feature distribution information from validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "grp_stats = train_eng.groupby(cat)[num_col].agg(...) ... train_eng[feat_name] = train_eng[cat].map(agg_m)"
+  },
+  {
+   "name": "Dead Code",
+   "description": "The agent defines complex deep learning components (e.g., TabularFundingMLP, ResidualBlock) but never instantiates or uses them in the training pipeline.",
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "class TabularFundingMLP(nn.Module):"
+  }
+ ],
+ "summary": "The agent builds a robust ensembled regression pipeline with out-of-fold target encoding and stratification for a continuous target. However, it completely ignores the actual test IDs when formatting the submission, which will cause evaluation failures. Additionally, there is minor validation leakage from calculating group statistics and text embeddings on the full training set prior to cross-validation.",
+ "agent": "mlevolve",
+ "target_model": "gemini-3.7-flash",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 5,
+ "stage_count_max": 8,
+ "no_code": false
+}

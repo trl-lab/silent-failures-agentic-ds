@@ -1,0 +1,138 @@
+{
+ "task": "drug-shortages",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No EDA was performed on the test set.",
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train[feature_cols].fillna(0).astype(float)",
+   "reasoning": "The agent applies a blanket fillna(0) to all missing values without examining the data context, and makes no effort to handle duplicates or outliers.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No scaling or normalization is performed.",
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "No feature selection is performed.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent fills missing values with a constant (0), which does not compute any statistics from the data and therefore does not leak information.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": "cannot_determine",
+   "severity": 3,
+   "confidence": "low",
+   "evidence": null,
+   "reasoning": "It is not clear from the code alone whether the drug shortages dataset has a temporal component that requires a time-based split.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent correctly uses a multiclass classification objective for the m-classification task.",
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses train_test_split to create a validation set, and later implements 5-fold cross-validation.",
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The agent uses 5-fold cross-validation, which evaluates the stochastic model multiple times and averages the results.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_score = accuracy_score(y_val_cv, y_pred_cv)",
+   "reasoning": "The agent relies exclusively on accuracy for evaluation, which can be highly misleading if the drug shortage classes are imbalanced.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": null,
+   "reasoning": "The task is modeled correctly as a standard multiclass classification problem.",
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col != \"availability\"]",
+   "reasoning": "The agent uses the raw columns directly without engineering any derived features, interactions, or domain-specific transformations.",
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Incorrect handling of multiclass probabilities",
+   "description": "When using LightGBM's native `lgb.train` API with a multiclass objective, the `predict()` method returns a 2D array of probabilities (shape: [n_samples, n_classes]). The agent incorrectly applies `np.round()` to this array instead of using `np.argmax(axis=1)` to extract the predicted class labels. This will result in a 2D array of 0s and 1s, which will cause a fatal ValueError when passed into `accuracy_score` or when assigned to a single column in a pandas DataFrame.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred = model.predict(X_test)\ny_pred = np.round(y_pred).astype(int)\n\nsubmission = pd.DataFrame({\"id\": range(len(y_pred)), \"availability\": y_pred})"
+  }
+ ],
+ "summary": "The agent implements a LightGBM model for multiclass classification but introduces a critical execution bug by improperly handling the model's 2D probability outputs, resulting in a shape mismatch crash. Additionally, the solution lacks meaningful data cleaning beyond a blanket zero-fill, performs zero feature engineering, and relies solely on accuracy without verifying if the target classes are balanced.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 3,
+ "stage_count_max": 8,
+ "no_code": false
+}

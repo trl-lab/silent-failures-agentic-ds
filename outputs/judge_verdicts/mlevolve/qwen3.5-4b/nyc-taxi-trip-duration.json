@@ -1,0 +1,120 @@
+{
+ "task": "nyc-taxi-trip-duration",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_df[\"passenger_count\"] = train_df[\"passenger_count\"].fillna(\n    train_df[\"passenger_count\"].median()\n)",
+   "reasoning": "Missing values are imputed using the median/mode of the entire training data before splitting into train and validation sets, causing validation statistics to leak into the training split.",
+   "applicable": true
+  },
+  "FM05": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "train_features, val_features, train_target, val_target = train_test_split(\n    train_features, train_target, test_size=0.3, random_state=42\n)",
+   "reasoning": "The dataset contains temporal features like pickup_datetime, but the agent uses a random train-test split rather than a time-based split, which can introduce look-ahead bias.",
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": true,
+   "severity": 1,
+   "confidence": "high",
+   "evidence": "model = lgb.LGBMRegressor(\n    n_estimators=2000,\n    ...\n    subsample=0.8,\n    colsample_bytree=0.8,\n    random_state=42,\n)",
+   "reasoning": "The agent trains a stochastic LightGBM model exactly once, without using multiple seeds or cross-validation to assess variance.",
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "val_rmse = np.sqrt(mean_squared_error(val_target, val_predictions))",
+   "reasoning": "The agent evaluates the model using RMSE on the raw target, ignoring the task's RMSLE metric which is crucial for handling the heavily skewed trip_duration target.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Target Leakage via dropoff_datetime",
+   "description": "The agent derives features using the dropoff timestamp, which trivially computes the target variable (trip duration) when subtracted from the pickup timestamp. This causes massive target leakage during training.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_df[\"pickup_dropoff_hour\"] = (\n    pd.to_datetime(train_df[\"dropoff_datetime\"])\n    - pd.to_datetime(train_df[\"pickup_datetime\"])\n).dt.total_seconds() / 3600"
+  },
+  {
+   "name": "Target not log-transformed for RMSLE objective",
+   "description": "The task metric is RMSLE, which heavily penalizes relative errors and is robust to outliers in skewed targets. The agent trains the model to minimize standard MSE/RMSE on the raw target without applying a log transformation first, leading to a model that is overly sensitive to extreme outliers.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_target = train_df[\"trip_duration\"]\n...\nmodel = lgb.LGBMRegressor(...)"
+  },
+  {
+   "name": "Using test set statistics for test set imputation",
+   "description": "The agent calculates imputation statistics (like the median and mode) directly on the test set instead of applying the statistics learned from the training set, which violates the assumption that the test set is completely unseen data.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "test_df[\"passenger_count\"] = test_df[\"passenger_count\"].fillna(\n    test_df[\"passenger_count\"].median()\n)"
+  }
+ ],
+ "summary": "The agent performs extensive feature engineering but introduces critical target leakage by computing the exact trip duration from pickup and dropoff datetimes as a feature. Furthermore, the agent fails to align its modeling approach with the task's RMSLE metric, choosing to optimize and evaluate using RMSE on the raw target without a log transformation, and introduces data leakage by computing imputation statistics improperly across splits and on the test data.",
+ "agent": "mlevolve",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 4,
+ "stage_count_max": 8,
+ "no_code": false
+}

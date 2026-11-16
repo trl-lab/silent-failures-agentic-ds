@@ -1,0 +1,104 @@
+{
+ "task": "drug-ndc",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": false,
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": true,
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "svd_char = TruncatedSVD(n_components=40, random_state=42)\nsvd_word = TruncatedSVD(n_components=40, random_state=42)\n\nchar_svd_feats = svd_char.fit_transform(char_tfidf)",
+   "reasoning": "Applying TruncatedSVD (a dimensionality reduction technique equivalent to PCA) to the combined train and test text data leaks test set variance information into the training features.",
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM05": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM13": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "def loss_func(weights):\n    ...\n    return -accuracy_score(y_train, blended_preds)",
+   "reasoning": "The agent solely evaluates and optimizes using accuracy without verifying the class distribution, which is misleading for highly imbalanced classification targets like drug DEA schedules.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": false,
+   "applicable": true
+  },
+  "FM12": {
+   "present": false,
+   "applicable": true
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "Data leakage via global text and categorical transformations",
+   "description": "Fitting TF-IDF vectorizers and computing frequency/label encodings on the concatenated train and test data leaks test set vocabulary, document frequencies, and categorical distributions into the training set.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "char_tfidf = char_vec.fit_transform(full_text)\n...\nfreq_map = df_all[c].value_counts(normalize=True).to_dict()\ncat_df[f\"{c}_le\"] = LabelEncoder().fit_transform(df_all[c])"
+  },
+  {
+   "name": "Optimizing a non-smooth metric for ensemble weights",
+   "description": "The agent uses Nelder-Mead to optimize ensemble blend weights by directly minimizing negative accuracy. Because accuracy relies on a discontinuous argmax operation, the objective landscape consists of flat plateaus. Even gradient-free methods struggle on such step functions because they cannot ascertain an improvement direction, often converging prematurely.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "res = minimize(loss_func, init_weights, bounds=bounds, method=\"Nelder-Mead\")"
+  }
+ ],
+ "summary": "The agent constructs an extensive pipeline with robust out-of-fold target encoding and proper model cross-validation. However, it suffers from critical data leakage by applying TF-IDF, TruncatedSVD, and frequency encoding on the concatenated train and test sets before splitting. Additionally, the agent optimizes its ensemble weights using accuracy directly, which is a non-smooth step function that can cause optimization routines like Nelder-Mead to fail.",
+ "agent": "aide",
+ "extracted_structure": {
+  "data_cleaning": true,
+  "feature_engineering": true,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": true,
+  "ensembling": true,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 6,
+ "stage_count_max": 8,
+ "no_code": false
+}

@@ -1,0 +1,123 @@
+{
+ "task": "forest-cover-type-prediction",
+ "failure_modes": {
+  "FM02": {
+   "present": false,
+   "applicable": true
+  },
+  "FM03": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train = train[feature_cols].copy()",
+   "reasoning": "The agent makes no effort to clean the data, leaving potential missing values, duplicates, or outliers unhandled before passing them to the model.",
+   "applicable": true
+  },
+  "FM08": {
+   "present": false,
+   "applicable": true
+  },
+  "FM09": {
+   "present": false,
+   "applicable": true
+  },
+  "FM04": {
+   "present": false,
+   "applicable": true
+  },
+  "FM10": {
+   "present": false,
+   "applicable": true
+  },
+  "FM06": {
+   "present": false,
+   "applicable": true
+  },
+  "FM14": {
+   "present": false,
+   "applicable": true
+  },
+  "FM15": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "cv_scores.append(accuracy_score(y_fold_val, y_pred))",
+   "reasoning": "The agent evaluates the model using only accuracy, which is poorly suited for the heavily imbalanced class distribution of the Forest Cover Type dataset.",
+   "applicable": true
+  },
+  "FM01": {
+   "present": false,
+   "applicable": true
+  },
+  "FM07": {
+   "present": true,
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "feature_cols = [col for col in train.columns if col not in [\"id\", target_col]]",
+   "reasoning": "The agent uses raw features without any domain-informed feature engineering, ignoring obvious derived features like distances to hydrology that are standard for this dataset.",
+   "applicable": true
+  },
+  "FM05": {
+   "applicable": false,
+   "present": null
+  },
+  "FM11": {
+   "applicable": false,
+   "present": null
+  },
+  "FM13": {
+   "applicable": false,
+   "present": null
+  },
+  "FM12": {
+   "applicable": false,
+   "present": null
+  }
+ },
+ "other_failure_modes": [
+  {
+   "name": "unscaled_test_data",
+   "description": "The agent scales the training data but predicts directly on the raw, unscaled test data (`X_test`), leading to a severe domain mismatch that will heavily degrade final model predictions.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_test_pred = model.predict(X_test)"
+  },
+  {
+   "name": "native_lgbm_label_crash",
+   "description": "The agent uses the native LightGBM API (lgb.train) with 1-indexed labels (1-7), but LightGBM requires 0-indexed labels for multiclass classification. This causes a fatal crash during execution.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "train_data=lgb.Dataset(X_fold_train, label=y_fold_train)"
+  },
+  {
+   "name": "probability_label_mismatch",
+   "description": "The agent evaluates accuracy by passing raw probability predictions from LightGBM's native API directly to sklearn's accuracy_score, which expects discrete class labels. This raises an execution error.",
+   "severity": 3,
+   "confidence": "high",
+   "evidence": "y_pred = model.predict(X_fold_val)\n    cv_scores.append(accuracy_score(y_fold_val, y_pred))"
+  },
+  {
+   "name": "cv_data_leakage",
+   "description": "The agent fits the data scaler on the entire training set before performing K-Fold cross-validation, leaking distributional statistics from the validation folds into the training folds.",
+   "severity": 2,
+   "confidence": "high",
+   "evidence": "X_train_val_scaled[feature_cols] = scaler.fit_transform(X_train_val[feature_cols])\n...\nfor fold, (train_idx, val_idx) in enumerate(skf.split(X_train_val_scaled, y_train_val)):"
+  }
+ ],
+ "summary": "The agent's solution contains severe execution bugs, including missing label encoding for LightGBM (crashing the script), passing probabilities to accuracy_score, and predicting on unscaled test data after training on scaled features. Furthermore, the methodology is lacking in basic feature engineering, data cleaning, and uses an inappropriate evaluation metric (accuracy) for an imbalanced dataset.",
+ "agent": "aide",
+ "target_model": "qwen3.5-4b",
+ "extracted_structure": {
+  "data_cleaning": false,
+  "feature_engineering": false,
+  "validation": true,
+  "hyperparameter_tuning": false,
+  "model_comparison": false,
+  "ensembling": false,
+  "used_deep_learning": false,
+  "uses_stochastic_model": true
+ },
+ "stage_count": 2,
+ "stage_count_max": 8,
+ "no_code": false
+}
